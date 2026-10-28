@@ -489,6 +489,8 @@ class SeatAgent(Protocol):
 
     def start(self) -> BotInfo: ...
 
+    def restore(self, state: bytes) -> None: ...
+
     def prepare(self) -> None: ...
 
     def decide(self, observation: Observation) -> Decision: ...
@@ -621,6 +623,15 @@ class WorkerSeat:
             return False
         self.commit_seq = None
         return True
+
+    def restore(self, state: bytes) -> None:
+        """Continue from a checkpointed explicit state, e.g. after the server restarted."""
+        self.committed = _checked_state(state)
+        self.committed_history.append(self.committed)
+        if self.channel is not None:
+            self._discard(self.channel)
+        self.channel = self._load(restore=True)
+        self.commit_seq = None
 
     def kill_worker(self, cause: str = "infrastructure_kill") -> None:
         """Kill the worker between decisions, as an infrastructure failure would."""
@@ -789,6 +800,12 @@ class InProcessSeat:
 
     def prepare(self) -> None:
         return None
+
+    def restore(self, state: bytes) -> None:
+        """Continue from a checkpointed explicit state, e.g. after the server restarted."""
+        decode_state(state)
+        self.committed = state
+        self.committed_history.append(self.committed)
 
     def decide(self, observation: Observation) -> Decision:
         self.stats.decisions += 1

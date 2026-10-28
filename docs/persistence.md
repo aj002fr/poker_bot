@@ -38,7 +38,7 @@ are each one command and one transaction:
    - hand rows (start, then end and final stacks);
    - a hand-start snapshot for each hand that began;
    - the action receipt;
-   - bot RNG checkpoints;
+   - bot state checkpoints: each bot seat's committed explicit state (canonical JSON, which carries its RNG position), stored in `bot_checkpoints.rng_state` as `{"mode": "explicit", "state": ...}`;
    - awards;
    - the table row (status, version, state version, event count, pending-decision scheduler);
    - pause rows;
@@ -78,11 +78,11 @@ At startup every stored table is loaded:
    - **Unseeded tables** take the deck stored in `HandStarted`.
 3. Re-submit every committed command after the snapshot: manual `ActionApplied` events, each with its `ActionFallback` reason if it had one. Automatic actions are not commands, so the engine must reproduce them.
 4. The rebuilt log must equal the stored log event for event. That includes the hand-start hash and every decision hash, and the state version, event count and completion flag must match the table row.
-5. Restore bot RNGs from their checkpoints. The checkpointed policy and artifact hash must match the running bot code.
+5. Load each bot seat again (baselines in-process, registered files in a sandboxed worker) and restore its committed explicit state from the checkpoint. The checkpointed policy and artifact hash must match the running bot code. A seat whose bot keeps instance state, or whose registered file is not registered in this process (registrations are not persisted), cannot resume exactly.
 
 Any difference halts the table: the status becomes `halted` with a private reason,
 and every endpoint answers 503 `table_halted`. This covers a hash mismatch, a
-different PokerKit or arena build, a missing checkpoint or a changed bot artifact.
+different PokerKit or arena build, a missing checkpoint, a changed bot artifact or a bot seat that cannot resume.
 Nothing is repaired, reshuffled or re-decided, and a halted table stays halted
 across restarts.
 
@@ -131,6 +131,7 @@ visibly when it is unreachable, unless `ARENA_REQUIRE_POSTGRES=1`.
 | A real `SIGKILL` of a Postgres-backed server, then restart | `test_process_kill.py` |
 | No double debit, reshuffle or duplicate payout | `verify_record` in `test_recovery.py`: full replay from scratch, unique decisions, contiguous hands, awards equal the replayed points |
 | Infrastructure restart restores bot and dealer state | `test_seeded_bot_table_interrupted_twice_matches_an_uninterrupted_run` |
+| A registered bot file that is gone after a restart halts its table | `test_restart_halts_a_table_whose_registered_bot_is_gone` |
 | Halt on an irreproducible record | `test_corrupt_stored_event_halts_the_table`, `test_resume.py` |
 | Database unavailable; ambiguous commit | `test_storage_outage_pauses_and_restores_human_think_time`, `test_ambiguous_commit_is_resolved_from_the_store` (memory store only) |
 | Ownership change; obsolete writer tries to commit; reused lease after restart | `test_obsolete_writer_is_fenced_and_cannot_fork_the_table`, `test_live_lease_blocks_a_second_writer`, every restart test (same writer id) |

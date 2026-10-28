@@ -74,6 +74,7 @@ class CheckpointRow:
     policy: str
     artifact_hash: str
     rng_state: dict[str, Any]
+    """The seat's committed bot state: ``{"mode": "explicit", "state": <canonical JSON>}`` or ``{"mode": "instance"}``."""
     decisions: int
     version: int
 

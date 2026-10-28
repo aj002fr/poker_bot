@@ -21,20 +21,25 @@ import threading
 from collections.abc import AsyncIterator
 from typing import Any
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from arena.api.clock import Clock
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
+
+from arena.api.clock import Clock, FakeClock
 from arena.api.manager import (
     ApiError,
     CreateTableRequest,
     JoinRequest,
     Principal,
     TableManager,
-    policy_catalog,
 )
+from arena.api.operator import is_operator, operator_token_from_env
+from arena.api.replay import ReplayCache, ReplayError, check_perspective
+from arena.api.runs import RunManager, RunRejected, RunRequest
+from arena.api.seats import BotRegistrationError
 from arena.domain.models import RULESET_IDS
 from arena.persistence.store import MemoryStore, Store
 from arena.table.projections import ProjectionDenied
@@ -67,6 +72,16 @@ def _bearer(request: Request) -> str | None:
     return token.strip()
 
 
+class RegisterBotRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    path: StrictStr = Field(min_length=1, max_length=4096)
+
+
+class AdvanceClockRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    ms: int = Field(ge=0, le=3_600_000)
+
+
 def create_app(
     manager: TableManager | None = None,
     *,
@@ -74,7 +89,16 @@ def create_app(
     allowed_origins: tuple[str, ...] | None = None,
     background_pump: bool = True,
     pump_interval_s: float = 0.02,
+    operator_token: str | None = None,
+    runs: RunManager | None = None,
+    test_hooks: bool | None = None,
 ) -> FastAPI:
+    """``ARENA_FAKE_CLOCK=1`` (end-to-end tests only) swaps in a fake clock that
+    advances solely through ``POST /__test__/clock/advance``."""
+    if test_hooks is None:
+        test_hooks = os.environ.get("ARENA_FAKE_CLOCK") == "1"
+    if clock is None and manager is None and test_hooks:
+        clock = FakeClock()
     if manager is None:
         manager = TableManager(
             clock,
@@ -83,6 +107,11 @@ def create_app(
             store=store_from_env(),
             writer_id=os.environ.get("ARENA_WRITER_ID", "local-writer"),
         )
+    if operator_token is None:
+        operator_token = operator_token_from_env()
+    if runs is None:
+        runs = RunManager(manager.bots)
+    replays = ReplayCache()
     if allowed_origins is None:
         extra = tuple(o for o in os.environ.get("ARENA_ALLOWED_ORIGINS", "").split(",") if o)
         allowed_origins = DEFAULT_ORIGINS + extra
@@ -108,9 +137,11 @@ def create_app(
             if thread is not None:
                 await run_in_threadpool(thread.join, 5.0)
             await run_in_threadpool(manager.close)
+            await run_in_threadpool(manager.bots.close)
 
     app = FastAPI(title="arena practice table", version="0.1.0", lifespan=lifespan)
     app.state.manager = manager
+    app.state.runs = runs
 
     @app.exception_handler(ApiError)
     async def _api_error(request: Request, exc: ApiError) -> JSONResponse:
@@ -128,24 +159,46 @@ def create_app(
             status_code=422,
         )
 
+    @app.exception_handler(RunRejected)
+    async def _run_rejected(request: Request, exc: RunRejected) -> JSONResponse:
+        return JSONResponse(ApiError(422, exc.code, exc.message, exc.details).body(), status_code=422)
+
+    @app.exception_handler(BotRegistrationError)
+    async def _bot_rejected(request: Request, exc: BotRegistrationError) -> JSONResponse:
+        return JSONResponse(ApiError(422, exc.code, str(exc)).body(), status_code=422)
+
     def principal_for(request: Request, table_id: str) -> Principal:
         return manager.authenticate(table_id, _bearer(request))
+
+    def operator(request: Request) -> bool:
+        header = request.headers.get("authorization", "")
+        scheme, _, token = header.partition(" ")
+        return scheme.lower() == "bearer" and is_operator(operator_token, token.strip())
+
+    def require_operator(request: Request) -> None:
+        if not operator(request):
+            status = 403 if request.headers.get("authorization") else 401
+            raise ApiError(status, "operator_required", "this needs the operator credential")
+
+    operator_only = Depends(require_operator)
 
     @app.get("/health")
     async def health() -> dict[str, Any]:
         return {"ok": True, "compatibility_status": "practice_assumptions"}
 
     @app.get("/catalog")
-    async def catalog() -> dict[str, Any]:
-        return {"rulesets": list(RULESET_IDS), "policies": policy_catalog(), "max_seats": 8, "min_seats": 2}
+    async def catalog(request: Request) -> dict[str, Any]:
+        is_op = operator(request)
+        return {"rulesets": list(RULESET_IDS), "policies": manager.bots.catalog(operator=is_op),
+                "max_seats": 8, "min_seats": 2, "operator": is_op}
 
     @app.post("/configs/resolve")
-    def resolve(body: CreateTableRequest) -> dict[str, Any]:
-        return manager.resolve_config(body)
+    def resolve(body: CreateTableRequest, request: Request) -> dict[str, Any]:
+        return manager.resolve_config(body, operator=operator(request))
 
     @app.post("/tables", status_code=201)
-    def create_table(body: CreateTableRequest) -> dict[str, Any]:
-        return manager.create_table(body)
+    def create_table(body: CreateTableRequest, request: Request) -> dict[str, Any]:
+        return manager.create_table(body, operator=operator(request))
 
     @app.post("/tables/{table_id}/join")
     def join(table_id: str, body: JoinRequest) -> dict[str, Any]:
@@ -170,6 +223,80 @@ def create_app(
     @app.get("/tables/{table_id}/history")
     def history(table_id: str, request: Request, perspective: str | None = None) -> dict[str, Any]:
         return manager.history(table_id, principal_for(request, table_id), perspective)
+
+    @app.get("/tables/{table_id}/replay")
+    async def replay(table_id: str, request: Request, perspective: str | None = None,
+                     hand: int | None = None) -> dict[str, Any]:
+        principal = await run_in_threadpool(principal_for, request, table_id)
+        seat = principal.seat if principal.role == "seat" else None
+        log, complete = await run_in_threadpool(manager.committed_log, table_id)
+        name = perspective or ("seat" if seat is not None else "spectator")
+        try:
+            chosen = check_perspective(name, seat=seat, host=principal.role == "host", complete=complete)
+        except ValueError:
+            raise ApiError(422, "invalid_perspective", "perspective must be seat, spectator or reviewer") from None
+        try:
+            index = await asyncio.to_thread(replays.get, log, chosen, seat if chosen == "seat" else None)
+        except ReplayError as exc:
+            raise ApiError(500, "replay_mismatch", str(exc)) from None
+        hands = index["hands"]
+        numbers = [h["hand_number"] for h in hands]
+        if hand is None:
+            hand = numbers[0]
+        if hand not in numbers:
+            raise ApiError(404, "hand_not_found", "no such hand in this table's log")
+        available = [p for p, ok in (("seat", seat is not None), ("spectator", True),
+                                     ("reviewer", principal.role == "host" and complete)) if ok]
+        return {
+            "table_id": table_id,
+            "perspective": chosen,
+            "viewer_seat": seat if chosen == "seat" else None,
+            "table_complete": complete,
+            "available_perspectives": available,
+            "hands": [{"hand_number": h["hand_number"], "hand_id": h["hand_id"], "frames": len(h["frames"])}
+                      for h in hands],
+            "hand": hands[numbers.index(hand)],
+            "compatibility_status": "practice_assumptions",
+        }
+
+    # ------------------------------------------------------------- operator
+
+    @app.get("/operator", dependencies=[operator_only])
+    async def whoami(request: Request) -> dict[str, Any]:
+        return {"operator": True}
+
+    @app.get("/bots", dependencies=[operator_only])
+    async def list_bots(request: Request) -> dict[str, Any]:
+        return {"bots": manager.bots.catalog(operator=True)}
+
+    @app.post("/bots", status_code=201, dependencies=[operator_only])
+    async def register_bot(body: RegisterBotRequest, request: Request) -> dict[str, Any]:
+        spec = await asyncio.to_thread(manager.bots.register, body.path)
+        return {"bot": spec.public(operator=True)}
+
+    @app.post("/runs", status_code=202, dependencies=[operator_only])
+    async def create_run(body: RunRequest, request: Request) -> dict[str, Any]:
+        return runs.submit(body)
+
+    @app.get("/runs", dependencies=[operator_only])
+    async def list_runs(request: Request) -> dict[str, Any]:
+        return {"runs": runs.summaries()}
+
+    @app.get("/runs/{run_id}", dependencies=[operator_only])
+    async def get_run(run_id: str, request: Request) -> dict[str, Any]:
+        run = runs.get(run_id)
+        if run is None:
+            raise ApiError(404, "run_not_found", "no such run")
+        return run
+
+    if test_hooks:
+        @app.post("/__test__/clock/advance")
+        async def advance_clock(body: AdvanceClockRequest) -> dict[str, Any]:
+            if not isinstance(manager.clock, FakeClock):
+                raise ApiError(409, "real_clock", "this server runs on the real monotonic clock")
+            manager.clock.advance_ms(body.ms)
+            await run_in_threadpool(manager.pump)
+            return {"now_ns": manager.clock.now_ns()}
 
     @app.websocket("/tables/{table_id}/stream")
     async def stream(ws: WebSocket, table_id: str) -> None:

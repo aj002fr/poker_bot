@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from arena.api.clock import FakeClock
-from arena.api.manager import SimulatedCrash
+from arena.api.manager import CreateTableRequest, Principal, SimulatedCrash
 from arena.domain.models import TournamentConfig
 from arena.persistence.recovery import rebuild_table
+from tests.agents.conftest import needs_sandbox
 from tests.api.helpers import HUMAN, bot
 from tests.persistence.helpers import (
     boot,
@@ -19,6 +22,8 @@ from tests.persistence.helpers import (
     raw_action,
     stored_events,
 )
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def finish(h, limit: int = 2000) -> None:
@@ -189,3 +194,26 @@ def tamper_last_payout(store, table_id: str) -> None:
                 "UPDATE events SET data = jsonb_set(data, '{card}', (CASE WHEN data->>'card' = '2c' THEN '\"3c\"' "
                 "ELSE '\"2c\"' END)::jsonb) WHERE table_id = %s AND seq = (SELECT max(seq) FROM events WHERE table_id = %s "
                 "AND type = 'HoleDealt')", (table_id, table_id))
+
+
+@needs_sandbox
+def test_restart_halts_a_table_whose_registered_bot_is_gone(new_store):
+    """Registered files live in the process that registered them; a restart cannot resume such a seat exactly."""
+    clock = FakeClock()
+    store = new_store()
+    a = boot(store, clock)
+    try:
+        spec = a.manager.bots.register(str(ROOT / "examples" / "template_bot.py"))
+        body = CreateTableRequest(seats=[{"kind": "human"}, {"kind": "bot", "policy": spec.id},
+                                         {"kind": "bot", "policy": "legal_random"}], config={"hand_cap": 50})
+        table_id = a.manager.create_table(body, operator=True)["table_id"]
+        a.manager.join(table_id, 0)
+        a.manager.start(table_id, Principal("host", table_id))
+        assert a.manager.tables[table_id].status == "running"
+    finally:
+        a.manager.bots.close()
+
+    b = boot(new_store(), clock)
+    live = b.manager.tables[table_id]
+    assert live.halted_reason is not None and "is not registered here" in live.halted_reason
+    assert store.load(table_id).table.status == "halted"

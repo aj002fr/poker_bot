@@ -7,6 +7,7 @@ import os
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -14,8 +15,10 @@ from fastapi.testclient import TestClient
 from arena.api.app import create_app
 from arena.api.clock import FakeClock
 from arena.api.manager import TableManager
+from arena.api.runs import RunManager
 
 ORIGIN = "http://localhost:5317"
+OPERATOR = "operator-test-token"
 
 
 def auth(token: str | None) -> dict[str, str]:
@@ -27,16 +30,18 @@ class Harness:
     client: TestClient
     manager: TableManager
     clock: FakeClock
+    runs: RunManager | None = None
     table_id: str = ""
     host: str = ""
     tokens: dict[int, str] = field(default_factory=dict)
     _ids: Iterator[int] = field(default_factory=itertools.count)
 
-    def create(self, seats: list[dict[str, Any]], *, seed: str | None = "api-test", **config: Any):
+    def create(self, seats: list[dict[str, Any]], *, seed: str | None = "api-test", operator: bool = False,
+               **config: Any):
         body: dict[str, Any] = {"config": config, "seats": seats}
         if seed is not None:
             body["seed"] = seed
-        r = self.client.post("/tables", json=body)
+        r = self.client.post("/tables", json=body, headers=auth(OPERATOR) if operator else {})
         assert r.status_code == 201, r.text
         self.table_id, self.host = r.json()["table_id"], r.json()["host_token"]
         return r
@@ -110,14 +115,16 @@ def _api_test_store():
 
 
 @contextmanager
-def harness(*, bot_delay_ms: int = 0, hand_pause_ms: int = 0) -> Iterator[Harness]:
+def harness(*, bot_delay_ms: int = 0, hand_pause_ms: int = 0, runs_root: Path | None = None) -> Iterator[Harness]:
     clock = FakeClock()
     store = _api_test_store()
     manager = TableManager(clock, bot_delay_ms=bot_delay_ms, hand_pause_ms=hand_pause_ms, store=store)
-    app = create_app(manager, background_pump=False)
+    runs = RunManager(manager.bots, runs_root) if runs_root is not None else None
+    app = create_app(manager, background_pump=False, operator_token=OPERATOR, runs=runs)
     try:
         with TestClient(app) as client:
-            yield Harness(client, manager, clock)
+            yield Harness(client, manager, clock, app.state.runs)
     finally:
+        manager.bots.close()
         if store is not None:
             store.close()

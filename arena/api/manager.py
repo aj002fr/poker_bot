@@ -33,12 +33,12 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError
 
-from arena.api.bots import BOT_POLICIES
+from arena.agents.worker import SeatAgent
 from arena.api.clock import Clock, MonotonicClock
+from arena.api.seats import BotRegistry, BotSpec, bot_turn, live_table_info
 from arena.domain.canonical import canonical_json
 from arena.domain.events import EventEnvelope
-from arena.domain.models import RULESET_IDS, ActionEnvelope, TournamentConfig
-from arena.domain.rng import SeededRng
+from arena.domain.models import ActionEnvelope, TournamentConfig
 from arena.history.replay import ReplayIncompatible, ReplayMismatch
 from arena.persistence.models import (
     AwardRow,
@@ -54,10 +54,8 @@ from arena.persistence.models import (
 )
 from arena.persistence.recovery import rebuild_table
 from arena.persistence.store import MemoryStore, OwnershipLost, Store, StoreError, StoreUnavailable
-from arena.table.driver import policy_rngs
 from arena.table.projections import (
     Viewer,
-    observation,
     project_events,
     table_history_view,
     table_view,
@@ -149,23 +147,23 @@ class SeatSlot:
     policy: str | None
     claimed: bool = False
     token_hash: str | None = None
+    bot: BotSpec | None = None
 
     def public(self, viewer_seat: int | None) -> dict[str, Any]:
-        bot = BOT_POLICIES.get(self.policy) if self.policy else None
         return {
             "seat": self.seat,
             "kind": self.kind,
             "policy": self.policy,
-            "label": bot.label if bot else "Human",
-            "artifact_hash": bot.artifact_hash if bot else None,
+            "label": self.bot.label if self.bot else (self.policy or "Human"),
+            "artifact_hash": self.bot.artifact_hash if self.bot else None,
+            "source": self.bot.source if self.bot else None,
             "claimed": self.claimed if self.kind == "human" else True,
             "you": viewer_seat == self.seat,
         }
 
     def row(self) -> ParticipantRow:
-        bot = BOT_POLICIES.get(self.policy) if self.policy else None
-        return ParticipantRow(self.seat, self.kind, self.policy, bot.artifact_hash if bot else None, self.claimed,
-                              self.token_hash)
+        return ParticipantRow(self.seat, self.kind, self.policy, self.bot.artifact_hash if self.bot else None,
+                              self.claimed, self.token_hash)
 
 
 @dataclass
@@ -239,7 +237,7 @@ class LiveTable:
     status: Literal["waiting", "running", "complete"] = "waiting"
     version: int = 0
     table: Table | None = None
-    bot_rngs: dict[int, SeededRng] = field(default_factory=dict)
+    agents: dict[int, SeatAgent] = field(default_factory=dict)
     bot_decisions: dict[int, int] = field(default_factory=dict)
     scheduled_decision: str | None = None
     scheduled_hand: str | None = None
@@ -280,12 +278,8 @@ def _token_key(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def policy_catalog() -> list[dict[str, Any]]:
-    return [
-        {"id": p.id, "label": p.label, "description": p.description, "artifact_hash": p.artifact_hash,
-         "rulesets": list(RULESET_IDS)}
-        for p in BOT_POLICIES.values()
-    ]
+def _explicit_state(checkpoint: dict[str, Any]) -> bytes | None:
+    return checkpoint["state"].encode() if checkpoint.get("mode") == "explicit" else None
 
 
 class TableManager:
@@ -301,8 +295,10 @@ class TableManager:
         heartbeat_ms: int = 1000,
         recover: bool = True,
         force_claim: bool = False,
+        bots: BotRegistry | None = None,
     ) -> None:
         self.clock = clock or MonotonicClock()
+        self.bots = bots or BotRegistry()
         self.bot_delay_ns = int(bot_delay_ms * 1_000_000)
         self.hand_pause_ns = int(hand_pause_ms * 1_000_000)
         self.store: Store = store if store is not None else MemoryStore()
@@ -335,18 +331,25 @@ class TableManager:
             raise ApiError(422, "invalid_config", "seat assignments must match initial_player_count")
         return config
 
-    def resolve_config(self, body: CreateTableRequest) -> dict[str, Any]:
+    def resolve_config(self, body: CreateTableRequest, *, operator: bool = False) -> dict[str, Any]:
         config = self.build_config(body.config, len(body.seats))
-        self._validate_seats(body.seats)
-        return {"config": config.resolved(), "config_hash": config.config_hash(), "policies": policy_catalog()}
+        self._validate_seats(body.seats, config, operator)
+        return {"config": config.resolved(), "config_hash": config.config_hash(),
+                "policies": self.bots.catalog(operator=operator)}
 
-    @staticmethod
-    def _validate_seats(seats: list[SeatRequest]) -> None:
+    def _validate_seats(self, seats: list[SeatRequest], config: TournamentConfig, operator: bool) -> list[BotSpec | None]:
+        specs: list[BotSpec | None] = []
         for i, s in enumerate(seats):
-            if s.kind == "bot" and s.policy not in BOT_POLICIES:
+            spec = self.bots.resolve(s.policy) if s.kind == "bot" else None
+            if s.kind == "bot" and (spec is None or (spec.source == "registered" and not operator)):
                 raise ApiError(422, "invalid_seat", f"seat {i}: unknown bot policy")
             if s.kind == "human" and s.policy is not None:
                 raise ApiError(422, "invalid_seat", f"seat {i}: human seats take no policy")
+            if spec is not None and config.ruleset_id not in spec.rulesets:
+                raise ApiError(422, "unsupported_ruleset", f"seat {i}: {spec.label} does not support {config.ruleset_id}",
+                               {"seat_index": i, "policy": s.policy, "supported": list(spec.rulesets)})
+            specs.append(spec)
+        return specs
 
     # -------------------------------------------------------- identity / auth
 
@@ -395,14 +398,14 @@ class TableManager:
 
     # --------------------------------------------------------------- lobby
 
-    def create_table(self, body: CreateTableRequest) -> dict[str, Any]:
+    def create_table(self, body: CreateTableRequest, *, operator: bool = False) -> dict[str, Any]:
         config = self.build_config(body.config, len(body.seats))
-        self._validate_seats(body.seats)
+        specs = self._validate_seats(body.seats, config, operator)
         if self.outage_since is not None:
             raise storage_unavailable()
         table_id = "t_" + secrets.token_hex(6)
-        slots = {seat: SeatSlot(seat, s.kind, s.policy) for seat, s in zip(config.resolved_seats, body.seats,
-                                                                             strict=True)}
+        slots = {seat: SeatSlot(seat, s.kind, s.policy, bot=spec)
+                 for seat, s, spec in zip(config.resolved_seats, body.seats, specs, strict=True)}
         token = secrets.token_urlsafe(24)
         bot_seed = body.seed if body.seed is not None else secrets.token_hex(16)
         live = LiveTable(table_id, config, slots, body.seed, bot_seed=bot_seed,
@@ -448,15 +451,13 @@ class TableManager:
             unclaimed = [s for s, slot in live.slots.items() if slot.kind == "human" and not slot.claimed]
             if unclaimed:
                 raise ApiError(409, "seats_unclaimed", f"{len(unclaimed)} human seat(s) not yet claimed")
-            seats = list(live.config.resolved_seats)
+            live.agents = self._start_agents(live)
             if live.seed is not None:
                 live.table = seeded_table(live.config, live.seed, table_id=table_id, on_hand_start=live.capture_point)
             else:
                 live.table = Table(live.config, table_id=table_id, on_hand_start=live.capture_point)
-            live.bot_rngs = {s: r for s, r in policy_rngs(live.bot_seed, seats).items()
-                             if live.slots[s].kind == "bot"}
-            live.bot_decisions = {s: 0 for s in live.bot_rngs}
-            live.dirty_bots = set(live.bot_rngs)
+            live.bot_decisions = {s: 0 for s in live.agents}
+            live.dirty_bots = set(live.agents)
             live.status = "running"
             now = self.clock.now_ns()
             self._schedule(live, now)
@@ -465,6 +466,38 @@ class TableManager:
             self._run_due_bots(live, now)
             self._publish(live)
             return self._snapshot(live, principal)
+
+    def _start_agents(self, live: LiveTable, checkpoints: dict[int, bytes | None] | None = None) -> dict[int, SeatAgent]:
+        """Load every bot seat and check its ruleset; with ``checkpoints``, resume each from its committed state."""
+        agents: dict[int, SeatAgent] = {}
+        try:
+            for seat, slot in sorted(live.slots.items()):
+                if slot.kind != "bot":
+                    continue
+                if slot.bot is None:
+                    raise LookupError(f"seat {seat}: bot {slot.policy!r} is not registered on this server")
+                info = live_table_info(live.config, live.table_id, seat, live.bot_seed)
+                agent = self.bots.agent(slot.bot, seat, info)
+                agents[seat] = agent
+                agent.start()
+                if checkpoints is not None:
+                    state = checkpoints.get(seat)
+                    if state is None:
+                        raise LookupError(f"seat {seat}: {slot.bot.label} keeps instance state, which cannot resume")
+                    agent.restore(state)
+        except Exception as exc:
+            for agent in agents.values():
+                agent.close()
+            if checkpoints is not None:
+                raise
+            raise ApiError(409, "bot_start_failed", f"a bot seat failed to load: {type(exc).__name__}") from None
+        return agents
+
+    @staticmethod
+    def _close_agents(live: LiveTable) -> None:
+        for agent in live.agents.values():
+            agent.close()
+        live.agents = {}
 
     # ------------------------------------------------------------ snapshots
 
@@ -565,6 +598,15 @@ class TableManager:
                 viewer = principal.viewer
             return table_history_view(live.table, viewer).model_dump(mode="json")
 
+    def committed_log(self, table_id: str) -> tuple[list[Any], bool]:
+        """A copy of the private log so far and whether the table is complete (for replay)."""
+        live = self._get(table_id)
+        with live.queue:
+            self._check_usable(live)
+            if live.table is None:
+                raise ApiError(409, "not_started", "table has not started")
+            return list(live.table.log), live.status == "complete"
+
     # -------------------------------------------------------------- actions
 
     def register_action(self, table_id: str) -> int:
@@ -659,6 +701,7 @@ class TableManager:
             live.status = "complete"
             live.deadline_ns = live.bot_due_ns = None
             live.scheduled_decision = None
+            self._close_agents(live)
             return
         if live.scheduled_decision == table.decision_id:
             return
@@ -687,16 +730,7 @@ class TableManager:
         assert table is not None
         seat = table.actor_seat
         assert seat is not None
-        obs = observation(table, seat)
-        policy = BOT_POLICIES[live.slots[seat].policy or ""]
-        try:
-            action = policy.decide(obs, live.bot_rngs[seat])
-            table.submit(seat, action, hand_id=obs.hand_id, decision_id=obs.decision_id,
-                         expected_state_version=obs.state_version)
-        except ActionRejected as exc:
-            table.apply_fallback(seat, "invalid_action", {"code": exc.code})
-        except Exception as exc:  # noqa: BLE001 - any bot failure consumes the decision once
-            table.apply_fallback(seat, "bot_error", {"error": type(exc).__name__})
+        bot_turn(table, live.agents[seat])
         live.bot_decisions[seat] += 1
         live.dirty_bots.add(seat)
         live.bot_due_ns = None
@@ -807,9 +841,13 @@ class TableManager:
                                              p, dict(engine)))
         checkpoints = []
         for seat in sorted(live.dirty_bots):
-            policy = BOT_POLICIES[live.slots[seat].policy or ""]
-            checkpoints.append(CheckpointRow(seat, policy.id, policy.artifact_hash, live.bot_rngs[seat].getstate(),
-                                             live.bot_decisions[seat], live.version))
+            agent, spec = live.agents.get(seat), live.slots[seat].bot
+            if agent is None or spec is None:
+                continue
+            state = ({"mode": "explicit", "state": agent.committed.decode()}  # type: ignore[attr-defined]
+                     if agent.info.state_mode == "explicit" else {"mode": "instance"})
+            checkpoints.append(CheckpointRow(seat, spec.id, spec.artifact_hash, state, live.bot_decisions[seat],
+                                             live.version))
         row = TableRow(
             table_id=live.table_id,
             config=live.config.resolved(),
@@ -953,6 +991,7 @@ class TableManager:
             raise storage_unavailable() from None
         if stored is None:
             raise ApiError(404, "table_not_found", "no such table")
+        self._close_agents(live)
         fresh = self._load(stored, reason=reason, paused_at=paused_at)
         keep = {"subscribers", "inflight", "queue"}
         for name, value in fresh.__dict__.items():
@@ -991,7 +1030,8 @@ class TableManager:
     def _load(self, stored: StoredTable, *, reason: str, paused_at: float | None = None) -> LiveTable:
         t = stored.table
         config = TournamentConfig.model_validate(t.config)
-        slots = {p.seat: SeatSlot(p.seat, p.kind, p.policy, p.claimed, p.token_hash)  # type: ignore[arg-type]
+        slots = {p.seat: SeatSlot(p.seat, p.kind, p.policy, p.claimed, p.token_hash,  # type: ignore[arg-type]
+                                  bot=self.bots.resolve(p.policy) if p.kind == "bot" else None)
                  for p in stored.participants}
         live = LiveTable(t.table_id, config, slots, t.deck_seed, bot_seed=t.bot_seed,
                          host_token_hash=t.host_token_hash, version=t.version, committed_version=t.version)
@@ -1015,15 +1055,23 @@ class TableManager:
                 raise ReplayMismatch(len(events), "rebuilt state version differs from the table row")
             if table.complete != (t.status == "complete"):
                 raise ReplayMismatch(len(events), "rebuilt completion differs from the table row")
+            states: dict[int, bytes | None] = {}
             for c in stored.checkpoints:
-                policy = BOT_POLICIES.get(c.policy)
-                if policy is None or policy.artifact_hash != c.artifact_hash or slots[c.seat].policy != c.policy:
+                spec = slots[c.seat].bot
+                if spec is None:
+                    raise ReplayMismatch(len(events), f"bot {c.policy!r} for seat {c.seat} is not registered here")
+                if spec.id != c.policy or spec.artifact_hash != c.artifact_hash:
                     raise ReplayMismatch(len(events), f"bot artifact for seat {c.seat} changed since the checkpoint")
-                live.bot_rngs[c.seat] = SeededRng.from_state(c.rng_state)
+                states[c.seat] = _explicit_state(c.rng_state)
                 live.bot_decisions[c.seat] = c.decisions
-            missing = {s for s, slot in slots.items() if slot.kind == "bot"} - set(live.bot_rngs)
+            missing = {s for s, slot in slots.items() if slot.kind == "bot"} - set(states)
             if missing:
                 raise ReplayMismatch(len(events), f"no bot checkpoint for seats {sorted(missing)}")
+            if not table.complete:
+                try:
+                    live.agents = self._start_agents(live, states)
+                except Exception as exc:  # noqa: BLE001 - any seat that cannot resume exactly halts the table
+                    raise ReplayMismatch(len(events), f"bot seats could not resume: {exc}") from None
         except (ReplayMismatch, ReplayIncompatible, ValueError) as exc:
             live.halted_reason = f"{type(exc).__name__}: {exc}"
             try:
