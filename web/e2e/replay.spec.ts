@@ -75,6 +75,18 @@ test('replay: perspectives follow permissions, controls step through actions and
   await expect(perspective.getByRole('radio', { name: 'Spectator' })).toHaveAttribute('aria-checked', 'true')
   await expect(page.getByTestId('seat-0').locator('[data-card]')).toHaveCount(0)
   await expect(page.getByTestId('seat-1').locator('[data-card]')).toHaveCount(0)
+
+  // A call reads as the street total it reaches, like a raise, with the chips added alongside.
+  const call = events.find((e) => e.type === 'ActionApplied' && e.data.action.type === 'call' && e.data.added !== e.data.street_committed)!
+  expect(call).toBeTruthy()
+  const fmt = (n: number) => n.toLocaleString('en-US')
+  const callLine = `Seat ${call.data.seat} calls ${fmt(call.data.street_committed)} · adds ${fmt(call.data.added)}`
+  await page.getByRole('combobox', { name: 'Jump to hand' }).selectOption(String(Number(call.hand_id.slice(2))))
+  const log = page.getByTestId('replay-log')
+  for (let i = 0; i < 60 && !(await log.getByText(callLine, { exact: true }).count()); i++) {
+    await page.getByRole('button', { name: 'Next action ▶' }).click()
+  }
+  await expect(log.getByText(callLine, { exact: true })).toBeVisible()
 })
 
 test('replay without credentials offers the spectator view only', async ({ page, request }) => {

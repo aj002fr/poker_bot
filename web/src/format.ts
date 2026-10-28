@@ -74,7 +74,10 @@ function describeEvent(e: PublicEvent, seats: SeatInfo[] | undefined, streetOpen
         const verb = d.street !== 'preflop' && !streetOpened ? 'bets' : 'raises to'
         return `${who(d.seat)} ${verb} ${chips(a.amount ?? 0)}`
       }
-      if (a.type === 'call') return `${who(d.seat)} calls ${chips(d.added)}`
+      if (a.type === 'call') {
+        const to = d.street_committed as number
+        return `${who(d.seat)} calls ${chips(to)}${d.added !== to ? ` · adds ${chips(d.added)}` : ''}`
+      }
       return `${who(d.seat)} ${a.type === 'fold' ? 'folds' : 'checks'}`
     }
     case 'ExcessReturned':
