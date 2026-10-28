@@ -5,14 +5,17 @@ description = "Sequoia-style pokerbot practice arena (practice assumptions; offi
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "fastapi==0.120.1",
     "pokerkit==0.7.7",
     "pydantic==2.12.3",
+    "uvicorn[standard]==0.38.0",
 ]
 
 [dependency-groups]
 dev = [
     "pytest==8.4.2",
     "hypothesis==6.142.4",
+    "httpx==0.28.1",
 ]
 
 [build-system]
