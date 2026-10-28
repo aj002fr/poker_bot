@@ -6,10 +6,10 @@ These are not the agent SDK baselines (milestone 4); they call the same
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 
 from arena.domain.models import Action, LegalActions
-from arena.domain.rng import Rng
+from arena.domain.rng import Rng, SeededRng
 
 Policy = Callable[[int, LegalActions, Rng], Action]
 
@@ -65,12 +65,24 @@ POLICIES: dict[str, Policy] = {
 }
 
 
-def play_out(table, policy: Policy | dict[int, Policy], rng: Rng, *, on_decision=None) -> None:
+def policy_rngs(seed: int | str, seats: Sequence[int]) -> dict[int, Rng]:
+    """One independent policy stream per seat, separate from the environment stream."""
+    return {s: SeededRng(seed, f"policy-seat-{s}") for s in seats}
+
+
+def play_out(
+    table,
+    policy: Policy | Mapping[int, Policy],
+    rng: Rng | Mapping[int, Rng],
+    *,
+    on_decision=None,
+) -> None:
     while not table.complete:
         seat = table.actor_seat
         legal = table.legal_actions()
-        chooser = policy[seat] if isinstance(policy, dict) else policy
-        action = chooser(seat, legal, rng)
+        chooser = policy[seat] if isinstance(policy, Mapping) else policy
+        seat_rng = rng[seat] if isinstance(rng, Mapping) else rng
+        action = chooser(seat, legal, seat_rng)
         if on_decision is not None:
             on_decision(table, seat, legal, action)
         table.submit(seat, action, hand_id=table.hands[-1].hand_id, decision_id=table.decision_id)

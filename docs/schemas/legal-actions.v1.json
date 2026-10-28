@@ -1,0 +1,109 @@
+{
+  "additionalProperties": false,
+  "description": "Legal-action descriptor for the acting seat.\n\nRaise targets are street totals. Legal raise targets are the integers in\n``[min_full_raise_to, max_raise_to]`` plus ``short_all_in_raise_to`` when set;\nthe two need not be contiguous.",
+  "properties": {
+    "all_in_raise_to": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "All In Raise To"
+    },
+    "call_amount": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Call Amount"
+    },
+    "can_raise": {
+      "title": "Can Raise",
+      "type": "boolean"
+    },
+    "check": {
+      "title": "Check",
+      "type": "boolean"
+    },
+    "fold": {
+      "title": "Fold",
+      "type": "boolean"
+    },
+    "max_raise_to": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Max Raise To"
+    },
+    "min_full_raise_to": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Min Full Raise To"
+    },
+    "pot_raise_to": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Pot Raise To"
+    },
+    "raise_blocked_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Raise Blocked Reason"
+    },
+    "short_all_in_raise_to": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Short All In Raise To"
+    }
+  },
+  "required": [
+    "fold",
+    "check",
+    "call_amount",
+    "can_raise",
+    "min_full_raise_to",
+    "max_raise_to",
+    "short_all_in_raise_to",
+    "all_in_raise_to",
+    "pot_raise_to"
+  ],
+  "title": "LegalActions",
+  "type": "object"
+}

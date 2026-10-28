@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "Action": {
+      "additionalProperties": false,
+      "description": "A canonical action. ``amount`` is the total street contribution for ``raise_to``.",
+      "properties": {
+        "amount": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount"
+        },
+        "type": {
+          "enum": [
+            "fold",
+            "check",
+            "call",
+            "raise_to"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Action",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A client's action submission (spec section 6.2).\n\nThe acting seat comes from the authenticated session or worker lease, never\nfrom this body. ``action_id`` is the client's idempotency key.",
+  "properties": {
+    "action": {
+      "$ref": "#/$defs/Action"
+    },
+    "action_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "decision_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "expected_state_version": {
+      "minimum": 0,
+      "title": "Expected State Version",
+      "type": "integer"
+    },
+    "hand_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Hand Id",
+      "type": "string"
+    },
+    "table_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Table Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "action_id",
+    "table_id",
+    "hand_id",
+    "decision_id",
+    "expected_state_version",
+    "action"
+  ],
+  "title": "ActionEnvelope",
+  "type": "object"
+}

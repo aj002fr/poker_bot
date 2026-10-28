@@ -1,0 +1,606 @@
+{
+  "$defs": {
+    "BlindsView": {
+      "additionalProperties": false,
+      "properties": {
+        "big_blind": {
+          "title": "Big Blind",
+          "type": "integer"
+        },
+        "small_blind": {
+          "title": "Small Blind",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "small_blind",
+        "big_blind"
+      ],
+      "title": "BlindsView",
+      "type": "object"
+    },
+    "DecisionBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "bot_budget_ns": {
+          "title": "Bot Budget Ns",
+          "type": "integer"
+        },
+        "human_turn_ms": {
+          "title": "Human Turn Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "bot_budget_ns",
+        "human_turn_ms"
+      ],
+      "title": "DecisionBudget",
+      "type": "object"
+    },
+    "LegalActions": {
+      "additionalProperties": false,
+      "description": "Legal-action descriptor for the acting seat.\n\nRaise targets are street totals. Legal raise targets are the integers in\n``[min_full_raise_to, max_raise_to]`` plus ``short_all_in_raise_to`` when set;\nthe two need not be contiguous.",
+      "properties": {
+        "all_in_raise_to": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "All In Raise To"
+        },
+        "call_amount": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Call Amount"
+        },
+        "can_raise": {
+          "title": "Can Raise",
+          "type": "boolean"
+        },
+        "check": {
+          "title": "Check",
+          "type": "boolean"
+        },
+        "fold": {
+          "title": "Fold",
+          "type": "boolean"
+        },
+        "max_raise_to": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Max Raise To"
+        },
+        "min_full_raise_to": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Min Full Raise To"
+        },
+        "pot_raise_to": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pot Raise To"
+        },
+        "raise_blocked_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raise Blocked Reason"
+        },
+        "short_all_in_raise_to": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Short All In Raise To"
+        }
+      },
+      "required": [
+        "fold",
+        "check",
+        "call_amount",
+        "can_raise",
+        "min_full_raise_to",
+        "max_raise_to",
+        "short_all_in_raise_to",
+        "all_in_raise_to",
+        "pot_raise_to"
+      ],
+      "title": "LegalActions",
+      "type": "object"
+    },
+    "NextLevelView": {
+      "additionalProperties": false,
+      "properties": {
+        "big_blind": {
+          "title": "Big Blind",
+          "type": "integer"
+        },
+        "small_blind": {
+          "title": "Small Blind",
+          "type": "integer"
+        },
+        "starts_at_hand": {
+          "title": "Starts At Hand",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "small_blind",
+        "big_blind",
+        "starts_at_hand"
+      ],
+      "title": "NextLevelView",
+      "type": "object"
+    },
+    "PlayerView": {
+      "additionalProperties": false,
+      "properties": {
+        "hand_committed": {
+          "title": "Hand Committed",
+          "type": "integer"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        },
+        "shown_cards": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Shown Cards"
+        },
+        "stack": {
+          "title": "Stack",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "folded",
+            "all_in",
+            "eliminated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "street_committed": {
+          "title": "Street Committed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat",
+        "stack",
+        "street_committed",
+        "hand_committed",
+        "status",
+        "shown_cards"
+      ],
+      "title": "PlayerView",
+      "type": "object"
+    },
+    "PotView": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "integer"
+        },
+        "eligible": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Eligible",
+          "type": "array"
+        }
+      },
+      "required": [
+        "amount",
+        "eligible"
+      ],
+      "title": "PotView",
+      "type": "object"
+    },
+    "PublicEvent": {
+      "additionalProperties": false,
+      "description": "One event as a given viewer may see it: only allowlisted fields of ``data``.",
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "title": "Data",
+          "type": "object"
+        },
+        "hand_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Hand Id"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "hand_id",
+        "type",
+        "data"
+      ],
+      "title": "PublicEvent",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Current table state from one seat's or a spectator's perspective.",
+  "properties": {
+    "action_history": {
+      "items": {
+        "$ref": "#/$defs/PublicEvent"
+      },
+      "title": "Action History",
+      "type": "array"
+    },
+    "actor_seat": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Actor Seat"
+    },
+    "big_blind_seat": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Big Blind Seat"
+    },
+    "blinds": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BlindsView"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "board": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Board",
+      "type": "array"
+    },
+    "button_seat": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Button Seat"
+    },
+    "compatibility_status": {
+      "const": "practice_assumptions",
+      "default": "practice_assumptions",
+      "title": "Compatibility Status",
+      "type": "string"
+    },
+    "config_hash": {
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "current_bet_to": {
+      "title": "Current Bet To",
+      "type": "integer"
+    },
+    "decision_budget": {
+      "$ref": "#/$defs/DecisionBudget"
+    },
+    "decision_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Decision Id"
+    },
+    "hand_cap": {
+      "title": "Hand Cap",
+      "type": "integer"
+    },
+    "hand_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Hand Id"
+    },
+    "hand_number": {
+      "title": "Hand Number",
+      "type": "integer"
+    },
+    "hands_played": {
+      "title": "Hands Played",
+      "type": "integer"
+    },
+    "hands_remaining": {
+      "title": "Hands Remaining",
+      "type": "integer"
+    },
+    "hero_seat": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Hero Seat"
+    },
+    "hole_cards": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Hole Cards"
+    },
+    "initial_player_count": {
+      "title": "Initial Player Count",
+      "type": "integer"
+    },
+    "legal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LegalActions"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "next_level": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NextLevelView"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "payouts": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Payouts",
+      "type": "array"
+    },
+    "perspective": {
+      "enum": [
+        "seat",
+        "spectator"
+      ],
+      "title": "Perspective",
+      "type": "string"
+    },
+    "players": {
+      "items": {
+        "$ref": "#/$defs/PlayerView"
+      },
+      "title": "Players",
+      "type": "array"
+    },
+    "points": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Points"
+    },
+    "pot_total": {
+      "title": "Pot Total",
+      "type": "integer"
+    },
+    "pots": {
+      "items": {
+        "$ref": "#/$defs/PotView"
+      },
+      "title": "Pots",
+      "type": "array"
+    },
+    "ruleset_id": {
+      "title": "Ruleset Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "seats": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Seats",
+      "type": "array"
+    },
+    "settled_pot": {
+      "title": "Settled Pot",
+      "type": "integer"
+    },
+    "small_blind_seat": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Small Blind Seat"
+    },
+    "state_version": {
+      "title": "State Version",
+      "type": "integer"
+    },
+    "street": {
+      "anyOf": [
+        {
+          "enum": [
+            "preflop",
+            "flop",
+            "turn",
+            "river"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Street"
+    },
+    "surviving_player_count": {
+      "title": "Surviving Player Count",
+      "type": "integer"
+    },
+    "table_complete": {
+      "title": "Table Complete",
+      "type": "boolean"
+    },
+    "table_id": {
+      "title": "Table Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "perspective",
+    "table_id",
+    "ruleset_id",
+    "config_hash",
+    "state_version",
+    "hero_seat",
+    "hole_cards",
+    "seats",
+    "initial_player_count",
+    "surviving_player_count",
+    "hand_id",
+    "hand_number",
+    "decision_id",
+    "button_seat",
+    "small_blind_seat",
+    "big_blind_seat",
+    "street",
+    "actor_seat",
+    "board",
+    "pot_total",
+    "settled_pot",
+    "current_bet_to",
+    "pots",
+    "players",
+    "blinds",
+    "next_level",
+    "payouts",
+    "hands_played",
+    "hands_remaining",
+    "hand_cap",
+    "decision_budget",
+    "legal",
+    "action_history",
+    "table_complete",
+    "points"
+  ],
+  "title": "TableView",
+  "type": "object"
+}

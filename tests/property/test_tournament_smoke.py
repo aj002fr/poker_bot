@@ -4,6 +4,8 @@ import pytest
 
 from arena.domain.models import TournamentConfig
 from arena.domain.rng import SeededRng
+from arena.history.canonical import TableHistory, export_history
+from arena.history.replay import replay
 from arena.table.driver import check_or_call, legal_random, play_out, shove
 from arena.table.service import seeded_table
 from arena.tournament.scoring import SCORE_TOLERANCE
@@ -26,6 +28,8 @@ def run_tournament(ruleset: str, n: int, seed: int, policy=legal_random, **confi
     for hand in hands:
         assert hand.is_complete
         assert_matches_oracles(hand)
+    report = replay(TableHistory.loads(export_history(table).dumps()))
+    assert report.complete and report.final_stacks == table.stacks
     return table
 
 

@@ -1,0 +1,50 @@
+{
+  "additionalProperties": false,
+  "description": "One private, ordered event. ``data`` is already normalized for ``type``.",
+  "properties": {
+    "data": {
+      "additionalProperties": true,
+      "title": "Data",
+      "type": "object"
+    },
+    "hand_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Hand Id"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "seq": {
+      "minimum": 0,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "table_id": {
+      "title": "Table Id",
+      "type": "string"
+    },
+    "type": {
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "table_id",
+    "hand_id",
+    "seq",
+    "type",
+    "data"
+  ],
+  "title": "EventEnvelope",
+  "type": "object"
+}

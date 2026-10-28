@@ -26,6 +26,9 @@ class SeededRng:
     implementation = "sha256-ctr-v1"
 
     def __init__(self, seed: int | str, stream: str = "env") -> None:
+        # Kept for the private audit record only; projections never read these.
+        self.seed = str(seed)
+        self.stream = stream
         self._key = hashlib.sha256(f"{self.implementation}|{stream}|{seed}".encode()).digest()
         self._counter = 0
         self._buffer = b""

@@ -20,7 +20,6 @@ from collections import deque
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-import pokerkit
 from pokerkit import Card, Mode, State
 
 from arena.domain.cards import DeckError, validate_deck
@@ -164,6 +163,7 @@ class PokerKitHand:
             raw_blinds = tuple(blinds)
             posted = [min(b, spec.stacks[s]) for b, s in zip(blinds, self.seats)]
 
+        self.raw_blinds = raw_blinds
         game = profile.game_class((), True, 0, raw_blinds, spec.big_blind, mode=Mode.TOURNAMENT)
         self.short_blind_correction = max(posted) < spec.big_blind
         self.pk = _ArenaState(
@@ -223,6 +223,21 @@ class PokerKitHand:
         if self.pk.street_index == 0 and pk_max < self._bb and self.pk.can_complete_bet_or_raise_to():
             return self._bb
         return pk_max
+
+    def current_level(self) -> int:
+        """The street total a call matches (the nominal big blind while it is short)."""
+        return self._level() if self.pk.status else 0
+
+    def betting_rights(self) -> dict:
+        """Overlay state that decides who may still raise; part of the state hash."""
+        return {
+            "full_increment": self._full_increment,
+            "acted_level": {self.seats[i]: level for i, level in sorted(self._acted_level.items())},
+        }
+
+    def collected(self) -> dict[int, int]:
+        """Chips already gathered into the pot, by seat (current street bets excluded)."""
+        return self._contributions()
 
     def players(self) -> list[PlayerPublic]:
         out = []
@@ -433,7 +448,8 @@ class PokerKitHand:
                 cards = self._draw(count)
                 _strict(pk.deal_board, "".join(cards))
                 self.board.extend(cards)
-                self._emit("BoardDealt", {"street": self.street, "cards": cards})
+                street = {3: "flop", 4: "turn", 5: "river"}[len(self.board)]
+                self._emit("BoardDealt", {"street": street, "cards": cards})
             elif pk.can_collect_bets():
                 before = list(pk.stacks)
                 op = _strict(pk.collect_bets)

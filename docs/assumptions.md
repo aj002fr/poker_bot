@@ -63,8 +63,34 @@ Other observations that needed no correction:
 - There is no separate "effective stack" pre-cap. Unmatched chips are refunded when bets
   are collected, so pots and final stacks match the spec.
 
+## History, replay and views (milestone 3)
+
+- Visibility allowlists are in `arena/table/projections.py` and documented in
+  `docs/observations-and-projections.md`.
+  - A showdown reveals every live hand, and no hand is mucked.
+  - Folded hands are never shown to players or spectators.
+  - The full private log is shown only to a reviewer after the table ends.
+- The display pot breakdown (`TableView.pots`) merges collected levels that have the
+  same eligible players, which is easier for people to read. Settlement still uses one
+  pot per contribution level (`PotAwarded`).
+- An ActionFallback's reason code is public, so tables can count timeouts. The
+  rejected payload is private.
+- Decision and hand-start state hashes are private.
+- PHH exports flag hands that depend on the short-big-blind correction (D1) or the
+  odd-chip rule (D5). PokerKit's own PHH reader rejects or re-prices those hands, so
+  they are counted as explicit exclusions in the PHH cross-check.
+- Replay refuses a history recorded with a different PokerKit version unless
+  `--allow-engine-mismatch` is given. Any difference from the stored log halts the
+  replay, and nothing is repaired.
+- RNG streams are separate: `env` for decks and the first button, and one
+  `policy-seat-N` stream per baseline seat. Seeds appear only in private histories
+  and `private/seeds.json`. The run manifest holds only their hash.
+
 ## Not yet covered (later milestones)
 
 - T12 at the agent level (worker isolation, budgets, timeouts) is milestone 4. The
   table-level fallback path is tested now.
 - The official-rules adapter is not included. Everything here is practice assumptions.
+- Metamorphic tests from spec 12.2 (suit renaming, seat rotation, chip scaling) and
+  the HTTP, WebSocket and DOM privacy checks belong to the milestone 3b/5/6/7 work.
+  Information-set tests cover the in-process views now.

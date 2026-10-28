@@ -1,0 +1,724 @@
+{
+  "properties": {
+    "ActionApplied": {
+      "$defs": {
+        "ActionData": {
+          "additionalProperties": false,
+          "properties": {
+            "amount": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Amount"
+            },
+            "type": {
+              "enum": [
+                "fold",
+                "check",
+                "call",
+                "raise_to"
+              ],
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "ActionData",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/ActionData"
+        },
+        "added": {
+          "title": "Added",
+          "type": "integer"
+        },
+        "auto": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Auto"
+        },
+        "nominal_big_blind_call": {
+          "default": false,
+          "title": "Nominal Big Blind Call",
+          "type": "boolean"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        },
+        "street": {
+          "enum": [
+            "preflop",
+            "flop",
+            "turn",
+            "river"
+          ],
+          "title": "Street",
+          "type": "string"
+        },
+        "street_committed": {
+          "title": "Street Committed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat",
+        "street",
+        "action",
+        "added",
+        "street_committed"
+      ],
+      "title": "ActionApplied",
+      "type": "object"
+    },
+    "ActionFallback": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "rejected": {
+          "default": null,
+          "title": "Rejected"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat",
+        "reason"
+      ],
+      "title": "ActionFallback",
+      "type": "object"
+    },
+    "BetsCollected": {
+      "additionalProperties": false,
+      "properties": {
+        "bets": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Bets",
+          "type": "object"
+        }
+      },
+      "required": [
+        "bets"
+      ],
+      "title": "BetsCollected",
+      "type": "object"
+    },
+    "BlindPosted": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "integer"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat",
+        "amount"
+      ],
+      "title": "BlindPosted",
+      "type": "object"
+    },
+    "BoardDealt": {
+      "additionalProperties": false,
+      "properties": {
+        "cards": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Cards",
+          "type": "array"
+        },
+        "street": {
+          "enum": [
+            "preflop",
+            "flop",
+            "turn",
+            "river"
+          ],
+          "title": "Street",
+          "type": "string"
+        }
+      },
+      "required": [
+        "street",
+        "cards"
+      ],
+      "title": "BoardDealt",
+      "type": "object"
+    },
+    "CardBurned": {
+      "additionalProperties": false,
+      "properties": {
+        "card": {
+          "title": "Card",
+          "type": "string"
+        }
+      },
+      "required": [
+        "card"
+      ],
+      "title": "CardBurned",
+      "type": "object"
+    },
+    "CardsRevealed": {
+      "additionalProperties": false,
+      "properties": {
+        "cards": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Cards",
+          "type": "array"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat",
+        "cards"
+      ],
+      "title": "CardsRevealed",
+      "type": "object"
+    },
+    "ChipsPulled": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "integer"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat",
+        "amount"
+      ],
+      "title": "ChipsPulled",
+      "type": "object"
+    },
+    "DecisionRequested": {
+      "additionalProperties": false,
+      "properties": {
+        "decision_id": {
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        },
+        "state_hash": {
+          "title": "State Hash",
+          "type": "string"
+        },
+        "state_version": {
+          "title": "State Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "decision_id",
+        "seat",
+        "state_version",
+        "state_hash"
+      ],
+      "title": "DecisionRequested",
+      "type": "object"
+    },
+    "EngineChipsPushed": {
+      "additionalProperties": false,
+      "properties": {
+        "awards": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Awards",
+          "type": "object"
+        },
+        "pot_index": {
+          "title": "Pot Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pot_index",
+        "awards"
+      ],
+      "title": "EngineChipsPushed",
+      "type": "object"
+    },
+    "ExcessReturned": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "integer"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat",
+        "amount"
+      ],
+      "title": "ExcessReturned",
+      "type": "object"
+    },
+    "HandCompleted": {
+      "additionalProperties": false,
+      "properties": {
+        "final_stacks": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Final Stacks",
+          "type": "object"
+        }
+      },
+      "required": [
+        "final_stacks"
+      ],
+      "title": "HandCompleted",
+      "type": "object"
+    },
+    "HandKilled": {
+      "additionalProperties": false,
+      "properties": {
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat"
+      ],
+      "title": "HandKilled",
+      "type": "object"
+    },
+    "HandStarted": {
+      "$defs": {
+        "PositionsData": {
+          "additionalProperties": false,
+          "properties": {
+            "big_blind": {
+              "title": "Big Blind",
+              "type": "integer"
+            },
+            "button": {
+              "title": "Button",
+              "type": "integer"
+            },
+            "heads_up": {
+              "title": "Heads Up",
+              "type": "boolean"
+            },
+            "small_blind": {
+              "title": "Small Blind",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "button",
+            "small_blind",
+            "big_blind",
+            "heads_up"
+          ],
+          "title": "PositionsData",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "big_blind": {
+          "title": "Big Blind",
+          "type": "integer"
+        },
+        "deck": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Deck",
+          "type": "array"
+        },
+        "hand_number": {
+          "title": "Hand Number",
+          "type": "integer"
+        },
+        "level": {
+          "title": "Level",
+          "type": "integer"
+        },
+        "positions": {
+          "$ref": "#/$defs/PositionsData"
+        },
+        "small_blind": {
+          "title": "Small Blind",
+          "type": "integer"
+        },
+        "small_blind_seat": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Small Blind Seat"
+        },
+        "start_hash": {
+          "title": "Start Hash",
+          "type": "string"
+        },
+        "start_stacks": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Start Stacks",
+          "type": "object"
+        }
+      },
+      "required": [
+        "hand_number",
+        "level",
+        "small_blind",
+        "big_blind",
+        "positions",
+        "small_blind_seat",
+        "start_stacks",
+        "deck",
+        "start_hash"
+      ],
+      "title": "HandStarted",
+      "type": "object"
+    },
+    "HoleDealt": {
+      "additionalProperties": false,
+      "properties": {
+        "card": {
+          "title": "Card",
+          "type": "string"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat",
+        "card"
+      ],
+      "title": "HoleDealt",
+      "type": "object"
+    },
+    "OddChipCorrection": {
+      "additionalProperties": false,
+      "properties": {
+        "engine_awards": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Engine Awards",
+          "type": "object"
+        },
+        "transfers": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Transfers",
+          "type": "object"
+        }
+      },
+      "required": [
+        "transfers",
+        "engine_awards"
+      ],
+      "title": "OddChipCorrection",
+      "type": "object"
+    },
+    "PlayerEliminated": {
+      "additionalProperties": false,
+      "properties": {
+        "hand_number": {
+          "title": "Hand Number",
+          "type": "integer"
+        },
+        "points": {
+          "title": "Points",
+          "type": "number"
+        },
+        "positions": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Positions",
+          "type": "array"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat",
+        "hand_number",
+        "positions",
+        "points"
+      ],
+      "title": "PlayerEliminated",
+      "type": "object"
+    },
+    "PotAwarded": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "integer"
+        },
+        "awards": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Awards",
+          "type": "object"
+        },
+        "eligible": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Eligible",
+          "type": "array"
+        },
+        "pot_index": {
+          "title": "Pot Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pot_index",
+        "amount",
+        "eligible",
+        "awards"
+      ],
+      "title": "PotAwarded",
+      "type": "object"
+    },
+    "TableScored": {
+      "$defs": {
+        "PlacementData": {
+          "additionalProperties": false,
+          "properties": {
+            "hand_number": {
+              "title": "Hand Number",
+              "type": "integer"
+            },
+            "method": {
+              "enum": [
+                "elimination",
+                "winner",
+                "icm"
+              ],
+              "title": "Method",
+              "type": "string"
+            },
+            "points": {
+              "title": "Points",
+              "type": "number"
+            },
+            "positions": {
+              "items": {
+                "type": "integer"
+              },
+              "title": "Positions",
+              "type": "array"
+            },
+            "seat": {
+              "title": "Seat",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "seat",
+            "positions",
+            "points",
+            "method",
+            "hand_number"
+          ],
+          "title": "PlacementData",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "placements": {
+          "items": {
+            "$ref": "#/$defs/PlacementData"
+          },
+          "title": "Placements",
+          "type": "array"
+        },
+        "points": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Points",
+          "type": "object"
+        }
+      },
+      "required": [
+        "placements",
+        "points"
+      ],
+      "title": "TableScored",
+      "type": "object"
+    },
+    "TableStarted": {
+      "$defs": {
+        "EngineInfo": {
+          "additionalProperties": false,
+          "properties": {
+            "arena_version": {
+              "title": "Arena Version",
+              "type": "string"
+            },
+            "event_schema_version": {
+              "title": "Event Schema Version",
+              "type": "integer"
+            },
+            "pokerkit_version": {
+              "title": "Pokerkit Version",
+              "type": "string"
+            }
+          },
+          "required": [
+            "arena_version",
+            "pokerkit_version",
+            "event_schema_version"
+          ],
+          "title": "EngineInfo",
+          "type": "object"
+        },
+        "RngInfo": {
+          "additionalProperties": false,
+          "properties": {
+            "implementation": {
+              "title": "Implementation",
+              "type": "string"
+            },
+            "seed": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Seed"
+            },
+            "stream": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Stream"
+            }
+          },
+          "required": [
+            "implementation"
+          ],
+          "title": "RngInfo",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "additionalProperties": true,
+          "title": "Config",
+          "type": "object"
+        },
+        "config_hash": {
+          "title": "Config Hash",
+          "type": "string"
+        },
+        "engine": {
+          "$ref": "#/$defs/EngineInfo"
+        },
+        "rng": {
+          "$ref": "#/$defs/RngInfo"
+        },
+        "seat_ring": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Seat Ring",
+          "type": "array"
+        },
+        "start_stacks": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Start Stacks",
+          "type": "object"
+        }
+      },
+      "required": [
+        "config",
+        "config_hash",
+        "seat_ring",
+        "start_stacks",
+        "rng",
+        "engine"
+      ],
+      "title": "TableStarted",
+      "type": "object"
+    }
+  },
+  "title": "Event data by type (event schema version 1)",
+  "type": "object"
+}

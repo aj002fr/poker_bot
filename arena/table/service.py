@@ -13,13 +13,16 @@ from typing import Any
 
 from pydantic import ValidationError
 
+import arena
 from arena.domain.cards import full_deck
+from arena.domain.events import EVENT_SCHEMA_VERSION, EventEnvelope
 from arena.domain.models import Action, LegalActions, TournamentConfig, level_index
 from arena.domain.rng import Rng, SeededRng, SystemRng, shuffled
 from arena.rules.base import HandEvent, HandResult, IllegalAction
-from arena.rules.pokerkit_adapter import HandSpec, PokerKitHand
+from arena.rules.pokerkit_adapter import POKERKIT_VERSION, HandSpec, PokerKitHand
 from arena.rules.profiles import RuleProfile, get_profile
 from arena.table.positions import Positions, initial_positions, next_positions, positions_from_button
+from arena.table.state_hash import decision_hash, hand_start_hash, hand_start_state
 from arena.tournament.scoring import Placement, Standings
 
 DeckSource = Callable[[int, RuleProfile], tuple[str, ...]]
@@ -55,6 +58,17 @@ class Receipt:
     state_version: int
 
 
+def rng_info(rng: Rng | None) -> dict[str, str | None]:
+    """Private audit description of an environment RNG (never projected)."""
+    if rng is None:
+        return {"implementation": "explicit-deck-source", "seed": None, "stream": None}
+    return {
+        "implementation": rng.implementation,
+        "seed": getattr(rng, "seed", None),
+        "stream": getattr(rng, "stream", None),
+    }
+
+
 def seeded_deck_source(rng: Rng) -> DeckSource:
     def source(hand_number: int, profile: RuleProfile) -> tuple[str, ...]:
         return tuple(shuffled(full_deck(profile.ranks), rng))
@@ -72,13 +86,17 @@ class Table:
         deck_source: DeckSource | None = None,
         initial_button: int | None = None,
         start_stacks: Mapping[int, int] | None = None,
+        rng_record: Mapping[str, str | None] | None = None,
     ) -> None:
         self.config = config
+        self.config_hash = config.config_hash()
         self.table_id = table_id
         self.profile = get_profile(config.ruleset_id)
         self.seat_ring: tuple[int, ...] = tuple(config.resolved_seats)
         self.env_rng: Rng = env_rng if env_rng is not None else SystemRng()
         self.deck_source = deck_source or seeded_deck_source(self.env_rng)
+        if rng_record is None:
+            rng_record = rng_info(self.env_rng if deck_source is None else None)
         if start_stacks is not None:
             if set(start_stacks) != set(self.seat_ring):
                 raise ValueError("start_stacks must cover every seat")
@@ -97,7 +115,33 @@ class Table:
         self.receipts: list[Receipt] = []
         self.complete = False
         self._initial_button = initial_button
+        self.log: list[EventEnvelope] = []
+        self.hand_log_start = 0
+        self._emit(
+            None,
+            "TableStarted",
+            {
+                "config": config.resolved(),
+                "config_hash": self.config_hash,
+                "seat_ring": list(self.seat_ring),
+                "start_stacks": dict(self.stacks),
+                "rng": dict(rng_record),
+                "engine": {
+                    "arena_version": arena.__version__,
+                    "pokerkit_version": POKERKIT_VERSION,
+                    "event_schema_version": EVENT_SCHEMA_VERSION,
+                },
+            },
+        )
         self._start_next_hand()
+
+    def _emit(self, hand_id: str | None, event_type: str, data: dict) -> None:
+        self.log.append(EventEnvelope.make(self.table_id, hand_id, len(self.log), event_type, data))
+
+    def _emit_hand_events(self, events: list[HandEvent]) -> None:
+        hand_id = self.hands[-1].hand_id
+        for event in events:
+            self._emit(hand_id, event.type, event.data)
 
     # ------------------------------------------------------------------ views
 
@@ -162,20 +206,29 @@ class Table:
         legal = self.legal_actions()
         return Action(type="check") if legal.check else Action(type="fold")
 
-    def apply_fallback(self, seat: int, reason: str) -> Receipt:
-        """Consume the current decision with check if legal, otherwise fold."""
+    def apply_fallback(self, seat: int, reason: str, rejected: Any = None) -> Receipt:
+        """Consume the current decision with check if legal, otherwise fold.
+
+        ``reason`` is a short code (``timeout``, ``invalid_action``, ...). ``rejected``
+        is the JSON-compatible rejected output, recorded privately.
+        """
+        if self.complete or self.hand is None:
+            raise ActionRejected("table_complete", "table has finished")
         if seat != self.actor_seat:
             raise ActionRejected("out_of_turn", f"seat {seat} is not to act")
-        return self._apply(seat, self.fallback_action(), reason)
+        return self._apply(seat, self.fallback_action(), reason, rejected)
 
-    def _apply(self, seat: int, action: Action, fallback_reason: str | None) -> Receipt:
+    def _apply(self, seat: int, action: Action, fallback_reason: str | None, rejected: Any = None) -> Receipt:
         assert self.hand is not None and self.decision_id is not None
         record = self.hands[-1]
         decision_id = self.decision_id
         events = self.hand.apply(action)
         if fallback_reason is not None:
-            record.events.append(HandEvent("ActionFallback", {"seat": seat, "reason": fallback_reason}))
+            fallback = HandEvent("ActionFallback", {"seat": seat, "reason": fallback_reason, "rejected": rejected})
+            record.events.append(fallback)
+            self._emit_hand_events([fallback])
         record.events.extend(events)
+        self._emit_hand_events(events)
         self.state_version += 1
         receipt = Receipt(record.hand_id, decision_id, seat, action, fallback_reason, self.state_version)
         self.receipts.append(receipt)
@@ -190,6 +243,16 @@ class Table:
     def _new_decision(self) -> None:
         self._decision_seq += 1
         self.decision_id = f"d_{self._decision_seq:05d}"
+        self._emit(
+            self.hands[-1].hand_id,
+            "DecisionRequested",
+            {
+                "decision_id": self.decision_id,
+                "seat": self.actor_seat,
+                "state_version": self.state_version,
+                "state_hash": decision_hash(self),
+            },
+        )
 
     def _start_next_hand(self) -> None:
         while True:
@@ -231,8 +294,29 @@ class Table:
                 deck=deck,
             )
             self.hands.append(record)
+            start_state = hand_start_state(
+                self, hand_number=self.hand_number, positions=pos.as_dict(), blinds=(sb, bb),
+                start_stacks=start, deck=deck,
+            )
+            self.hand_log_start = len(self.log)
+            self._emit(
+                record.hand_id,
+                "HandStarted",
+                {
+                    "hand_number": self.hand_number,
+                    "level": record.level,
+                    "small_blind": sb,
+                    "big_blind": bb,
+                    "positions": pos.as_dict(),
+                    "small_blind_seat": spec.small_blind_seat,
+                    "start_stacks": start,
+                    "deck": list(deck),
+                    "start_hash": hand_start_hash(start_state),
+                },
+            )
             self.hand = PokerKitHand(spec)
             record.events.extend(self.hand.events)
+            self._emit_hand_events(self.hand.events)
             self.state_version += 1
             if not self.hand.is_complete:
                 self._new_decision()
@@ -251,6 +335,12 @@ class Table:
         record.eliminations = self.standings.record_eliminations(
             self.hand_number, record.start_stacks, self.stacks
         )
+        for p in record.eliminations:
+            self._emit(
+                record.hand_id,
+                "PlayerEliminated",
+                {"seat": p.seat, "hand_number": p.hand_number, "positions": list(p.positions), "points": float(p.points)},
+            )
         self.hand = None
         self.decision_id = None
 
@@ -265,7 +355,26 @@ class Table:
         self.final_placements = self.standings.finalize(self.hand_number, survivors)
         self.complete = True
         self.state_version += 1
+        placements = sorted(self.standings.placements.values(), key=lambda p: (p.positions, p.seat))
+        self._emit(
+            None,
+            "TableScored",
+            {
+                "placements": [
+                    {
+                        "seat": p.seat,
+                        "positions": list(p.positions),
+                        "points": float(p.points),
+                        "method": p.method,
+                        "hand_number": p.hand_number,
+                    }
+                    for p in placements
+                ],
+                "points": {s: float(v) for s, v in self.standings.points().items()},
+            },
+        )
 
 
 def seeded_table(config: TournamentConfig, seed: int | str, **kwargs: Any) -> Table:
+    """Benchmark/test table whose decks and first button come from a versioned seeded stream."""
     return Table(config, env_rng=SeededRng(seed, "env"), **kwargs)

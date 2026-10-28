@@ -147,6 +147,21 @@ class Action(_Strict):
         return self
 
 
+class ActionEnvelope(_Strict):
+    """A client's action submission (spec section 6.2).
+
+    The acting seat comes from the authenticated session or worker lease, never
+    from this body. ``action_id`` is the client's idempotency key.
+    """
+
+    action_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
+    table_id: str = Field(min_length=1, max_length=128)
+    hand_id: str = Field(min_length=1, max_length=64)
+    decision_id: str = Field(min_length=1, max_length=64)
+    expected_state_version: StrictInt = Field(ge=0)
+    action: Action
+
+
 class LegalActions(_Strict):
     """Legal-action descriptor for the acting seat.
 
