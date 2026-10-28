@@ -76,6 +76,35 @@ def seeded_deck_source(rng: Rng) -> DeckSource:
     return source
 
 
+_UNRECORDED_HAND_EVENTS = {"HandStarted", "DecisionRequested", "PlayerEliminated"}
+
+
+def _hand_records(log: list[EventEnvelope]) -> list[HandRecord]:
+    """Rebuild finished hands' records from their stored events (results are not re-derived)."""
+    records: list[HandRecord] = []
+    for e in log:
+        if e.hand_id is None:
+            continue
+        if e.type == "HandStarted":
+            d = e.data
+            records.append(HandRecord(
+                hand_number=d["hand_number"],
+                hand_id=e.hand_id,
+                level=d["level"],
+                blinds=(d["small_blind"], d["big_blind"]),
+                positions=Positions(**d["positions"]),
+                start_stacks={int(s): v for s, v in d["start_stacks"].items()},
+                deck=tuple(d["deck"]),
+            ))
+        elif e.type == "PlayerEliminated":
+            d = e.data
+            records[-1].eliminations.append(Placement(d["seat"], tuple(d["positions"]), d["points"], "elimination",
+                                                      d["hand_number"]))
+        elif e.type not in _UNRECORDED_HAND_EVENTS:
+            records[-1].events.append(HandEvent(e.type, dict(e.data)))
+    return records
+
+
 class Table:
     def __init__(
         self,
@@ -87,7 +116,9 @@ class Table:
         initial_button: int | None = None,
         start_stacks: Mapping[int, int] | None = None,
         rng_record: Mapping[str, str | None] | None = None,
+        on_hand_start: Callable[[Table], None] | None = None,
     ) -> None:
+        self.on_hand_start = on_hand_start
         self.config = config
         self.config_hash = config.config_hash()
         self.table_id = table_id
@@ -168,6 +199,90 @@ class Table:
         if not self.complete:
             raise RuntimeError("table not complete")
         return self.standings.points()
+
+    # ----------------------------------------------------------------- resume
+
+    def resume_point(self) -> dict[str, Any]:
+        """Private, JSON-compatible state at a hand boundary, before the next hand starts.
+
+        Only meaningful from an ``on_hand_start`` callback. It holds the dealer RNG
+        state (seed included), so it is as private as the event log.
+        """
+        getstate = getattr(self.env_rng, "getstate", None)
+        return {
+            "hand_number": self.hand_number + 1,
+            "seq": len(self.log),
+            "state_version": self.state_version,
+            "decision_seq": self._decision_seq,
+            "stacks": {str(s): v for s, v in self.stacks.items()},
+            "positions": self.positions.as_dict() if self.positions is not None else None,
+            "initial_button": self._initial_button,
+            "placements": [
+                {"seat": p.seat, "positions": list(p.positions), "points": float(p.points), "method": p.method,
+                 "hand_number": p.hand_number}
+                for p in self.standings.placements.values()
+            ],
+            "env_rng": getstate() if getstate is not None else None,
+        }
+
+    @classmethod
+    def resume_at_hand(
+        cls,
+        config: TournamentConfig,
+        point: Mapping[str, Any],
+        log_prefix: list[EventEnvelope],
+        *,
+        env_rng: Rng,
+        deck_source: DeckSource | None = None,
+        on_hand_start: Callable[[Table], None] | None = None,
+    ) -> Table:
+        """Rebuild a table from a :meth:`resume_point` and the log before that hand, then deal it.
+
+        The engine deals the hand itself, so the caller must compare the regenerated
+        ``HandStarted`` (and everything after it) with the stored log; nothing here
+        trusts the snapshot beyond what those hashes confirm.
+        """
+        if not log_prefix or log_prefix[0].type != "TableStarted":
+            raise ValueError("log prefix must start with TableStarted")
+        if point["seq"] != len(log_prefix):
+            raise ValueError("resume point does not sit at the end of the log prefix")
+        started = log_prefix[0].data
+        if config.config_hash() != started["config_hash"]:
+            raise ValueError("config does not match the stored config_hash")
+        t = cls.__new__(cls)
+        t.on_hand_start = on_hand_start
+        t.config = config
+        t.config_hash = config.config_hash()
+        t.table_id = log_prefix[0].table_id
+        t.profile = get_profile(config.ruleset_id)
+        t.seat_ring = tuple(config.resolved_seats)
+        t.env_rng = env_rng
+        t.deck_source = deck_source or seeded_deck_source(env_rng)
+        t.stacks = {int(s): int(v) for s, v in point["stacks"].items()}
+        if set(t.stacks) != set(t.seat_ring):
+            raise ValueError("resume point stacks must cover every seat")
+        t.total_chips = sum(started["start_stacks"].values())
+        if sum(t.stacks.values()) != t.total_chips:
+            raise ValueError("resume point does not conserve table chips")
+        t.standings = Standings(config.resolved_payouts, t.seat_ring)
+        for p in point["placements"]:
+            t.standings.placements[p["seat"]] = Placement(
+                p["seat"], tuple(p["positions"]), float(p["points"]), p["method"], p["hand_number"]
+            )
+        t.hands = _hand_records(log_prefix)
+        t.hand = None
+        t.positions = Positions(**point["positions"]) if point["positions"] is not None else None
+        t.hand_number = point["hand_number"] - 1
+        t.state_version = point["state_version"]
+        t._decision_seq = point["decision_seq"]
+        t.decision_id = None
+        t.receipts = []
+        t.complete = False
+        t._initial_button = point["initial_button"]
+        t.log = list(log_prefix)
+        t.hand_log_start = 0
+        t._start_next_hand()
+        return t
 
     # --------------------------------------------------------------- commands
 
@@ -260,6 +375,8 @@ class Table:
             if len(live) < 2 or self.hand_number >= self.config.hand_cap:
                 self._finalize()
                 return
+            if self.on_hand_start is not None:
+                self.on_hand_start(self)
             self.hand_number += 1
             if self.positions is None:
                 if self._initial_button is not None:

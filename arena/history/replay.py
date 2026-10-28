@@ -62,9 +62,14 @@ class _Command:
 
 
 def _commands(history: TableHistory) -> list[_Command]:
+    return commands_from_events(history.events)
+
+
+def commands_from_events(events) -> list[_Command]:
+    """The accepted commands in a run of events: manual actions, each with its fallback reason if any."""
     commands: list[_Command] = []
     pending: tuple[str, object] | None = None
-    for event in history.events:
+    for event in events:
         if event.type == "ActionFallback":
             pending = (event.data["reason"], event.data["rejected"])
         elif event.type == "ActionApplied" and event.data["auto"] is None:

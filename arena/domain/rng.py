@@ -50,6 +50,25 @@ class SeededRng:
             if value < limit:
                 return value % n
 
+    def getstate(self) -> dict[str, str | int]:
+        """JSON-compatible private checkpoint; contains the seed, so never project it."""
+        return {
+            "implementation": self.implementation,
+            "seed": self.seed,
+            "stream": self.stream,
+            "counter": self._counter,
+            "buffer": self._buffer.hex(),
+        }
+
+    @classmethod
+    def from_state(cls, state: dict[str, str | int]) -> SeededRng:
+        if state.get("implementation") != cls.implementation:
+            raise ValueError(f"checkpoint is for {state.get('implementation')!r}, not {cls.implementation}")
+        rng = cls(str(state["seed"]), str(state["stream"]))
+        rng._counter = int(state["counter"])
+        rng._buffer = bytes.fromhex(str(state["buffer"]))
+        return rng
+
 
 class SystemRng:
     implementation = "secrets-system"
