@@ -1,0 +1,109 @@
+{
+ "id": "G11",
+ "kind": "full_trace",
+ "description": "A bets 100, B all-in 150, C calls 150, D all-in 200: A may raise on return; after A calls, C may call 50 but not raise.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 170,
+   "2": 2000,
+   "3": 220
+  },
+  "button": 3,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1
+ },
+ "steps": [
+  {
+   "actor": 2,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 3,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "raise_to",
+    "amount": 100
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "short_all_in_raise_to": 150
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 150
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 150,
+    "can_raise": true,
+    "min_full_raise_to": 250
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 3,
+   "legal": {
+    "short_all_in_raise_to": 200
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 200
+   }
+  },
+  {
+   "actor": 0,
+   "legal": {
+    "call_amount": 100,
+    "can_raise": true,
+    "min_full_raise_to": 300
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 50,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "state": {
+    "street": "turn"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ]
+}

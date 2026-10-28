@@ -1,0 +1,73 @@
+{
+ "id": "G17b",
+ "kind": "full_trace",
+ "description": "UTG all-in for 15 (below the BB), others fold: the BB is not asked to act; an automatic check is recorded and 5 returns to the BB.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 2000,
+   "3": 15
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 3,
+   "legal": {
+    "call_amount": 15,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "fold"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "fold"
+   }
+  },
+  {
+   "state": {
+    "complete": true
+   }
+  }
+ ],
+ "expect": {
+  "auto_actions": 1,
+  "excess_returned": {
+   "2": 5
+  },
+  "contributions": {
+   "0": 0,
+   "1": 10,
+   "2": 15,
+   "3": 15
+  },
+  "pots": [
+   {
+    "amount": 30,
+    "eligible": [
+     2,
+     3
+    ]
+   },
+   {
+    "amount": 10,
+    "eligible": [
+     2,
+     3
+    ]
+   }
+  ]
+ }
+}

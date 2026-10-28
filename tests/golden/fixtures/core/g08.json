@@ -1,0 +1,80 @@
+{
+ "id": "G08",
+ "kind": "full_trace",
+ "description": "Full raise from 100 to 300: last full increment 200, next minimum raise-to 500.",
+ "setup": {
+  "stacks": {
+   "0": 5000,
+   "1": 5000,
+   "2": 5000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 0,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 2,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "min_full_raise_to": 20
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 100
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "min_full_raise_to": 200
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 300
+   }
+  },
+  {
+   "actor": 0,
+   "legal": {
+    "call_amount": 300,
+    "can_raise": true,
+    "min_full_raise_to": 500
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 200,
+    "can_raise": true,
+    "min_full_raise_to": 500
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ]
+}

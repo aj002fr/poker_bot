@@ -1,0 +1,65 @@
+{
+ "id": "G06",
+ "kind": "full_trace",
+ "description": "Everyone limps; BB keeps the check/raise option and the round does not close on the SB's call.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 2000,
+   "3": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 3,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 10
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "state": {
+    "street": "preflop"
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "check": true,
+    "fold": false,
+    "can_raise": true,
+    "min_full_raise_to": 40
+   },
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "state": {
+    "street": "flop",
+    "actor": 1
+   }
+  },
+  {
+   "check_down": true
+  }
+ ]
+}

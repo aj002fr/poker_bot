@@ -1,0 +1,67 @@
+{
+ "id": "G20b",
+ "kind": "full_trace",
+ "description": "Short BB 7: A min-raises to 40 (increment 20 over the nominal 20); B's next full raise-to is 60.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 7
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 0,
+   "do": {
+    "type": "raise_to",
+    "amount": 40
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 30,
+    "can_raise": true,
+    "min_full_raise_to": 60
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "state": {
+    "street": "flop"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "contributions": {
+   "0": 40,
+   "1": 40,
+   "2": 7
+  },
+  "pots": [
+   {
+    "amount": 21,
+    "eligible": [
+     0,
+     1,
+     2
+    ]
+   },
+   {
+    "amount": 66,
+    "eligible": [
+     0,
+     1
+    ]
+   }
+  ]
+ }
+}

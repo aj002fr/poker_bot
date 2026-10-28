@@ -1,0 +1,122 @@
+{
+ "id": "G02",
+ "kind": "full_trace",
+ "description": "Six seats, button 0: SB=1, BB=2, preflop starts at 3, postflop starts with the first live seat after 0.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 2000,
+   "3": 2000,
+   "4": 2000,
+   "5": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "state": {
+    "street_committed": {
+     "1": 10,
+     "2": 20,
+     "3": 0
+    }
+   }
+  },
+  {
+   "actor": 3,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 4,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 5,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "check": true
+   },
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "state": {
+    "street": "flop"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 2,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 3,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 4,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 5,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "contributions": {
+   "0": 20,
+   "1": 20,
+   "2": 20,
+   "3": 20,
+   "4": 20,
+   "5": 20
+  }
+ }
+}

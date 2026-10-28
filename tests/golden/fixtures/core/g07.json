@@ -1,0 +1,98 @@
+{
+ "id": "G07",
+ "kind": "full_trace",
+ "description": "Everyone checks every postflop street: one flop, turn and river, one showdown.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 0,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 2,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 2,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 2,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 2,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "check"
+   }
+  }
+ ],
+ "expect": {
+  "event_counts": {
+   "BoardDealt": 3,
+   "CardBurned": 3,
+   "ActionApplied": 12,
+   "CardsRevealed": 3
+  },
+  "board_cards": 5
+ }
+}

@@ -1,0 +1,125 @@
+{
+ "id": "G14",
+ "kind": "full_trace",
+ "description": "Ledger A=100, B=250, C=400, folded D=50 as a legal trace: C refunded 150; layers 200+150 to A; side 300 to B.",
+ "setup": {
+  "stacks": {
+   "0": 100,
+   "1": 250,
+   "2": 400,
+   "3": 1000
+  },
+  "button": 3,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "AsAd",
+   "1": "KsKd",
+   "2": "QsQd",
+   "3": "4h5h"
+  },
+  "board": "2c3d7h9sJc"
+ },
+ "steps": [
+  {
+   "actor": 2,
+   "do": {
+    "type": "raise_to",
+    "amount": 50
+   }
+  },
+  {
+   "actor": 3,
+   "legal": {
+    "call_amount": 50
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "raise_to",
+    "amount": 100
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "raise_to",
+    "amount": 250
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "min_full_raise_to": 400
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 400
+   }
+  },
+  {
+   "actor": 3,
+   "legal": {
+    "call_amount": 350
+   },
+   "do": {
+    "type": "fold"
+   }
+  }
+ ],
+ "expect": {
+  "excess_returned": {
+   "2": 150
+  },
+  "contributions": {
+   "0": 100,
+   "1": 250,
+   "2": 250,
+   "3": 50
+  },
+  "pots": [
+   {
+    "amount": 200,
+    "eligible": [
+     0,
+     1,
+     2
+    ],
+    "awards": {
+     "0": 200
+    }
+   },
+   {
+    "amount": 150,
+    "eligible": [
+     0,
+     1,
+     2
+    ],
+    "awards": {
+     "0": 150
+    }
+   },
+   {
+    "amount": 300,
+    "eligible": [
+     1,
+     2
+    ],
+    "awards": {
+     "1": 300
+    }
+   }
+  ],
+  "final_stacks": {
+   "0": 350,
+   "1": 300,
+   "2": 150,
+   "3": 950
+  }
+ }
+}

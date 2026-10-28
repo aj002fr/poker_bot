@@ -1,0 +1,90 @@
+{
+ "id": "G21c",
+ "kind": "full_trace",
+ "local_rules": {
+  "short_bet_reopens_checker": true
+ },
+ "description": "short_bet_reopens_checker=true: C calls the short 40 bet; the checker A may raise to at least 140 (PokerKit native behaviour).",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 140,
+   "2": 2000
+  },
+  "button": 2,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "blinds": [
+   50,
+   100
+  ]
+ },
+ "steps": [
+  {
+   "actor": 2,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "state": {
+    "street": "flop"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "can_raise": true,
+    "short_all_in_raise_to": 40,
+    "min_full_raise_to": null
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 40
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 40,
+    "can_raise": true,
+    "min_full_raise_to": 140
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "legal": {
+    "call_amount": 40,
+    "can_raise": true,
+    "min_full_raise_to": 140
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ]
+}

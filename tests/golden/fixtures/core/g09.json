@@ -1,0 +1,119 @@
+{
+ "id": "G09",
+ "kind": "full_trace",
+ "description": "A bets 100, B calls, C all-in 150: A and B may only call/fold; unacted deep D may raise to at least 250.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 170,
+   "3": 2000
+  },
+  "button": 3,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1
+ },
+ "steps": [
+  {
+   "actor": 2,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 3,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "state": {
+    "street": "flop"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "raise_to",
+    "amount": 100
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "can_raise": true,
+    "short_all_in_raise_to": 150,
+    "min_full_raise_to": null
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 150
+   }
+  },
+  {
+   "actor": 3,
+   "legal": {
+    "call_amount": 150,
+    "can_raise": true,
+    "min_full_raise_to": 250
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "legal": {
+    "call_amount": 50,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 50,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "state": {
+    "street": "turn"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "contributions": {
+   "0": 170,
+   "1": 170,
+   "2": 170,
+   "3": 170
+  }
+ }
+}

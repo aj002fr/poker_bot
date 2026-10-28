@@ -1,0 +1,105 @@
+{
+ "id": "G15",
+ "kind": "full_trace",
+ "description": "Ledger 34/34/33 with C folded and A/B tied, as a legal trace: main 99 splits 50/49 (A first clockwise after the button), side 2 splits 1/1; A=51, B=50.",
+ "setup": {
+  "stacks": {
+   "0": 34,
+   "1": 34,
+   "2": 100
+  },
+  "button": 2,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "blinds": [
+   1,
+   2
+  ],
+  "hole": {
+   "0": "2c3d",
+   "1": "2d3c",
+   "2": "4h5h"
+  },
+  "board": "AsKsQsJsTs"
+ },
+ "steps": [
+  {
+   "actor": 2,
+   "legal": {
+    "min_full_raise_to": 4
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 33
+   }
+  },
+  {
+   "actor": 0,
+   "legal": {
+    "call_amount": 32,
+    "short_all_in_raise_to": 34,
+    "min_full_raise_to": null
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 34
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 32,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 1,
+    "can_raise": false
+   },
+   "do": {
+    "type": "fold"
+   }
+  }
+ ],
+ "expect": {
+  "contributions": {
+   "0": 34,
+   "1": 34,
+   "2": 33
+  },
+  "pots": [
+   {
+    "amount": 99,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "0": 50,
+     "1": 49
+    }
+   },
+   {
+    "amount": 2,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "0": 1,
+     "1": 1
+    }
+   }
+  ],
+  "final_stacks": {
+   "0": 51,
+   "1": 50,
+   "2": 67
+  }
+ }
+}

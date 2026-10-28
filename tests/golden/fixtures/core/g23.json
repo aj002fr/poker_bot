@@ -1,0 +1,68 @@
+{
+ "id": "G23",
+ "kind": "full_trace",
+ "description": "5000 shoves into 1000 heads-up: declared raise_to 5000 is recorded, 4000 returns at collection, 1000 each at risk.",
+ "setup": {
+  "stacks": {
+   "0": 5000,
+   "1": 1000
+  },
+  "button": 0,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "AsAd",
+   "1": "KsKd"
+  },
+  "board": "2c3d7h9sJc"
+ },
+ "steps": [
+  {
+   "actor": 0,
+   "legal": {
+    "max_raise_to": 5000,
+    "all_in_raise_to": 5000
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 5000
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 980,
+    "can_raise": false,
+    "raise_blocked_reason": "stack covers only a call"
+   },
+   "do": {
+    "type": "call"
+   }
+  }
+ ],
+ "expect": {
+  "excess_returned": {
+   "0": 4000
+  },
+  "contributions": {
+   "0": 1000,
+   "1": 1000
+  },
+  "pots": [
+   {
+    "amount": 2000,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "0": 2000
+    }
+   }
+  ],
+  "final_stacks": {
+   "0": 6000,
+   "1": 0
+  }
+ }
+}
