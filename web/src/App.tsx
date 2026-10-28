@@ -62,6 +62,22 @@ function JoinSeat({ tableId, seat, navigate }: { tableId: string; seat: number; 
   )
 }
 
+function errorTitle(error: ApiFailure): string {
+  if (error.status === 404) return 'Table not found'
+  if (error.code === 'table_halted') return 'Table halted'
+  if (error.code === 'storage_unavailable') return 'Table paused'
+  return 'Access denied'
+}
+
+function errorText(error: ApiFailure): string {
+  if (error.status === 404) return 'No table with this link exists here. In-memory mode does not keep tables across a server restart.'
+  if (error.code === 'table_halted')
+    return 'Its stored record could not be reproduced exactly on recovery, so the table was stopped for diagnosis instead of being repaired.'
+  if (error.code === 'storage_unavailable')
+    return 'Storage is unavailable. Think time is paused, and the table resumes here automatically when storage is back.'
+  return `${error.code}: ${error.message}`
+}
+
 function TableRoute({ tableId, navigate }: { tableId: string; navigate: (p: string) => void }) {
   const [creds, setCreds] = useState<Credentials>(() => loadCredentials(tableId))
   const token = creds.seatToken ?? null
@@ -70,12 +86,8 @@ function TableRoute({ tableId, navigate }: { tableId: string; navigate: (p: stri
   if (error && !snapshot) {
     return (
       <main className="panel narrow">
-        <h1 className="screen-title">{error.status === 404 ? 'Table not found' : 'Access denied'}</h1>
-        <p className="lede">
-          {error.status === 404
-            ? 'This server keeps tables in memory, so a restart clears them.'
-            : `${error.code}: ${error.message}`}
-        </p>
+        <h1 className="screen-title">{errorTitle(error)}</h1>
+        <p className="lede">{errorText(error)}</p>
         <button className="btn btn-primary" onClick={() => navigate('/')}>
           Set up a new table
         </button>

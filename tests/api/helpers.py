@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import itertools
+import os
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -95,10 +96,28 @@ def bot(policy: str = "legal_random") -> dict[str, Any]:
     return {"kind": "bot", "policy": policy}
 
 
+def _api_test_store():
+    """``ARENA_API_TEST_STORE=postgres`` runs the API suite on a freshly truncated test database."""
+    if os.environ.get("ARENA_API_TEST_STORE", "memory") != "postgres":
+        return None
+    from arena.persistence.postgres import PostgresStore
+
+    store = PostgresStore(os.environ.get("ARENA_TEST_DATABASE_URL",
+                                         "postgresql://arena:arena@127.0.0.1:54329/arena_test"))
+    with store._conn() as conn:
+        conn.execute("TRUNCATE arena_tables CASCADE")
+    return store
+
+
 @contextmanager
 def harness(*, bot_delay_ms: int = 0, hand_pause_ms: int = 0) -> Iterator[Harness]:
     clock = FakeClock()
-    manager = TableManager(clock, bot_delay_ms=bot_delay_ms, hand_pause_ms=hand_pause_ms)
+    store = _api_test_store()
+    manager = TableManager(clock, bot_delay_ms=bot_delay_ms, hand_pause_ms=hand_pause_ms, store=store)
     app = create_app(manager, background_pump=False)
-    with TestClient(app) as client:
-        yield Harness(client, manager, clock)
+    try:
+        with TestClient(app) as client:
+            yield Harness(client, manager, clock)
+    finally:
+        if store is not None:
+            store.close()

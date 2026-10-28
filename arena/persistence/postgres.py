@@ -121,6 +121,8 @@ class PostgresStore:
                 )
             if row.event_count != base_events + len(batch.events):
                 raise StoreError("event_count does not match the appended events")
+            if [e["seq"] for e in batch.events] != list(range(base_events, row.event_count)):
+                raise StoreError("events must be appended in sequence")
             tid = row.table_id
             if batch.events:
                 with conn.cursor() as cur:

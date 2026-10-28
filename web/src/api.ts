@@ -95,13 +95,16 @@ export function newActionId(): string {
 
 // Retries reuse the same action_id, so an ambiguous submission is resolved by
 // the server's idempotency registry rather than applied twice.
+/** Server-side pauses worth retrying with the same action_id (the server deduplicates it). */
+const TRANSIENT = new Set(['storage_unavailable'])
+
 export async function submitWithRetry(tableId: string, token: string, envelope: ActionEnvelope) {
   let lastError: unknown
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       return await api.act(tableId, token, envelope)
     } catch (err) {
-      if (err instanceof ApiFailure) throw err
+      if (err instanceof ApiFailure && !TRANSIENT.has(err.code)) throw err
       lastError = err
       await new Promise((r) => setTimeout(r, 300 * (attempt + 1)))
     }
@@ -146,11 +149,18 @@ export function useTableStream(tableId: string, token: string | null) {
         if (frame.type === 'snapshot') {
           retry = 0
           setStatus('live')
+          setError(null)
           accept(frame as Snapshot)
         } else if (frame.type === 'error') {
-          setStatus('denied')
-          setError(new ApiFailure(403, frame.error?.code ?? 'denied', frame.error?.message ?? 'denied'))
-          closed = true
+          const code = frame.error?.code ?? 'denied'
+          const status = TRANSIENT.has(code) || code === 'table_halted' ? 503 : 403
+          setError(new ApiFailure(status, code, frame.error?.message ?? 'denied'))
+          if (TRANSIENT.has(code)) {
+            setStatus('reconnecting')
+          } else {
+            setStatus('denied')
+            closed = true
+          }
         }
       }
       ws.onclose = () => {
