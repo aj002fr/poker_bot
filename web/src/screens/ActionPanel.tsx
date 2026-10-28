@@ -1,11 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ApiFailure, newActionId, submitWithRetry } from '../api'
+import { ApiFailure, api, isTransient, loadPending, newActionId, savePending, submitWithRetry, type PendingSubmission } from '../api'
 import { chips } from '../format'
 import type { Action, Snapshot, TableView } from '../types'
 
-interface Pending {
-  decisionId: string
-  label: string
+const RESEND_MS = 1500
+
+const BLOCKED_HELP: Record<string, string> = {
+  'betting was not reopened: raises since your last action total less than a full raise':
+    'Full raise unavailable: a short all-in since your last action raised by less than a full raise, so betting was not reopened. You can call or fold.',
+  'stack covers only a call': 'Raise unavailable: your stack only covers a call.',
+  'no opponent can respond to a raise': 'Raise unavailable: every opponent is already all in.',
+}
+
+export function blockedText(reason: string | null) {
+  if (!reason) return 'Raising is not available on this decision.'
+  return BLOCKED_HELP[reason] ?? `Raise unavailable: ${reason}.`
 }
 
 export function ActionPanel({
@@ -13,26 +22,68 @@ export function ActionPanel({
   token,
   onSnapshot,
   timer,
+  connections,
 }: {
   snapshot: Snapshot
   token: string | null
   onSnapshot: (s: Snapshot) => void
   timer: React.ReactNode
+  connections: number
 }) {
   const view = snapshot.view as TableView
   const legal = view.legal
   const hero = view.players.find((p) => p.seat === view.hero_seat)
   const committed = hero?.street_committed ?? 0
-  const [pending, setPending] = useState<Pending | null>(null)
+  const tableId = view.table_id
+  const [pending, setPending] = useState<PendingSubmission | null>(() => loadPending(tableId))
+  const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const inflight = useRef(false)
   const [raiseTo, setRaiseTo] = useState<number>(legal?.min_full_raise_to ?? legal?.short_all_in_raise_to ?? 0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setPending((p) => (p && p.decisionId !== view.decision_id ? null : p))
     setRaiseTo(legal?.min_full_raise_to ?? legal?.short_all_in_raise_to ?? 0)
-    setError(null)
+    if (!pending) setError(null)
   }, [view.decision_id, legal?.min_full_raise_to, legal?.short_all_in_raise_to])
+
+  const settle = (message: string | null) => {
+    savePending(tableId, null)
+    setPending(null)
+    setNotice(message)
+  }
+
+  // An unanswered submission is resent with the same action_id: the server either
+  // reports the stored receipt (it had committed) or rejects it (it had not).
+  const resolvePending = async (p: PendingSubmission) => {
+    if (!token || inflight.current) return
+    inflight.current = true
+    try {
+      const res = await api.act(tableId, token, p.envelope)
+      settle(
+        res.replayed
+          ? `${p.label} was received before the connection dropped (confirmed by its action id).`
+          : `${p.label} sent after reconnecting.`,
+      )
+      setError(null)
+      onSnapshot(res.snapshot)
+    } catch (err) {
+      if (err instanceof ApiFailure && !isTransient(err)) {
+        settle(null)
+        setError(`${p.label} was not applied: ${err.code === 'deadline_passed' ? 'the turn timed out first' : err.message}.`)
+      }
+    } finally {
+      inflight.current = false
+    }
+  }
+
+  useEffect(() => {
+    const p = loadPending(tableId)
+    if (!p || p.seat !== view.hero_seat) return
+    resolvePending(p)
+    const id = window.setInterval(() => resolvePending(p), RESEND_MS)
+    return () => window.clearInterval(id)
+  }, [connections, pending?.envelope.action_id, token])
 
   const raiseValid = useMemo(() => {
     if (!legal?.can_raise) return false
@@ -50,22 +101,39 @@ export function ActionPanel({
   const disabled = !legal || pending !== null || !token
 
   const send = async (action: Action, label: string) => {
-    if (!legal || !token || !view.hand_id || !view.decision_id || pending) return
-    setPending({ decisionId: view.decision_id, label })
-    setError(null)
-    try {
-      const res = await submitWithRetry(view.table_id, token, {
+    if (!legal || !token || !view.hand_id || !view.decision_id || pending || view.hero_seat === null) return
+    const submission: PendingSubmission = {
+      seat: view.hero_seat,
+      label,
+      envelope: {
         action_id: newActionId(),
-        table_id: view.table_id,
+        table_id: tableId,
         hand_id: view.hand_id,
         decision_id: view.decision_id,
         expected_state_version: view.state_version,
         action,
-      })
+      },
+    }
+    savePending(tableId, submission)
+    setPending(submission)
+    setNotice(null)
+    setError(null)
+    inflight.current = true
+    try {
+      const res = await submitWithRetry(tableId, token, submission.envelope)
+      settle(null)
       onSnapshot(res.snapshot)
     } catch (err) {
-      setPending(null)
-      setError(err instanceof ApiFailure ? `${err.code}: ${err.message}` : 'Connection lost. Your action may not have been received.')
+      if (isTransient(err)) {
+        setError(`The table is paused while storage is unavailable. ${label} is saved and will be confirmed by its action id when it resumes.`)
+      } else if (err instanceof ApiFailure) {
+        settle(null)
+        setError(`${err.code}: ${err.message}`)
+      } else {
+        setError(`Connection lost. ${label} is saved and will be confirmed by its action id when the server is reachable.`)
+      }
+    } finally {
+      inflight.current = false
     }
   }
 
@@ -84,6 +152,10 @@ export function ActionPanel({
     if (disabled) return
     const onKey = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement
+      if (typing && e.key === 'Escape') {
+        ;(e.target as HTMLElement).blur()
+        return
+      }
       if (typing || e.metaKey || e.ctrlKey || e.altKey) return
       const k = e.key.toLowerCase()
       if (k === 'f') fold()
@@ -96,6 +168,26 @@ export function ActionPanel({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   })
+
+  const messages = (
+    <>
+      {pending && (
+        <p className="pending" role="status" data-testid="pending">
+          Sending {pending.label}… chips move when the server commits.
+        </p>
+      )}
+      {notice && (
+        <p className="notice" role="status" data-testid="notice">
+          {notice}
+        </p>
+      )}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </>
+  )
 
   if (!legal) {
     const turn = snapshot.turn
@@ -114,6 +206,7 @@ export function ActionPanel({
         </div>
         {view.hero_seat !== null && hero?.status === 'eliminated' && <p className="hint">You are out of this table.</p>}
         {view.hero_seat === null && <p className="hint">Spectating: public information only.</p>}
+        {messages}
       </section>
     )
   }
@@ -227,17 +320,14 @@ export function ActionPanel({
             )}
           </>
         ) : (
-          <p className="hint raise-blocked">{legal.raise_blocked_reason ?? 'Raising is not available on this decision.'}</p>
+          <p className="hint raise-blocked" data-testid="raise-blocked">
+            {blockedText(legal.raise_blocked_reason)}
+          </p>
         )}
       </div>
 
-      {pending && (
-        <p className="pending" role="status">
-          Sending {pending.label}… chips move when the server commits.
-        </p>
-      )}
-      {error && <p className="error">{error}</p>}
-      <p className="hint keys">Keys: F fold · C check/call · R raise amount · A all in</p>
+      {messages}
+      <p className="hint keys">Keys: F fold · C check/call · R raise amount, Enter to send, Esc to leave · A all in</p>
     </section>
   )
 }

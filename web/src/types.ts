@@ -84,6 +84,7 @@ export interface SeatInfo {
   policy: string | null
   label: string
   artifact_hash: string | null
+  source: 'baseline' | 'registered' | null
   claimed: boolean
   you: boolean
 }
@@ -143,6 +144,130 @@ export interface Policy {
   label: string
   description: string
   artifact_hash: string
+  source: 'baseline' | 'registered'
+  rulesets: string[]
+  state_mode: string
+  bot_name: string
+  alias_of: string | null
+  original_path?: string
+  registered_at?: string
+}
+
+export type Perspective = 'seat' | 'spectator' | 'reviewer'
+
+export interface ReplayFrame {
+  index: number
+  kind: 'deal' | 'action' | 'hand_end' | 'complete'
+  seq: number
+  hand_number: number
+  view: TableView
+  hole_cards: Record<string, string[]> | null
+}
+
+export interface ReplayHand {
+  hand_number: number
+  hand_id: string | null
+  frames: ReplayFrame[]
+  events: PublicEvent[]
+}
+
+export interface Replay {
+  table_id: string
+  perspective: Perspective
+  viewer_seat: number | null
+  table_complete: boolean
+  available_perspectives: Perspective[]
+  hands: { hand_number: number; hand_id: string | null; frames: number }[]
+  hand: ReplayHand
+}
+
+export interface Quantiles {
+  p50: number | null
+  p95: number | null
+  p99: number | null
+  max: number | null
+}
+
+export interface EntrantSummary {
+  entrant: number
+  name: string
+  bot_name: string
+  state_mode: string | null
+  builtin: boolean
+  tables: number
+  mean_points: number | null
+  points_ci95: [number, number] | null
+  decisions: number
+  fallbacks: Record<string, number>
+  fallback_total: number
+  timeout_fallbacks: number
+  restarts: number
+  timing: { samples: number; end_to_end_s: Quantiles; over_budget_samples: number; worker_wall_s: Quantiles; worker_cpu_s: Quantiles }
+}
+
+export interface CellManifest {
+  run_id: string
+  config: ResolvedConfig
+  config_hash: string
+  content_hash: string
+  competitive: boolean
+  isolation: 'sandbox' | 'in_process'
+  budget_ns: number
+  seed_blocks: number
+  rotations_per_block: number
+  scheduled_tables: number
+  seed_list_sha256: string
+  report_note: string
+  budget_semantics: string
+  code: Record<string, unknown>
+  entrants: { entrant: number; name: string; artifact_sha256: string; builtin: boolean; rulesets?: string[]; state_mode?: string }[]
+  mean_points_by_seat: Record<string, number>
+  summary: {
+    tables_scheduled: number
+    tables_completed: number
+    tables_failed: { table_id: string; error: string }[]
+    tables_incomplete: string[]
+    blocks: number
+    entrants: EntrantSummary[]
+    table_wall_s_mean: number | null
+  }
+}
+
+export type RunStatus = 'queued' | 'running' | 'complete' | 'failed'
+
+export interface RunCellView {
+  cell_id: string
+  ruleset_id: string
+  players: number
+  config_hash: string
+  entrants: { name: string; builtin: boolean }[]
+  status: RunStatus
+  done: number
+  total: number
+  wall_s: number | null
+  error: string | null
+  manifest: CellManifest | null
+}
+
+export interface RunView {
+  run_id: string
+  status: RunStatus
+  created_at: string
+  request: { cells: { ruleset_id: string; players: number }[]; bots: string[]; blocks: number; isolation: string; jobs: number; config: Record<string, unknown> }
+  bots: Policy[]
+  progress: { done: number; total: number }
+  cells: RunCellView[]
+  error: string | null
+}
+
+export interface RunBrief {
+  run_id: string
+  status: RunStatus
+  created_at: string
+  progress: { done: number; total: number }
+  error: string | null
+  scenarios: string[]
+  bots: string[]
 }
 
 export type Action =

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ApiFailure, api, saveCredentials, type CreateBody } from '../api'
+import { ApiFailure, api, saveCredentials, useOperatorToken, type CreateBody } from '../api'
 import { RULESETS, chips } from '../format'
 import type { Policy, ResolvedConfig } from '../types'
 
@@ -12,6 +12,7 @@ function defaultAssignments(n: number, previous: Assignment[]): Assignment[] {
 }
 
 export function Setup({ navigate }: { navigate: (path: string) => void }) {
+  const operator = useOperatorToken()
   const [policies, setPolicies] = useState<Policy[]>([])
   const [ruleset, setRuleset] = useState('practice_nlhe')
   const [seatCount, setSeatCount] = useState(6)
@@ -25,8 +26,17 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
   const [createError, setCreateError] = useState<string | null>(null)
 
   useEffect(() => {
-    api.catalog().then((c) => setPolicies(c.policies), () => setResolveError('Server unreachable. Is `make dev` running?'))
-  }, [])
+    api.catalog(operator).then(
+      (c) => setPolicies(c.policies.filter((p) => !p.alias_of)),
+      () => setResolveError('Server unreachable. Is `make dev` running?'),
+    )
+  }, [operator])
+
+  useEffect(() => {
+    if (policies.length === 0) return
+    const supported = (id: string) => id === 'human' || policies.find((p) => p.id === id)?.rulesets.includes(ruleset)
+    setAssignments((prev) => (prev.every(supported) ? prev : prev.map((a) => (supported(a) ? a : 'legal_random'))))
+  }, [ruleset, policies])
 
   const body: CreateBody = useMemo(
     () => ({
@@ -44,7 +54,7 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
 
   useEffect(() => {
     const t = window.setTimeout(() => {
-      api.resolve(body).then(
+      api.resolve(body, operator).then(
         (r) => {
           setResolved(r)
           setResolveError(null)
@@ -56,7 +66,7 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
       )
     }, 150)
     return () => window.clearTimeout(t)
-  }, [body])
+  }, [body, operator])
 
   const setCount = (n: number) => {
     setSeatCount(n)
@@ -69,7 +79,7 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
     setCreating(true)
     setCreateError(null)
     try {
-      const created = await api.create(body)
+      const created = await api.create(body, operator)
       const creds: { hostToken: string; seat?: number; seatToken?: string } = { hostToken: created.host_token }
       if (humans > 0) {
         const joined = await api.join(created.table_id)
@@ -141,15 +151,31 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
                   onChange={(e) => setAssignments((prev) => prev.map((p, j) => (j === i ? e.target.value : p)))}
                 >
                   <option value="human">Human</option>
-                  {policies.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      Bot · {p.label}
-                    </option>
-                  ))}
+                  {(['baseline', 'registered'] as const).map((source) => {
+                    const group = policies.filter((p) => p.source === source)
+                    if (group.length === 0) return null
+                    return (
+                      <optgroup key={source} label={source === 'baseline' ? 'Baseline bots' : 'Registered files (operator)'}>
+                        {group.map((p) => {
+                          const ok = p.rulesets.includes(ruleset)
+                          return (
+                            <option key={p.id} value={p.id} disabled={!ok}>
+                              Bot · {p.label}
+                              {ok ? '' : ` (${p.rulesets.map((r) => RULESETS[r]?.short ?? r).join(', ')} only)`}
+                            </option>
+                          )
+                        })}
+                      </optgroup>
+                    )
+                  })}
                 </select>
               </li>
             ))}
           </ol>
+          <p className="hint">
+            Baselines are the milestone 4 reference bots.{' '}
+            {operator ? 'Registered files run in sandboxed workers under the 1 ms budget.' : 'Operators can also seat registered bot files.'}
+          </p>
           <p className="hint">
             {humans === 0
               ? 'Bot-only table: you will watch as a spectator.'
@@ -240,7 +266,10 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
               <dl className="kv">
                 {usedBots.map((id) => (
                   <div key={id} className="kv-pair">
-                    <dt>{policyById[id]?.label ?? id}</dt>
+                    <dt>
+                      {policyById[id]?.label ?? id}
+                      {policyById[id]?.source === 'registered' ? ' · file' : ''}
+                    </dt>
                     <dd className="mono hash" title={policyById[id]?.artifact_hash}>
                       sha256 {policyById[id]?.artifact_hash.slice(0, 12)}…
                     </dd>

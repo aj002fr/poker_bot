@@ -18,15 +18,18 @@ export function cardText(card: string) {
   return `${rankLabel(card[0])}${SUITS[card[1]]?.symbol ?? card[1]}`
 }
 
-export function Card({ card, size = 'md' }: { card: string; size?: 'sm' | 'md' | 'lg' }) {
+// Suits read by symbol and name, never by colour alone.
+export function Card({ card, size = 'md', muted = false }: { card: string; size?: 'sm' | 'md' | 'lg'; muted?: boolean }) {
   const suit = SUITS[card[1]]
   const rank = card[0]
+  const name = `${RANK_NAMES[rank] ?? rank} of ${suit?.name ?? card[1]}`
   return (
     <span
-      className={`card card-${size}${suit?.red ? ' card-red' : ''}`}
+      className={`card card-${size} card-suit-${card[1]}${suit?.red ? ' card-red' : ''}${muted ? ' card-muted' : ''}`}
       data-card={card}
       role="img"
-      aria-label={`${RANK_NAMES[rank] ?? rank} of ${suit?.name ?? card[1]}`}
+      aria-label={name}
+      title={name}
     >
       <span className="card-rank">{rankLabel(rank)}</span>
       <span className="card-suit">{suit?.symbol}</span>

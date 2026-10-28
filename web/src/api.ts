@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Action, Snapshot } from './types'
+import type { Action, Perspective, Policy, Replay, ResolvedConfig, RunBrief, RunView, Snapshot } from './types'
 
 const BASE = '/api'
 
@@ -46,22 +46,78 @@ export function saveCredentials(tableId: string, creds: Credentials) {
   sessionStorage.setItem(`arena:${tableId}`, JSON.stringify(creds))
 }
 
+const OPERATOR_KEY = 'arena:operator'
+const OPERATOR_EVENT = 'arena:operator-changed'
+
+// The operator credential is per browser profile (local storage), unlike seat keys.
+export function getOperatorToken(): string | null {
+  try {
+    return localStorage.getItem(OPERATOR_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setOperatorToken(token: string | null) {
+  if (token) localStorage.setItem(OPERATOR_KEY, token)
+  else localStorage.removeItem(OPERATOR_KEY)
+  window.dispatchEvent(new Event(OPERATOR_EVENT))
+}
+
+export function useOperatorToken(): string | null {
+  const [token, setToken] = useState(getOperatorToken)
+  useEffect(() => {
+    const update = () => setToken(getOperatorToken())
+    window.addEventListener(OPERATOR_EVENT, update)
+    window.addEventListener('storage', update)
+    return () => {
+      window.removeEventListener(OPERATOR_EVENT, update)
+      window.removeEventListener('storage', update)
+    }
+  }, [])
+  return token
+}
+
+export interface PendingSubmission {
+  seat: number
+  label: string
+  envelope: ActionEnvelope
+}
+
+// A submission whose outcome the tab has not seen yet. It survives reloads so a
+// reconnecting tab can resend the same action_id and learn whether it committed.
+export function loadPending(tableId: string): PendingSubmission | null {
+  try {
+    return JSON.parse(sessionStorage.getItem(`arena:${tableId}:pending`) ?? 'null')
+  } catch {
+    return null
+  }
+}
+
+export function savePending(tableId: string, pending: PendingSubmission | null) {
+  if (pending) sessionStorage.setItem(`arena:${tableId}:pending`, JSON.stringify(pending))
+  else sessionStorage.removeItem(`arena:${tableId}:pending`)
+}
+
 export interface CreateBody {
   config: Record<string, unknown>
   seats: { kind: 'human' | 'bot'; policy?: string | null }[]
 }
 
 export const api = {
-  catalog: () => request<{ rulesets: string[]; policies: import('./types').Policy[] }>('/catalog'),
-  resolve: (body: CreateBody) =>
-    request<{ config: import('./types').ResolvedConfig; config_hash: string }>('/configs/resolve', {
+  catalog: (operator?: string | null) =>
+    request<{ rulesets: string[]; policies: Policy[]; operator: boolean }>('/catalog', { token: operator }),
+  resolve: (body: CreateBody, operator?: string | null) =>
+    request<{ config: ResolvedConfig; config_hash: string }>('/configs/resolve', {
       method: 'POST',
       body: JSON.stringify(body),
+      token: operator,
     }),
-  create: (body: CreateBody) =>
+  create: (body: CreateBody, operator?: string | null) =>
     request<{ table_id: string; host_token: string; snapshot: Snapshot }>('/tables', {
       method: 'POST',
       body: JSON.stringify(body),
+      token: operator,
     }),
   join: (tableId: string, seat?: number) =>
     request<{ seat: number; seat_token: string; snapshot: Snapshot }>(`/tables/${tableId}/join`, {
@@ -71,13 +127,36 @@ export const api = {
   start: (tableId: string, hostToken: string) =>
     request<Snapshot>(`/tables/${tableId}/start`, { method: 'POST', token: hostToken }),
   snapshot: (tableId: string, token?: string | null) => request<Snapshot>(`/tables/${tableId}`, { token }),
-  history: (tableId: string, token?: string | null) => request<unknown>(`/tables/${tableId}/history`, { token }),
+  history: (tableId: string, token?: string | null, perspective?: Perspective) =>
+    request<unknown>(`/tables/${tableId}/history${perspective === 'reviewer' ? '?perspective=reviewer' : ''}`, { token }),
+  replay: (tableId: string, token: string | null, perspective: Perspective, hand?: number) =>
+    request<Replay>(
+      `/tables/${tableId}/replay?perspective=${perspective}${hand !== undefined ? `&hand=${hand}` : ''}`,
+      { token },
+    ),
+  whoami: (operator: string) => request<{ operator: true }>('/operator', { token: operator }),
+  registerBot: (operator: string, path: string) =>
+    request<{ bot: Policy }>('/bots', { method: 'POST', token: operator, body: JSON.stringify({ path }) }),
+  createRun: (operator: string, body: RunBody) =>
+    request<RunView>('/runs', { method: 'POST', token: operator, body: JSON.stringify(body) }),
+  runs: (operator: string) => request<{ runs: RunBrief[] }>('/runs', { token: operator }),
+  run: (operator: string, runId: string) => request<RunView>(`/runs/${runId}`, { token: operator }),
   act: (tableId: string, token: string, envelope: ActionEnvelope) =>
     request<{ receipt: unknown; replayed: boolean; snapshot: Snapshot }>(`/tables/${tableId}/actions`, {
       method: 'POST',
       token,
       body: JSON.stringify(envelope),
     }),
+}
+
+export interface RunBody {
+  cells: { ruleset_id: string; players: number }[]
+  bots: string[]
+  blocks: number
+  isolation: 'sandbox' | 'in_process'
+  jobs: number
+  seed?: string
+  config: Record<string, unknown>
 }
 
 export interface ActionEnvelope {
@@ -98,13 +177,15 @@ export function newActionId(): string {
 /** Server-side pauses worth retrying with the same action_id (the server deduplicates it). */
 const TRANSIENT = new Set(['storage_unavailable'])
 
-export async function submitWithRetry(tableId: string, token: string, envelope: ActionEnvelope) {
+export const isTransient = (err: unknown) => err instanceof ApiFailure && TRANSIENT.has(err.code)
+
+export async function submitWithRetry(tableId: string, token: string, envelope: ActionEnvelope, attempts = 3) {
   let lastError: unknown
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     try {
       return await api.act(tableId, token, envelope)
     } catch (err) {
-      if (err instanceof ApiFailure && !TRANSIENT.has(err.code)) throw err
+      if (err instanceof ApiFailure && !isTransient(err)) throw err
       lastError = err
       await new Promise((r) => setTimeout(r, 300 * (attempt + 1)))
     }
@@ -119,6 +200,7 @@ export function useTableStream(tableId: string, token: string | null) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [status, setStatus] = useState<StreamStatus>('connecting')
   const [error, setError] = useState<ApiFailure | null>(null)
+  const [connections, setConnections] = useState(0)
   const versionRef = useRef(-1)
 
   const accept = (snap: Snapshot) => {
@@ -135,6 +217,7 @@ export function useTableStream(tableId: string, token: string | null) {
     let ws: WebSocket | null = null
     let retry = 0
     let timer: number | undefined
+    let fresh = false
 
     api.snapshot(tableId, token).then(accept, (err) => err instanceof ApiFailure && setError(err))
 
@@ -142,11 +225,14 @@ export function useTableStream(tableId: string, token: string | null) {
       const proto = location.protocol === 'https:' ? 'wss' : 'ws'
       ws = new WebSocket(`${proto}://${location.host}${BASE}/tables/${tableId}/stream`)
       ws.onopen = () => {
+        fresh = true
         ws?.send(JSON.stringify({ type: 'auth', token }))
       }
       ws.onmessage = (ev) => {
         const frame = JSON.parse(ev.data)
         if (frame.type === 'snapshot') {
+          if (fresh) setConnections((c) => c + 1)
+          fresh = false
           retry = 0
           setStatus('live')
           setError(null)
@@ -178,5 +264,5 @@ export function useTableStream(tableId: string, token: string | null) {
     }
   }, [tableId, token])
 
-  return { snapshot, status, error, accept }
+  return { snapshot, status, error, accept, connections }
 }

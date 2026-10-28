@@ -97,11 +97,13 @@ export function Results({
         <button className="btn btn-primary" onClick={() => navigate('/')}>
           New table
         </button>
+        <a className="btn" href={`#/t/${snapshot.table_id}/replay`}>
+          Replay this table
+        </a>
         <button className="btn" onClick={download}>
           Download my history
         </button>
       </div>
-      <p className="hint">Replay controls arrive with the full browser table milestone.</p>
     </main>
   )
 }
