@@ -1,0 +1,40 @@
+{
+ "id": "E07",
+ "kind": "full_trace",
+ "ruleset": "uncertainty_shortdeck",
+ "description": "Short deck: flush beats full house.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "AhTh",
+   "1": "Ks9c"
+  },
+  "board": "6h7h9hKcKd"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 40,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "0": 40
+    }
+   }
+  ],
+  "board_cards": 5
+ }
+}

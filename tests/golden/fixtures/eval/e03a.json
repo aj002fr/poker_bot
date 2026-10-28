@@ -1,0 +1,40 @@
+{
+ "id": "E03a",
+ "kind": "full_trace",
+ "ruleset": "practice_nlhe",
+ "description": "Board quads: the higher hole kicker (K over Q) wins.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "Kh3d",
+   "1": "Qh4d"
+  },
+  "board": "9c9d9h9s2c"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 40,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "0": 40
+    }
+   }
+  ],
+  "board_cards": 5
+ }
+}

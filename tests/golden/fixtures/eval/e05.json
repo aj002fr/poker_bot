@@ -1,0 +1,42 @@
+{
+ "id": "E05",
+ "kind": "full_trace",
+ "ruleset": "practice_nlhe",
+ "description": "Six hearts available: best five used; A-J-9-5-3 beats J-T-9-5-4 and J-9-6-5-2.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2,
+  "hole": {
+   "0": "Ah3h",
+   "1": "Th4h",
+   "2": "6h7d"
+  },
+  "board": "2h5h9hJhKc"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 60,
+    "eligible": [
+     0,
+     1,
+     2
+    ],
+    "awards": {
+     "0": 60
+    }
+   }
+  ]
+ }
+}

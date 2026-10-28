@@ -1,0 +1,40 @@
+{
+ "id": "E10",
+ "kind": "full_trace",
+ "ruleset": "uncertainty_plo4",
+ "description": "PLO: four spades on board and one spade in hand is no flush; trip jacks win.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "AsKhQc3d",
+   "1": "JhJd4h3h"
+  },
+  "board": "2s5s9sJsKd"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 40,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "1": 40
+    }
+   }
+  ],
+  "board_cards": 5
+ }
+}

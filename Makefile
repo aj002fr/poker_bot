@@ -14,4 +14,4 @@ verify-release:
 test: verify-fast
 
 cli-demo:
-	$(UV) run python -m arena.cli fixture G20
+	$(UV) run python -m arena.cli tournament --ruleset practice_nlhe --players 6 --seed 1

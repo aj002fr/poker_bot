@@ -1,0 +1,40 @@
+{
+ "id": "E01",
+ "kind": "full_trace",
+ "ruleset": "practice_nlhe",
+ "description": "A-2-3-4-5 (five-high) loses to 2-3-4-5-6; the ace is low only in the wheel.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "As2c",
+   "1": "2d6h"
+  },
+  "board": "3c4d5h9sKd"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 40,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "1": 40
+    }
+   }
+  ],
+  "board_cards": 5
+ }
+}

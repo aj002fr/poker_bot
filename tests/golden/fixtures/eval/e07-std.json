@@ -1,0 +1,40 @@
+{
+ "id": "E07-std",
+ "kind": "full_trace",
+ "ruleset": "practice_nlhe",
+ "description": "Same cards in standard Hold'em: full house beats flush.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "AhTh",
+   "1": "Ks9c"
+  },
+  "board": "6h7h9hKcKd"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 40,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "1": 40
+    }
+   }
+  ],
+  "board_cards": 5
+ }
+}

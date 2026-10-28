@@ -18,7 +18,7 @@ from __future__ import annotations
 import warnings
 from collections import deque
 from collections.abc import Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 import pokerkit
 from pokerkit import Card, Mode, State
@@ -47,6 +47,17 @@ class _ArenaState(State):
     """
 
     arena_level_floor: int = 0
+
+    @property
+    def min_completion_betting_or_raising_to_amount(self) -> int | None:
+        minimum = super().min_completion_betting_or_raising_to_amount
+        if minimum is None or max(self.bets) >= self.arena_level_floor:
+            return minimum
+        # Below the nominal big blind a completion is how the adapter prices a
+        # call; the betting-rights overlay supplies the real raise minimum.
+        i = self.actor_index
+        assert i is not None
+        return min(self.stacks[i] + self.bets[i], max(self.bets) + 1)
 
     @property
     def pot_completion_betting_or_raising_to_amount(self) -> int | None:
@@ -154,17 +165,12 @@ class PokerKitHand:
             posted = [min(b, spec.stacks[s]) for b, s in zip(blinds, self.seats)]
 
         game = profile.game_class((), True, 0, raw_blinds, spec.big_blind, mode=Mode.TOURNAMENT)
-        streets = list(game.streets)
         self.short_blind_correction = max(posted) < spec.big_blind
-        if self.short_blind_correction:
-            streets[0] = replace(
-                streets[0], min_completion_betting_or_raising_amount=spec.big_blind - max(posted)
-            )
         self.pk = _ArenaState(
             (),
             game.deck,
             game.hand_types,
-            tuple(streets),
+            game.streets,
             game.betting_structure,
             True,
             0,
@@ -322,6 +328,7 @@ class PokerKitHand:
         bet = self.pk.bets[i]
         street = self.street
         corrected = False
+        engine_level = max(self.pk.bets)
 
         match action.type:
             case "fold":
@@ -359,6 +366,12 @@ class PokerKitHand:
                         if acted == 0:
                             del self._acted_level[j]
                 self._acted_level[i] = target
+
+        if level > engine_level:
+            # PokerKit measured this action against the short posted blind, so its
+            # raise tracking is wrong; reset it to the most permissive values.
+            self.pk.completion_betting_or_raising_amount = 0
+            self.pk.consecutive_short_all_in_amounts.clear()
 
         data = {
             "seat": seat,

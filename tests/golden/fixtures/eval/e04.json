@@ -1,0 +1,42 @@
+{
+ "id": "E04",
+ "kind": "full_trace",
+ "ruleset": "practice_nlhe",
+ "description": "Two triplets in seven cards: kings full of sevens beats sevens full of kings and two pair.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2,
+  "hole": {
+   "0": "Kh7h",
+   "1": "7s2c",
+   "2": "AcAd"
+  },
+  "board": "KcKd7c7d2s"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 60,
+    "eligible": [
+     0,
+     1,
+     2
+    ],
+    "awards": {
+     "0": 60
+    }
+   }
+  ]
+ }
+}
