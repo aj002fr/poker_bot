@@ -165,6 +165,130 @@ def cmd_run_baseline(args: argparse.Namespace) -> int:
     return 0 if not r.failed_tables else 1
 
 
+DEFAULT_FIELDS = {
+    "practice_nlhe": ["nlhe_heuristic", "calling_station", "legal_random", "check_fold"],
+    "uncertainty_shortdeck": ["calling_station", "legal_random", "check_fold"],
+    "uncertainty_plo4": ["calling_station", "legal_random", "check_fold"],
+}
+
+
+def _entrant(spec: str):
+    from arena.agents.baselines import BASELINES
+    from arena.benchmark.runner import Entrant
+
+    name = spec.removeprefix("baseline:")
+    if name in BASELINES:
+        return Entrant(name=name, path=BASELINES[name], builtin=True)
+    path = Path(spec)
+    if not path.exists():
+        raise SystemExit(f"bot {spec!r} is neither a file nor a baseline ({', '.join(sorted(BASELINES))})")
+    return Entrant(name=path.stem if path.is_file() else path.name, path=path.resolve())
+
+
+def _fmt_s(v) -> str:
+    return "-" if v is None else f"{v:.6f}"
+
+
+def _print_benchmark(run, focus: list[int]) -> None:
+    m = run.manifest
+    s = m.summary
+    label = "" if m.competitive else "  [DIAGNOSTIC: not competitive]"
+    print(f"run {m.run_id}  ruleset {m.ruleset_id}  {m.initial_player_count} seats  "
+          f"{m.scheduled_tables} tables = {m.seed_blocks} paired seed blocks x {m.rotations_per_block} seat rotations")
+    print(f"isolation {m.isolation}  budget {m.budget_ns / 1e9:.6f} s  jobs {m.process_layout['jobs']}{label}")
+    print(f"completed {s['tables_completed']}/{s['tables_scheduled']}  failed {len(s['tables_failed'])}  "
+          f"incomplete {len(s['tables_incomplete'])}  mean table wall {_fmt_s(s['table_wall_s_mean'])} s")
+    for f in s["tables_failed"][:5]:
+        print(f"   failed {f['table_id']}: {f['error']}")
+    payout = sum(m.config["payout_points"])
+    print(f"\nmean points per table (payout total {payout}; 95% bootstrap CI over seed blocks)")
+    for e in s["entrants"]:
+        ci = e["points_ci95"]
+        ci_text = f"[{ci[0]:7.3f}, {ci[1]:7.3f}]" if ci else "[not enough blocks]"
+        mark = "*" if e["entrant"] in focus else " "
+        print(f" {mark} {e['name']:<22} {e['mean_points'] if e['mean_points'] is not None else float('nan'):8.3f}  {ci_text}"
+              f"   fallbacks {e['fallback_total']}/{e['decisions']}")
+    for e in s["entrants"]:
+        if e["entrant"] not in focus:
+            continue
+        t = e["timing"]
+        print(f"\n{e['name']} ({e['state_mode']} state): {e['decisions']} decisions, timing in seconds")
+        for key, title in (("end_to_end_s", "end-to-end round trip"), ("worker_wall_s", "worker decide() wall"),
+                           ("worker_cpu_s", "worker decide() CPU")):
+            q = t[key]
+            print(f"   {title:<24} p50 {_fmt_s(q['p50'])}  p95 {_fmt_s(q['p95'])}  p99 {_fmt_s(q['p99'])}  "
+                  f"max {_fmt_s(q['max'])}")
+        rate = e["fallback_total"] / e["decisions"] if e["decisions"] else 0.0
+        reasons = ", ".join(f"{k} {v}" for k, v in e["fallbacks"].items()) or "none"
+        print(f"   fallbacks {e['fallback_total']} ({rate:.4%}): {reasons}")
+        print(f"   worker restarts {e['restarts']} (not restorable {e['restarts_not_restorable']}, tables with "
+              f"lost instance state {e['tables_with_state_loss']}), late replies discarded "
+              f"{e['late_replies_discarded']}, max committed state {e['max_state_bytes']} bytes")
+    b = s["baselines_combined"]
+    if b["decisions"]:
+        q = b["timing"]["end_to_end_s"]
+        print(f"\nbaselines combined: {b['decisions']} decisions, 1 ms timeout fallbacks {b['timeout_fallbacks']} "
+              f"({(b['timeout_rate'] or 0):.4%}); end-to-end p50 {_fmt_s(q['p50'])}  p95 {_fmt_s(q['p95'])}  "
+              f"p99 {_fmt_s(q['p99'])}  max {_fmt_s(q['max'])} s")
+    if run.out_dir is not None:
+        print(f"\nmanifest {run.out_dir / 'manifest.json'}")
+    print("practice assumptions; not official Sequoia rules. Results against baselines say little about strength.")
+
+
+def _default_jobs() -> int:
+    import os
+
+    return max(1, min(4, (os.cpu_count() or 2) // 2))
+
+
+def _run_benchmark_cli(args: argparse.Namespace, entrants, focus: list[int]) -> int:
+    import math
+
+    from arena.agents.sdk import UnsupportedRuleset
+    from arena.agents.worker import AgentLoadError, WorkerStartError
+    from arena.benchmark.runner import run_benchmark
+
+    config = _config(args)
+    if len(entrants) != config.initial_player_count:
+        raise SystemExit(f"need exactly {config.initial_player_count} entrants, got {len(entrants)}")
+    blocks = max(1, math.ceil(args.tables / config.initial_player_count))
+    out = Path(args.out) if args.out else None
+    step = max(1, (blocks * config.initial_player_count) // 10)
+
+    def progress(done: int, total: int, r) -> None:
+        if not args.quiet and (done % step == 0 or done == total):
+            print(f"   {done}/{total} tables", file=sys.stderr, flush=True)
+
+    try:
+        run = run_benchmark(config=config, entrants=entrants, blocks=blocks, base_seed=str(args.seed),
+                            isolation="in_process" if args.in_process else "sandbox",
+                            budget_ns=args.budget_ns, jobs=args.jobs, out_dir=out,
+                            save_histories=args.save_histories, progress=progress)
+    except UnsupportedRuleset as exc:
+        print(f"rejected before the table started: {exc}", file=sys.stderr)
+        return 5
+    except (AgentLoadError, WorkerStartError) as exc:
+        print(f"bot failed to load: {exc}", file=sys.stderr)
+        return 6
+    if args.json:
+        print(canonical_json(run.manifest.model_dump(mode="json")))
+    else:
+        _print_benchmark(run, focus)
+    return 0 if not run.manifest.summary["tables_failed"] else 1
+
+
+def cmd_match(args: argparse.Namespace) -> int:
+    field = args.opponents.split(",") if args.opponents else DEFAULT_FIELDS[args.ruleset]
+    opponents = [field[k % len(field)] for k in range(args.players - 1)]
+    entrants = [_entrant(args.bot)] + [_entrant(o) for o in opponents]
+    return _run_benchmark_cli(args, entrants, focus=[0])
+
+
+def cmd_benchmark(args: argparse.Namespace) -> int:
+    entrants = [_entrant(b) for b in args.bots.split(",")]
+    return _run_benchmark_cli(args, entrants, focus=list(range(len(entrants))))
+
+
 def cmd_schemas(args: argparse.Namespace) -> int:
     from arena.schemas import write_schemas
 
@@ -221,6 +345,31 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--run-id", default=None)
     p.add_argument("--out", default=None, help=f"run directory (default {RUNS_DIR}/<run_id>)")
     p.set_defaults(fn=cmd_run_baseline)
+
+    def bench_args(p: argparse.ArgumentParser, tables: int) -> None:
+        p.add_argument("--ruleset", choices=RULESET_IDS, default="practice_nlhe")
+        p.add_argument("--players", type=int, default=6)
+        p.add_argument("--stack", type=int, default=2000)
+        p.add_argument("--seed", default="1")
+        p.add_argument("--tables", type=int, default=tables, help="rounded up to whole seed blocks of --players")
+        p.add_argument("--jobs", type=int, default=_default_jobs(), help="tables played in parallel")
+        p.add_argument("--in-process", action="store_true", help="diagnostic: no sandbox, no enforced deadline")
+        p.add_argument("--budget-ns", type=int, default=None, help="diagnostic budget (labelled not competitive)")
+        p.add_argument("--out", default=None, help="write manifest.json (and private seeds) to this directory")
+        p.add_argument("--save-histories", action="store_true", help="with --out, also write private histories")
+        p.add_argument("--json", action="store_true", help="print the manifest as JSON")
+        p.add_argument("--quiet", action="store_true")
+
+    p = sub.add_parser("match", help="play your bot against the baselines and report points and timing")
+    p.add_argument("--bot", required=True, help="bot file (or directory with bot.py) defining make_bot()")
+    p.add_argument("--opponents", default=None, help="comma-separated baselines or bot paths, cycled to fill seats")
+    bench_args(p, tables=240)
+    p.set_defaults(fn=cmd_match)
+
+    p = sub.add_parser("benchmark", help="seat-balanced paired-seed benchmark of N bots")
+    p.add_argument("--bots", required=True, help="comma-separated baselines or bot paths, one per seat")
+    bench_args(p, tables=480)
+    p.set_defaults(fn=cmd_benchmark)
 
     p = sub.add_parser("schemas", help="write the JSON Schemas of the public contracts")
     p.add_argument("--out", default="docs/schemas")

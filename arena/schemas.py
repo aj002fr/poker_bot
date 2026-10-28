@@ -9,7 +9,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from arena.agents.sdk import TableInfo
 from arena.benchmark.manifest import RunManifest
+from arena.benchmark.runner import BenchmarkManifest
 from arena.domain.events import EVENT_MODELS, EventEnvelope
 from arena.domain.models import Action, ActionEnvelope, LegalActions
 from arena.domain.observations import HistoryView, Observation, PublicEvent, TableView
@@ -24,6 +26,8 @@ CONTRACTS = {
     "legal-actions.v1.json": LegalActions,
     "event-envelope.v1.json": EventEnvelope,
     "run-manifest.v1.json": RunManifest,
+    "benchmark-manifest.v1.json": BenchmarkManifest,
+    "table-info.v1.json": TableInfo,
 }
 
 
