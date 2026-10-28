@@ -116,7 +116,7 @@ function LastHand({ snapshot }: { snapshot: Snapshot }) {
     snapshot.setup.seats,
   )
   return (
-    <div className="last-hand" data-testid="last-hand">
+    <div className="last-hand" data-testid="last-hand" data-hand-number={last.hand_number ?? undefined}>
       <div className="label">Hand {last.hand_number} result</div>
       {board.length > 0 && (
         <div className="last-board">
@@ -168,7 +168,10 @@ export function TableScreen({
     <main className="play">
       <div className="hand-strip">
         <span>
-          <span className="label">Hand</span> <span className="mono">{view.hand_number}</span>
+          <span className="label">Hand</span>{' '}
+          <span className="mono" data-testid="hand-number">
+            {view.hand_number}
+          </span>
           <span className="muted mono">/{view.hand_cap}</span>
         </span>
         {view.blinds && (

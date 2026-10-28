@@ -152,6 +152,7 @@ export function ActionPanel({
             aria-keyshortcuts="C"
           >
             Call {legal.call_amount !== null ? chips(legal.call_amount) : ''}
+            {legal.call_amount !== null && legal.call_amount === hero?.stack ? ' · all in' : ''}
           </button>
         )}
         <button
