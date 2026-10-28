@@ -11,6 +11,18 @@ Scores
     resamples whole blocks (the block is the independent unit, not the hand or the
     table). Failed tables are listed and never silently dropped from the counts.
 
+Infrastructure failures and reruns (spec section 9.2)
+    A table interrupted by infrastructure is marked invalid and rerun with the same
+    seed and table ID under a new attempt ID (``<table_id>-a<n>``), up to the
+    declared :class:`RetryPolicy`, which is recorded in the manifest. Infrastructure
+    means a worker that could not be started, a host OS or memory error in the
+    table process, a lost job process, or an infrastructure kill that left an
+    instance-state bot without its state. An infrastructure kill of an
+    explicit-state bot is restored exactly and does not invalidate the table.
+    Agent faults (crashes, timeouts, bad output) use the normal fallback and never
+    invalidate a table. The rerun decision looks only at those infrastructure
+    events, never at results, and every attempt is reported.
+
 Isolation
     ``sandbox`` (default) runs every seat in a pooled, sandboxed worker under the
     1 ms deadline. ``in_process`` calls the bots directly: a diagnostic mode for
@@ -23,19 +35,21 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import random
 import time
 from array import array
-from collections import Counter
-from collections.abc import Callable, Sequence
-from concurrent.futures import ProcessPoolExecutor
+from collections import Counter, deque
+from collections.abc import Callable, Mapping, Sequence
+from concurrent.futures import FIRST_COMPLETED, Future, ProcessPoolExecutor, wait
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from multiprocessing import get_context
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import StrictInt, StrictStr
+from pydantic import Field, StrictInt, StrictStr
 
 from arena.agents.sdk import BotInfo, TableInfo, load_bot, require_supported
 from arena.agents.worker import (
@@ -45,6 +59,7 @@ from arena.agents.worker import (
     SeatAgent,
     WorkerPool,
     WorkerSeat,
+    WorkerStartError,
     artifact_hash,
     play_table,
 )
@@ -64,6 +79,60 @@ from arena.domain.rng import SeededRng
 
 Isolation = Literal["sandbox", "in_process"]
 BOOTSTRAP_RESAMPLES = 2000
+
+INFRASTRUCTURE_CAUSES = (
+    "worker_start_failed",                    # no sandboxed worker could be started for a seat
+    "host_os_error",                          # OSError in the table process (fds, disk, fork)
+    "host_memory_error",                      # MemoryError in the table process
+    "job_process_lost",                       # the job process running the table died
+    "job_error",                              # the job could not run or return the table
+    "instance_state_lost_to_infrastructure",  # infrastructure kill; instance state not restorable
+)
+
+
+@dataclass(frozen=True)
+class RetryPolicy:
+    """Declared rerun policy for tables invalidated by infrastructure (spec 9.2).
+
+    ``max_attempts`` counts the first attempt, so 1 means invalid tables are
+    reported but never rerun.
+    """
+
+    max_attempts: int = 3
+
+    def __post_init__(self) -> None:
+        if self.max_attempts < 1:
+            raise ValueError("max_attempts must be at least 1")
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "policy": "rerun_infrastructure_invalid_tables",
+            "max_attempts": self.max_attempts,
+            "same_seed": True,
+            "same_table_id": True,
+            "attempt_id_format": "<table_id>-a<attempt>",
+            "invalidating_causes": list(INFRASTRUCTURE_CAUSES),
+            "not_invalidating": ["agent faults (crash, timeout, exception, invalid or illegal output): normal "
+                                 "fallback", "infrastructure kill of an explicit-state bot: restored exactly"],
+            "not_retried": "engine or other non-infrastructure errors: listed as failed",
+            "selection": "decided only from infrastructure events, never from results; every attempt is reported",
+        }
+
+    def describe(self) -> str:
+        return (f"rerun tables invalidated by infrastructure ({', '.join(INFRASTRUCTURE_CAUSES)}) with the same seed "
+                f"and table ID, up to {self.max_attempts} attempts in total; attempt IDs <table_id>-a<n>; every "
+                "attempt is counted and reported; agent crashes use fallbacks and do not invalidate a table; "
+                "other errors are listed as failed and not rerun")
+
+
+def _infrastructure_cause(exc: BaseException) -> str | None:
+    if isinstance(exc, WorkerStartError):
+        return "worker_start_failed"
+    if isinstance(exc, MemoryError):
+        return "host_memory_error"
+    if isinstance(exc, OSError):
+        return "host_os_error"
+    return None
 
 
 @dataclass(frozen=True)
@@ -142,10 +211,67 @@ class TableResult:
     e2e_ns: dict[int, bytes] = field(default_factory=dict)
     worker_wall_ns: dict[int, bytes] = field(default_factory=dict)
     worker_cpu_ns: dict[int, bytes] = field(default_factory=dict)
+    attempt: int = 1
+    invalid_reason: str | None = None
+    """One of :data:`INFRASTRUCTURE_CAUSES` when infrastructure invalidated this attempt."""
+    infrastructure: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def state_lost(self) -> list[int]:
         return sorted(e for e, rs in self.restarts.items() if any(not restored for _, _, restored in rs))
+
+    @property
+    def attempt_id(self) -> str:
+        return f"{self.table_id}-a{self.attempt}"
+
+    @property
+    def valid(self) -> bool:
+        return self.completed and self.error is None and self.invalid_reason is None
+
+
+def _lost_attempt(a: Assignment, attempt: int, cause: str, detail: str) -> TableResult:
+    return TableResult(a.index, a.block, a.rotation, a.table_id, dict(a.seats), False, detail[:500], 0, 0.0,
+                       attempt=attempt, invalid_reason=cause)
+
+
+def _seat_invalidation(stats: Any) -> str | None:
+    events = [ev for _, ev in stats.infrastructure]
+    if "worker_start_failed" in events:
+        return "worker_start_failed"
+    kills = {ev for ev in events if ev != "worker_start_failed"}
+    if any(r.cause in kills and not r.restored for r in stats.restarts):
+        return "instance_state_lost_to_infrastructure"
+    return None
+
+
+class _InjectedFaults:
+    """Test-only infrastructure faults: ``start_fail``, ``kill:<seat>:<decision>``
+    (an infrastructure kill) and ``spawn_fail:<seat>:<decision>`` (a kill after
+    which no worker can be started for that seat)."""
+
+    def __init__(self, spec: str | None) -> None:
+        self.start_fail = spec == "start_fail"
+        self.kill: tuple[str, int, int] | None = None
+        if spec and spec.split(":")[0] in ("kill", "spawn_fail"):
+            kind, seat, index = spec.split(":")
+            self.kill = (kind, int(seat), int(index))
+
+    def before_decision(self, agents: Mapping[int, SeatAgent]) -> Callable[[int, int], None] | None:
+        if self.kill is None:
+            return None
+        kind, seat, at = self.kill
+
+        def hook(index: int, _actor: int) -> None:
+            if index != at:
+                return
+            agent: Any = agents[seat]
+            if kind == "spawn_fail":
+                def refuse() -> Any:
+                    raise WorkerStartError("injected: no worker can be started")
+                agent.spawn = refuse
+            agent.kill_worker()
+
+        return hook
 
 
 class TableRunner:
@@ -158,47 +284,69 @@ class TableRunner:
         self.isolation = isolation
         self.budget_ns = budget_ns or config.bot_budget_ns
         self.history_dir = history_dir
+        self.pool_size = pool_size or len(config.resolved_seats) + 2
         self.pool: WorkerPool | None = None
         self.artifacts: list[Artifact] = []
         if isolation == "sandbox":
-            self.pool = WorkerPool(size=pool_size or len(config.resolved_seats) + 2)
-            self.artifacts = [self.pool.stage(e.path) for e in self.entrants]
+            self._start_pool()
         else:
             self.artifacts = [Artifact(e.name, e.path, e.path.parent, artifact_hash(e.path)) for e in self.entrants]
+
+    def _start_pool(self) -> None:
+        self.pool = WorkerPool(size=self.pool_size)
+        self.artifacts = [self.pool.stage(e.path) for e in self.entrants]
+
+    def _reset_pool(self) -> None:
+        """Replace the worker pool after an infrastructure failure."""
+        if self.pool is not None:
+            self.pool.close()
+            self.pool = None
+        try:
+            self._start_pool()
+        except (WorkerStartError, OSError):
+            self.pool = None
 
     def close(self) -> None:
         if self.pool is not None:
             self.pool.close()
 
     def _agent(self, seat: int, entrant: int, info: TableInfo) -> SeatAgent:
+        if self.isolation == "sandbox":
+            if self.pool is None:
+                self._start_pool()
+            assert self.pool is not None
+            return WorkerSeat(seat, self.artifacts[entrant], info, self.pool.acquire, budget_ns=self.budget_ns)
         art = self.artifacts[entrant]
-        if self.pool is not None:
-            return WorkerSeat(seat, art, info, self.pool.acquire, budget_ns=self.budget_ns)
         bot, bot_info = load_bot(art.entry, module_name=f"arena_inproc_{entrant}_{seat}")
         return InProcessSeat(seat, bot, bot_info, info, art.sha256)
 
-    def run(self, a: Assignment) -> TableResult:
+    def run(self, a: Assignment, attempt: int = 1, fault: str | None = None) -> TableResult:
+        """Play one attempt of ``a``. Every attempt of a table uses the same seed and table ID."""
         from arena.history.canonical import write_history
         from arena.table.service import seeded_table
 
         t0 = time.perf_counter()
+        faults = _InjectedFaults(fault)
         agents: dict[int, SeatAgent] = {}
-        result = TableResult(a.index, a.block, a.rotation, a.table_id, dict(a.seats), False, None, 0, 0.0)
+        result = TableResult(a.index, a.block, a.rotation, a.table_id, dict(a.seats), False, None, 0, 0.0,
+                             attempt=attempt)
+        table = None
         try:
+            if faults.start_fail:
+                raise WorkerStartError("injected: worker failed to start")
             for seat, entrant in a.seats.items():
                 agent = self._agent(seat, entrant, table_info(self.config, a, seat, self.budget_ns))
                 agents[seat] = agent
                 agent.start()
             table = seeded_table(self.config, a.seed, table_id=a.table_id)
-            play_table(table, agents)
+            play_table(table, agents, before_decision=faults.before_decision(agents))
             result.hands = len(table.hands)
             result.completed = table.complete
             if table.complete:
                 result.points = {a.seats[s]: float(p) for s, p in table.points().items()}
-            if self.history_dir is not None:
-                write_history(table, self.history_dir)
         except Exception as exc:  # recorded, never hidden
             result.error = f"{type(exc).__name__}: {exc}"[:500]
+            result.invalid_reason = _infrastructure_cause(exc)
         finally:
             for agent in agents.values():
                 agent.close()
@@ -212,6 +360,21 @@ class TableRunner:
             result.e2e_ns[e] = array("q", st.e2e_ns).tobytes()
             result.worker_wall_ns[e] = array("q", st.worker_wall_ns).tobytes()
             result.worker_cpu_ns[e] = array("q", st.worker_cpu_ns).tobytes()
+            result.infrastructure += [{"entrant": e, "seat": seat, "decision": i, "event": ev}
+                                      for i, ev in st.infrastructure]
+            if result.invalid_reason is None:
+                result.invalid_reason = _seat_invalidation(st)
+        if self.history_dir is not None and table is not None and result.error is None:
+            target = self.history_dir if result.invalid_reason is None else (
+                self.history_dir / "invalid" / f"a{attempt}")
+            try:
+                write_history(table, target)
+            except OSError as exc:
+                result.error = f"{type(exc).__name__}: {exc}"[:500]
+                result.invalid_reason = result.invalid_reason or "host_os_error"
+        if self.isolation == "sandbox" and result.invalid_reason in (
+                "worker_start_failed", "host_os_error", "host_memory_error"):
+            self._reset_pool()
         result.wall_s = time.perf_counter() - t0
         return result
 
@@ -227,9 +390,91 @@ def _job_init(config_json: str, entrants: list[Entrant], isolation: Isolation, b
                           history_dir=Path(history_dir) if history_dir else None)
 
 
-def _job_run(a: Assignment) -> TableResult:
+def _job_run(a: Assignment, attempt: int = 1, fault: str | None = None) -> TableResult:
     assert _RUNNER is not None
-    return _RUNNER.run(a)
+    if fault == "job_exit":
+        os._exit(70)
+    return _RUNNER.run(a, attempt, fault)
+
+
+def _play_with_retries(
+    plan: Sequence[Assignment],
+    policy: RetryPolicy,
+    *,
+    make_runner: Callable[[], TableRunner],
+    jobs: int,
+    job_initargs: tuple[Any, ...],
+    faults: Mapping[tuple[int, int], str],
+    progress: Callable[[int, int, TableResult], None] | None,
+) -> tuple[list[TableResult], list[TableResult]]:
+    """Play every assignment, rerunning infrastructure-invalid attempts. Returns
+    (final attempt per table, every attempt)."""
+    pending: deque[tuple[Assignment, int]] = deque((a, 1) for a in plan)
+    final: dict[int, TableResult] = {}
+    attempts: list[TableResult] = []
+
+    def record(a: Assignment, r: TableResult) -> None:
+        attempts.append(r)
+        if r.invalid_reason is not None and r.attempt < policy.max_attempts:
+            pending.appendleft((a, r.attempt + 1))
+            return
+        final[a.index] = r
+        if progress:
+            progress(len(final), len(plan), r)
+
+    if jobs <= 1:
+        runner = make_runner()
+        try:
+            while pending:
+                a, n = pending.popleft()
+                fault = faults.get((a.index, n))
+                if fault == "job_exit":
+                    runner.close()
+                    record(a, _lost_attempt(a, n, "job_process_lost", "injected: job process lost"))
+                    runner = make_runner()
+                    continue
+                record(a, runner.run(a, n, fault))
+        finally:
+            runner.close()
+    else:
+        ctx = get_context("spawn")
+
+        def executor() -> ProcessPoolExecutor:
+            return ProcessPoolExecutor(max_workers=jobs, mp_context=ctx, initializer=_job_init, initargs=job_initargs)
+
+        ex = executor()
+        inflight: dict[Future[TableResult], tuple[Assignment, int]] = {}
+        try:
+            while pending or inflight:
+                # At most one table per job process in flight, so a lost pool only
+                # interrupts tables that were actually running.
+                while pending and len(inflight) < jobs:
+                    a, n = pending.popleft()
+                    inflight[ex.submit(_job_run, a, n, faults.get((a.index, n)))] = (a, n)
+                done, _ = wait(inflight, return_when=FIRST_COMPLETED)
+                broken = False
+                for f in done:
+                    a, n = inflight.pop(f)
+                    try:
+                        record(a, f.result())
+                    except BrokenProcessPool as exc:
+                        broken = True
+                        record(a, _lost_attempt(a, n, "job_process_lost", f"BrokenProcessPool: {exc}"))
+                    except Exception as exc:
+                        record(a, _lost_attempt(a, n, "job_error", f"{type(exc).__name__}: {exc}"))
+                if broken:
+                    for f, (a, n) in list(inflight.items()):
+                        try:
+                            record(a, f.result())
+                        except Exception as exc:
+                            record(a, _lost_attempt(a, n, "job_process_lost", f"{type(exc).__name__}: {exc}"))
+                    inflight.clear()
+                    ex.shutdown(wait=True, cancel_futures=True)
+                    ex = executor()
+        finally:
+            ex.shutdown(wait=True, cancel_futures=True)
+    attempts.sort(key=lambda r: (r.index, r.attempt))
+    return [final[a.index] for a in plan], attempts
 
 
 # ----------------------------------------------------------------- preflight
@@ -296,8 +541,13 @@ def bootstrap_interval(block_values: Sequence[float], seed: str, resamples: int 
 
 
 def summarize(results: Sequence[TableResult], entrants: Sequence[Entrant], infos: Sequence[BotInfo],
-              budget_ns: int, base_seed: str) -> dict[str, Any]:
-    completed = [r for r in results if r.completed and r.error is None]
+              budget_ns: int, base_seed: str, attempts: Sequence[TableResult] | None = None) -> dict[str, Any]:
+    """``results`` holds the final attempt per table. Points come from valid final
+    attempts. Decisions, fallbacks, timing and restarts count every attempt in
+    ``attempts`` (defaults to ``results``), including invalidated ones."""
+    attempts = list(attempts) if attempts is not None else list(results)
+    completed = [r for r in results if r.valid]
+    invalid_attempts = [r for r in attempts if r.invalid_reason is not None]
     per_entrant = []
     for i, e in enumerate(entrants):
         blocks: dict[int, list[float]] = {}
@@ -305,14 +555,15 @@ def summarize(results: Sequence[TableResult], entrants: Sequence[Entrant], infos
             blocks.setdefault(r.block, []).append(r.points[i])
         block_means = [sum(v) / len(v) for _, v in sorted(blocks.items())]
         pts = [r.points[i] for r in completed]
-        e2e = [x for r in results for x in array("q", r.e2e_ns.get(i, b""))]
-        wall = [x for r in results for x in array("q", r.worker_wall_ns.get(i, b""))]
-        cpu = [x for r in results for x in array("q", r.worker_cpu_ns.get(i, b""))]
+        pts_all = pts + [r.points[i] for r in invalid_attempts if r.completed and i in r.points]
+        e2e = [x for r in attempts for x in array("q", r.e2e_ns.get(i, b""))]
+        wall = [x for r in attempts for x in array("q", r.worker_wall_ns.get(i, b""))]
+        cpu = [x for r in attempts for x in array("q", r.worker_cpu_ns.get(i, b""))]
         fallbacks: Counter = Counter()
-        for r in results:
+        for r in attempts:
             fallbacks.update(r.fallbacks.get(i, {}))
-        decisions = sum(r.decisions.get(i, 0) for r in results)
-        restarts = [x for r in results for x in r.restarts.get(i, [])]
+        decisions = sum(r.decisions.get(i, 0) for r in attempts)
+        restarts = [x for r in attempts for x in r.restarts.get(i, [])]
         per_entrant.append({
             "entrant": i,
             "name": e.name,
@@ -322,19 +573,20 @@ def summarize(results: Sequence[TableResult], entrants: Sequence[Entrant], infos
             "tables": len(pts),
             "mean_points": sum(pts) / len(pts) if pts else None,
             "points_ci95": bootstrap_interval(block_means, f"{base_seed}|{i}"),
+            "mean_points_including_invalid_attempts": sum(pts_all) / len(pts_all) if pts_all else None,
             "decisions": decisions,
             "fallbacks": dict(sorted(fallbacks.items())),
             "fallback_total": sum(fallbacks.values()),
             "timeout_fallbacks": fallbacks.get("timeout", 0),
             "restarts": len(restarts),
             "restarts_not_restorable": sum(1 for _, _, ok in restarts if not ok),
-            "tables_with_state_loss": sum(1 for r in results if i in r.state_lost),
-            "late_replies_discarded": sum(r.late_discarded.get(i, 0) for r in results),
-            "max_state_bytes": max((r.max_state_bytes.get(i, 0) for r in results), default=0),
+            "tables_with_state_loss": sum(1 for r in attempts if i in r.state_lost),
+            "late_replies_discarded": sum(r.late_discarded.get(i, 0) for r in attempts),
+            "max_state_bytes": max((r.max_state_bytes.get(i, 0) for r in attempts), default=0),
             "timing": timing_summary(e2e, wall, cpu, budget_ns),
         })
     base = [p for p in per_entrant if p["builtin"]]
-    base_e2e = sorted(x for r in results for i, p in enumerate(per_entrant) if p["builtin"]
+    base_e2e = sorted(x for r in attempts for i, p in enumerate(per_entrant) if p["builtin"]
                       for x in array("q", r.e2e_ns.get(i, b"")))
     base_decisions = sum(p["decisions"] for p in base)
     base_timeouts = sum(p["timeout_fallbacks"] for p in base)
@@ -342,7 +594,24 @@ def summarize(results: Sequence[TableResult], entrants: Sequence[Entrant], infos
         "tables_scheduled": len(results),
         "tables_completed": len(completed),
         "tables_failed": [{"table_id": r.table_id, "error": r.error} for r in results if r.error],
-        "tables_incomplete": [r.table_id for r in results if not r.completed and not r.error],
+        "tables_invalid": [{"table_id": r.table_id, "attempt_id": r.attempt_id, "reason": r.invalid_reason}
+                           for r in results if r.invalid_reason],
+        "tables_incomplete": [r.table_id for r in results if not r.completed and not r.error and not r.invalid_reason],
+        "attempts_total": len(attempts),
+        "reruns": len(attempts) - len(results),
+        "invalid_attempts": [{
+            "attempt_id": r.attempt_id,
+            "table_id": r.table_id,
+            "attempt": r.attempt,
+            "reason": r.invalid_reason,
+            "error": r.error,
+            "completed": r.completed,
+            "hands": r.hands,
+            "points_by_entrant": {str(k): v for k, v in sorted(r.points.items())},
+            "infrastructure": r.infrastructure,
+        } for r in invalid_attempts],
+        "infrastructure_restored": [{"attempt_id": r.attempt_id, "infrastructure": r.infrastructure}
+                                    for r in attempts if r.infrastructure and r.invalid_reason is None],
         "blocks": len({r.block for r in results}),
         "entrants": per_entrant,
         "baselines_combined": {
@@ -352,7 +621,7 @@ def summarize(results: Sequence[TableResult], entrants: Sequence[Entrant], infos
             "fallback_total": sum(p["fallback_total"] for p in base),
             "timing": timing_summary(base_e2e, [], [], budget_ns),
         },
-        "table_wall_s_mean": sum(r.wall_s for r in results) / len(results) if results else None,
+        "table_wall_s_mean": sum(r.wall_s for r in attempts) / len(attempts) if attempts else None,
     }
 
 
@@ -366,6 +635,7 @@ class BenchmarkManifest(RunManifest):
     isolation: Literal["sandbox", "in_process"]
     competitive: bool
     budget_ns: StrictInt
+    retry: dict[str, Any] = Field(default_factory=dict)
     seed_blocks: StrictInt
     rotations_per_block: StrictInt
     entrants: list[dict[str, Any]]
@@ -393,7 +663,10 @@ SANDBOX_DESCRIPTION = {
 class BenchmarkRun:
     manifest: BenchmarkManifest
     results: list[TableResult]
+    """The final attempt of every scheduled table, in schedule order."""
     out_dir: Path | None
+    attempts: list[TableResult] = field(default_factory=list)
+    """Every attempt, including those invalidated by infrastructure and rerun."""
 
 
 def run_benchmark(
@@ -409,7 +682,12 @@ def run_benchmark(
     save_histories: bool = False,
     run_id: str | None = None,
     progress: Callable[[int, int, TableResult], None] | None = None,
+    retry_policy: RetryPolicy | None = None,
+    _faults: Mapping[tuple[int, int], str] | None = None,
 ) -> BenchmarkRun:
+    """Run the benchmark. ``progress`` is called once per scheduled table, with its
+    final attempt. ``_faults`` maps (assignment index, attempt) to an injected
+    infrastructure fault and exists for tests only."""
     budget_ns = budget_ns or config.bot_budget_ns
     infos = inspect_entrants(config, entrants, isolation)
     plan = schedule(config, len(entrants), blocks, base_seed)
@@ -418,31 +696,23 @@ def run_benchmark(
         [config.config_hash(), base_seed, blocks, [artifact_hash(e.path) for e in entrants], isolation],
         domain="arena-benchmark-id-v1")[:12]
     history_dir = (out_dir / "tables") if (out_dir is not None and save_histories) else None
-    results: list[TableResult] = []
-    if jobs <= 1:
-        runner = TableRunner(config, entrants, isolation=isolation, budget_ns=budget_ns, history_dir=history_dir)
-        try:
-            for a in plan:
-                results.append(runner.run(a))
-                if progress:
-                    progress(len(results), len(plan), results[-1])
-        finally:
-            runner.close()
-    else:
-        ctx = get_context("spawn")
-        with ProcessPoolExecutor(max_workers=jobs, mp_context=ctx, initializer=_job_init,
-                                 initargs=(config.model_dump_json(), list(entrants), isolation, budget_ns,
-                                           str(history_dir) if history_dir else None)) as ex:
-            for r in ex.map(_job_run, plan, chunksize=1):
-                results.append(r)
-                if progress:
-                    progress(len(results), len(plan), r)
-    results.sort(key=lambda r: r.index)
-    summary = json.loads(canonical_json(summarize(results, entrants, infos, budget_ns, base_seed)))
+    policy = retry_policy or RetryPolicy()
+    results, attempts = _play_with_retries(
+        plan, policy,
+        make_runner=lambda: TableRunner(config, entrants, isolation=isolation, budget_ns=budget_ns,
+                                        history_dir=history_dir),
+        jobs=jobs,
+        job_initargs=(config.model_dump_json(), list(entrants), isolation, budget_ns,
+                      str(history_dir) if history_dir else None),
+        faults=_faults or {},
+        progress=progress,
+    )
+    summary = json.loads(canonical_json(summarize(results, entrants, infos, budget_ns, base_seed,
+                                                  attempts=attempts)))
     competitive = isolation == "sandbox" and budget_ns == config.bot_budget_ns
     seats = config.resolved_seats
     seat_points = {s: 0.0 for s in seats}
-    completed = [r for r in results if r.completed and not r.error]
+    completed = [r for r in results if r.valid]
     for r in completed:
         for s, e in r.seats.items():
             seat_points[s] += r.points[e]
@@ -471,17 +741,19 @@ def run_benchmark(
         ),
         host=host_info(),
         scheduled_tables=len(plan),
-        retry_policy="none: failed or incomplete tables are listed, not rerun; agent crashes use fallbacks and do "
-                     "not invalidate a table; instance-state restarts are counted per table",
+        retry_policy=policy.describe(),
         results=RunResults(
             completed_table_ids=[r.table_id for r in completed],
-            failed_tables=[FailedTable(table_id=r.table_id, error=r.error or "") for r in results if r.error],
-            incomplete_table_ids=[r.table_id for r in results if not r.completed and not r.error],
+            failed_tables=[FailedTable(table_id=r.table_id, error=_failure_text(r)) for r in results
+                           if r.error or r.invalid_reason],
+            incomplete_table_ids=[r.table_id for r in results
+                                  if not r.completed and not r.error and not r.invalid_reason],
             mean_points_by_seat={s: (v / len(completed) if completed else 0.0) for s, v in seat_points.items()},
         ),
         isolation=isolation,
         competitive=competitive,
         budget_ns=budget_ns,
+        retry=policy.as_dict(),
         seed_blocks=blocks,
         rotations_per_block=len(seats),
         entrants=[{"entrant": i, "name": e.name, "artifact_sha256": artifact_hash(e.path), "builtin": e.builtin,
@@ -500,14 +772,23 @@ def run_benchmark(
         private = out_dir / "private"
         private.mkdir(exist_ok=True)
         (private / "seeds.json").write_text(canonical_json({"run_id": run_id, "seeds": seeds}) + "\n", encoding="ascii")
-    return BenchmarkRun(manifest, results, out_dir)
+    return BenchmarkRun(manifest, results, out_dir, attempts)
+
+
+def _failure_text(r: TableResult) -> str:
+    if r.invalid_reason is None:
+        return r.error or ""
+    text = f"invalid after {r.attempt} attempt{'s' if r.attempt > 1 else ''}: {r.invalid_reason}"
+    return f"{text}; {r.error}" if r.error else text
 
 
 __all__ = [
+    "INFRASTRUCTURE_CAUSES",
     "AgentLoadError",
     "Assignment",
     "BenchmarkManifest",
     "Entrant",
+    "RetryPolicy",
     "TableResult",
     "TableRunner",
     "bootstrap_interval",

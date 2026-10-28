@@ -471,6 +471,10 @@ class SeatStats:
     e2e_ns: list[int] = field(default_factory=list)
     worker_wall_ns: list[int] = field(default_factory=list)
     worker_cpu_ns: list[int] = field(default_factory=list)
+    infrastructure: list[tuple[int, str]] = field(default_factory=list)
+    """(decision index, event) for failures that were not the bot's doing:
+    ``worker_start_failed`` (no worker could be started) or the cause given to
+    :meth:`WorkerSeat.kill_worker`."""
 
     @property
     def restorable(self) -> bool:
@@ -608,7 +612,11 @@ class WorkerSeat:
         self.stats.restarts.append(Restart(self.stats.decisions, cause, restored))
         try:
             self.channel = self._load(restore=True)
-        except (AgentLoadError, WorkerStartError):
+        except WorkerStartError:
+            self.stats.infrastructure.append((self.stats.decisions, "worker_start_failed"))
+            self.channel = None
+            return False
+        except AgentLoadError:
             self.channel = None
             return False
         self.commit_seq = None
@@ -616,6 +624,7 @@ class WorkerSeat:
 
     def kill_worker(self, cause: str = "infrastructure_kill") -> None:
         """Kill the worker between decisions, as an infrastructure failure would."""
+        self.stats.infrastructure.append((self.stats.decisions, cause))
         if self.channel is not None:
             self._discard(self.channel)
             self.channel = None

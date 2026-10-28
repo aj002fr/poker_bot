@@ -286,6 +286,11 @@
     "results": {
       "$ref": "#/$defs/RunResults"
     },
+    "retry": {
+      "additionalProperties": true,
+      "title": "Retry",
+      "type": "object"
+    },
     "retry_policy": {
       "title": "Retry Policy",
       "type": "string"

@@ -168,8 +168,52 @@ The manifest extends the milestone 3 `RunManifest` with:
 
 - the entrants, with their artifact hashes and declared rulesets,
 - the isolation mode, the budget, and the block and rotation counts,
+- the retry policy (`retry`, with a prose version in `retry_policy`),
 - the process layout and a description of the sandbox,
 - the summary.
+
+### Infrastructure failures and reruns (spec 9.2)
+
+A table interrupted by infrastructure is marked **invalid** and rerun with the same
+seed and the same `table_id`, under an attempt ID `<table_id>-a<n>`. The declared
+`RetryPolicy` allows up to 3 attempts in total by default, and the manifest records it.
+`run_benchmark(retry_policy=RetryPolicy(max_attempts=1))` records invalid tables
+without rerunning them. These are the invalidating causes:
+
+| Cause | When |
+| --- | --- |
+| `worker_start_failed` | No sandboxed worker could be started for a seat, at the start of the table or for a restore |
+| `host_os_error`, `host_memory_error` | `OSError` or `MemoryError` in the table process (file descriptors, disk, memory) |
+| `job_process_lost`, `job_error` | The parallel job process running the table died, or could not return the table |
+| `instance_state_lost_to_infrastructure` | An infrastructure kill hit an instance-state bot, whose state cannot be restored faithfully |
+
+Some failures do **not** invalidate a table:
+
+- Agent faults (crashes, timeouts, exceptions, invalid or illegal output) use the normal
+  fallback. They are the bot's results.
+- An infrastructure kill of an explicit-state bot is restored exactly from committed
+  state. The table stays valid and is listed under `infrastructure_restored`.
+- Engine and other unexpected errors are deterministic. A rerun would only repeat them,
+  so they are listed under `tables_failed` and are not rerun.
+
+Rules against hiding results:
+
+- The rerun decision depends only on those infrastructure events, never on scores.
+- Means and intervals use each table's valid attempt.
+- Decisions, fallbacks, timing and restarts count **every** attempt.
+- The summary lists every invalid attempt (`invalid_attempts`), with its reason and its
+  points if it finished. Each entrant also gets
+  `mean_points_including_invalid_attempts`, so the effect of reruns can be checked.
+- Tables still invalid after the last attempt appear in `tables_invalid`, and in the
+  manifest's `failed_tables` as "invalid after N attempts". The CLI then exits with
+  code 1.
+- With `--save-histories`, invalid attempts that produced a table are saved under
+  `tables/invalid/a<n>/`.
+
+In parallel runs, at most one table per job process is in flight. So when a job
+process dies, only the tables that were actually running are marked
+`job_process_lost`, and a fresh process pool takes over. After a start or host failure,
+the table process also replaces its worker pool.
 
 Seeds stay private (`private/seeds.json`), and the manifest holds only their hash.
 These results are for practice against local baselines. They are not a claim about

@@ -159,6 +159,16 @@ The SDK and runtime are described in `docs/agent-sdk.md`, and the sandbox in
 - **Parallel jobs.** The default is `max(1, min(4, cpu_count // 4))` (2 on this VM). With
   3 or more jobs on 8 vCPUs, the 1 ms timeout rate jumps because parent and worker both
   busy-poll. See the sandbox doc.
+- **Infrastructure reruns (spec 9.2).** A bot-only table interrupted by infrastructure is
+  marked invalid and rerun with the same seed and table ID, under an attempt ID
+  `<table_id>-a<n>`. The default is up to 3 attempts in total, recorded in the manifest.
+  - What counts as infrastructure: a worker that cannot be started, a host OS or memory
+    error, a lost job process, or an infrastructure kill of an instance-state bot.
+  - An infrastructure kill of an explicit-state bot is restored exactly and does not
+    invalidate the table.
+  - Agent crashes keep the normal fallback.
+  - Engine errors are listed as failed and not rerun.
+  - Every attempt is counted and reported. See `docs/agent-sdk.md`.
 - **Diagnostic runs.** `--in-process` and `--budget-ns` runs are labelled
   `competitive: false` in the manifest and in the printed output.
 - **The playable table's bots** (`arena/api/`) are the engine's trusted in-process

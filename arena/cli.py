@@ -200,6 +200,12 @@ def _print_benchmark(run, focus: list[int]) -> None:
           f"incomplete {len(s['tables_incomplete'])}  mean table wall {_fmt_s(s['table_wall_s_mean'])} s")
     for f in s["tables_failed"][:5]:
         print(f"   failed {f['table_id']}: {f['error']}")
+    if s.get("attempts_total", s["tables_scheduled"]) != s["tables_scheduled"] or s.get("tables_invalid"):
+        print(f"attempts {s['attempts_total']} (reruns {s['reruns']}, invalidated by infrastructure "
+              f"{len(s['invalid_attempts'])}, still invalid {len(s['tables_invalid'])}; max "
+              f"{m.retry.get('max_attempts')} attempts per table, same seed)")
+        for x in s["invalid_attempts"][:5]:
+            print(f"   invalid {x['attempt_id']}: {x['reason']}")
     payout = sum(m.config["payout_points"])
     print(f"\nmean points per table (payout total {payout}; 95% bootstrap CI over seed blocks)")
     for e in s["entrants"]:
@@ -276,7 +282,8 @@ def _run_benchmark_cli(args: argparse.Namespace, entrants, focus: list[int]) -> 
         print(canonical_json(run.manifest.model_dump(mode="json")))
     else:
         _print_benchmark(run, focus)
-    return 0 if not run.manifest.summary["tables_failed"] else 1
+    s = run.manifest.summary
+    return 0 if not (s["tables_failed"] or s["tables_invalid"]) else 1
 
 
 def cmd_match(args: argparse.Namespace) -> int:

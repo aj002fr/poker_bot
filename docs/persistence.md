@@ -147,6 +147,6 @@ store, which is how a process restart looks to the store.
 - **One API process per database.** Multi-writer fencing is deferred, as the build plan says.
 - **Whole tables are loaded at startup and kept in memory.** There is no eviction or lazy loading.
 - **An ambiguous commit (lost acknowledgement) is only injected in the memory store.** Postgres relies on the same reload path, which the outage test exercises.
-- **The bot-only benchmark invalidate-and-rerun policy (spec 9.2) is not implemented.** It belongs with the benchmark runner. Interactive tables pause and resume.
+- **The bot-only benchmark invalidate-and-rerun policy (spec 9.2) lives in the benchmark runner, not in this store.** See "Infrastructure failures and reruns" in `docs/agent-sdk.md`. Interactive tables pause and resume.
 - **Private data at rest is not encrypted.** That includes decks, seeds, hole cards and state hashes. The database is private storage, and credentials are stored only as SHA-256 hashes.
 - **Halted tables have no diagnosis tooling yet.** The private reason is in `arena_tables.halted_reason`, and the record can be replayed with `arena.persistence.recovery.rebuild_table`.
