@@ -103,10 +103,53 @@ Local choices in `arena/api/`. The details are in [`playable-table.md`](playable
 | WebSocket origin | Allowlist; a missing `Origin` (non-browser client) is allowed | `create_app` |
 | Persistence | None. Tables live in memory until the process exits. | milestone 5 |
 
+## Agent runtime (milestone 4)
+
+The SDK and runtime are described in `docs/agent-sdk.md`, and the sandbox in
+`docs/agent-sandbox.md`. These are the local choices.
+
+- **The SDK is our own contract**, not Sequoia's Agent API. Bots are Python files with
+  `make_bot()`. They are loaded only inside a sandboxed worker, except for the
+  built-in baselines and runs explicitly marked `--in-process`.
+- **Deadline.** The budget is 1,000,000 ns over the whole parent-observed round trip,
+  from just before the observation is serialized to the complete reply.
+  `received <= deadline` counts as on time. A wake notice with no game data is sent
+  before the clock starts. An on-time reply that is processed late still counts.
+- **Fallback.** Check, otherwise fold, applied once with no retry. Late replies are
+  discarded.
+  - A worker still busy at its seat's next decision gets a 20 ms grace period, then is
+    killed and restored from committed state.
+  - After 25 restarts in one table, the seat's remaining decisions fall back with
+    `worker_unavailable`.
+- **Crash or timeout labelling.** A worker that dies mid-decision may be labelled
+  `timeout` instead of `worker_crash`, because the pipe closes after the helper reaps
+  it. The fallback and the restore are the same either way.
+- **Commit rule.** Explicit state commits only with an accepted action. Restores and
+  every later decision use the parent's canonical copy.
+- **Instance state.** Instance-state bots are allowed. After a restart the table
+  continues with a fresh instance, the seat is flagged `restorable: false` and the table
+  is counted in `state_lost`. These tables are **not** excluded from means. Excluding
+  them would reward crashing.
+- **Rulesets.** Bots must declare their rulesets. An unsupported pairing is rejected
+  before any table starts (CLI exit code 5). It is never played with a fallback policy.
+- **Fresh context per table.** Every table gets fresh workers and a fresh anonymous
+  `table_id`. Workers are never reused. `PYTHONHASHSEED=0` is set in workers so set and
+  dict iteration is reproducible.
+- **Benchmark.**
+  - Paired seed blocks with full seat rotation.
+  - Intervals are a 95% percentile bootstrap over blocks with 2,000 resamples.
+  - Points are the tournament payouts per table (100 per table).
+- **Parallel jobs.** The default is `max(1, min(4, cpu_count // 4))` (2 on this VM). With
+  3 or more jobs on 8 vCPUs, the 1 ms timeout rate jumps because parent and worker both
+  busy-poll. See the sandbox doc.
+- **Diagnostic runs.** `--in-process` and `--budget-ns` runs are labelled
+  `competitive: false` in the manifest and in the printed output.
+- **The playable table's bots** (`arena/api/`) are the engine's trusted in-process
+  policies with presentation pacing. They do not use the sandboxed workers or the 1 ms
+  budget.
+
 ## Not yet covered (later milestones)
 
-- T12 at the agent level (worker isolation, budgets, timeouts) is milestone 4. The
-  table-level fallback path is tested now.
 - The official-rules adapter is not included. Everything here is practice assumptions.
 - Metamorphic tests from spec 12.2 (suit renaming, seat rotation, chip scaling) belong
   to milestone 7. Information-set tests cover the in-process views. HTTP, WebSocket

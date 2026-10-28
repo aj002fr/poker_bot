@@ -48,7 +48,7 @@ class SandboxError(RuntimeError):
 @dataclass(frozen=True)
 class Limits:
     address_space_bytes: int = 1 << 30
-    cpu_seconds: int = 600
+    cpu_seconds: int = 300
     open_files: int = 64
     threads: int = 8
     """Upper bound on threads per worker, enforced by the parent's NPROC limit (see docs)."""

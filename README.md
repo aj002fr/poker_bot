@@ -6,7 +6,9 @@ dead-button seating, eliminations and ICM scoring. It also has a private event l
 explicit decks and state hashes, privacy-safe seat and spectator views, canonical JSON
 histories with hash-verified replay, and PHH export. A playable in-memory table
 (FastAPI plus a React table) lets humans and simple baseline bots play on the same
-engine. The agent sandbox, persistence and replay UI are later milestones.
+engine. A local Python bot SDK runs bots in sandboxed workers with a 1 ms decision
+deadline, with baseline bots and a paired-seed benchmark runner. Persistence and the
+replay UI are later milestones.
 
 All rules are **practice assumptions**, not official Sequoia rules. See
 [`docs/assumptions.md`](docs/assumptions.md) for every local rule choice and every place
@@ -32,9 +34,13 @@ arena/rules/       rule profiles and the PokerKit 0.7.7 adapter (betting overlay
 arena/table/       dead-button positions, the table service, state hashes, projections, drivers
 arena/tournament/  standings, same-hand bust ranking, Malmuth-Harville ICM
 arena/history/     canonical JSON histories, replay verification, PHH export
-arena/benchmark/   run manifests (the benchmark runner arrives in milestone 4)
+arena/agents/      bot SDK (sdk.py), sandboxed worker pool and deadlines (worker.py),
+                   process confinement (sandbox.py), baselines/
+arena/benchmark/   run manifests, paired seed-block benchmark runner (runner.py)
 arena/api/         in-memory FastAPI server: seat credentials, actions, deadlines, WebSocket
 web/               React + TypeScript + Vite table (setup, lobby, play, results), Playwright e2e
+examples/          template_bot.py: copy it to start a bot
+tests/agents/      fault-injection bots, sandbox probes, fake-clock deadline tests, restore
 tests/api/         API behaviour and HTTP/WebSocket leak checks
 tests/golden/      spec fixtures as JSON (G, E and T series), re-settled by the oracles
 tests/property/    generated hands and tournaments, information-set and leak tests
@@ -88,6 +94,26 @@ then create the table. You take the first human seat. Every other human seat get
 starts the table once every human seat is taken. Tables live in memory, so restarting
 the server clears them. The endpoints, deadlines and privacy rules are in
 [`docs/playable-table.md`](docs/playable-table.md).
+
+## Bots
+
+Write a bot by copying [`examples/template_bot.py`](examples/template_bot.py), then play
+it against the built-in baselines (`check_fold`, `calling_station`, `legal_random`, and
+the NLHE-only `nlhe_heuristic`). Each run prints mean points with a 95% interval,
+p50/p95/p99/max decision timing in seconds, and fallback counts:
+
+```bash
+uv run python -m arena.cli match --bot examples/template_bot.py              # 240 tables
+uv run python -m arena.cli match --bot my_bot.py --ruleset uncertainty_shortdeck --tables 60
+uv run python -m arena.cli benchmark --bots nlhe_heuristic,calling_station,legal_random,check_fold \
+    --out artifacts/runs/demo
+```
+
+Sandboxed workers need Linux with util-linux `unshare`, unprivileged user namespaces,
+Landlock and x86-64 seccomp. Tests that need them skip themselves elsewhere. See
+[`docs/agent-sdk.md`](docs/agent-sdk.md) for the bot contract and
+[`docs/agent-sandbox.md`](docs/agent-sandbox.md) for what is and is not hardened, with
+timing measured on this VM.
 
 The view types other components build on are documented in
 [`docs/observations-and-projections.md`](docs/observations-and-projections.md). History,

@@ -236,9 +236,11 @@ def _print_benchmark(run, focus: list[int]) -> None:
 
 
 def _default_jobs() -> int:
+    """About one table per four CPUs: a table loop, its acting worker and replacement
+    worker start-up each need a CPU, and oversubscription shows up as timeouts."""
     import os
 
-    return max(1, min(4, (os.cpu_count() or 2) // 2))
+    return max(1, min(4, (os.cpu_count() or 4) // 4))
 
 
 def _run_benchmark_cli(args: argparse.Namespace, entrants, focus: list[int]) -> int:
