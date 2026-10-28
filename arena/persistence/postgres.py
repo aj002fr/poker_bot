@@ -23,7 +23,6 @@ from arena.persistence.models import (
     AwardRow,
     CheckpointRow,
     CommitBatch,
-    HandRow,
     ParticipantRow,
     PauseRow,
     ReceiptRow,

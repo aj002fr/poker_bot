@@ -92,7 +92,7 @@ Local choices in `arena/api/`. The details are in [`playable-table.md`](playable
 
 | Choice | Default | Where |
 | --- | --- | --- |
-| Human deadline | `human_turn_ms` (20,000) from when the decision is scheduled, on a monotonic clock; `received <= deadline` is on time | `TableManager._advance`, `_expire` |
+| Human deadline | `human_turn_ms` (20,000) from when the decision is scheduled, on a monotonic clock; `received <= deadline` is on time, where `received` is when the full request registered as in flight | `TableManager._schedule`, `register_action`, `_expire` |
 | Human timeout | `apply_fallback("timeout")`: check if legal, otherwise fold; the late action gets 409 `deadline_passed` | `TableManager` |
 | Bot failure | Exception: `bot_error`. Rejected action: `invalid_action`. One fallback, no retry. | `TableManager._bot_act` |
 | Bot pacing | 700 ms per move, plus 1,500 ms before a hand's first bot move. Presentation only. | `ARENA_BOT_DELAY_MS`, `ARENA_HAND_PAUSE_MS` |
@@ -101,7 +101,24 @@ Local choices in `arena/api/`. The details are in [`playable-table.md`](playable
 | Unauthenticated reads | Spectator view (public information only) | `Principal.viewer` |
 | Reviewer history | Host credential and a completed table; otherwise 403 | `TableManager.history` |
 | WebSocket origin | Allowlist; a missing `Origin` (non-browser client) is allowed | `create_app` |
-| Persistence | None. Tables live in memory until the process exits. | milestone 5 |
+| Persistence | In-memory by default; `ARENA_STORE=postgres` for durable tables (milestone 5, below) | `create_app` |
+
+## Service durability (milestone 5)
+
+Local choices in `arena/persistence/` and the manager. The details are in [`persistence.md`](persistence.md).
+
+| Choice | Default | Where |
+| --- | --- | --- |
+| Commit unit | One transaction per command (create, join, start, action, timeout, bot move, resume); zero-delay bot moves are separate commands | `TableManager._commit` |
+| Writer fence | Compare-and-set on (`owner_id`, `version`) at every commit; the lease only governs claims | `Store.commit` |
+| Lease and heartbeat | 15 s lease, renewed by commits and a 1 s heartbeat | `TableManager(lease_s, heartbeat_ms)` |
+| Snapshots | One per hand start, taken before the hand is dealt; includes the dealer RNG checkpoint | `Table.resume_point` |
+| Recovery source | Newest snapshot plus the commands after it; the whole rebuilt log must equal the stored log | `arena/persistence/recovery.py` |
+| Irreproducible record | Halt (503 `table_halted`), private reason stored, never repaired | `TableManager._load` |
+| Outage think time | Restored from the last durable heartbeat or commit (≤ 1 s stale, in the human's favour) | `TableManager._resume` |
+| Graceful shutdown | Open `shutdown` pause with the exact remaining time; closed on the next start | `TableManager.close` |
+| Bot artifact change across a restart | Halt; the checkpointed artifact hash must match the running policy code | `TableManager._load` |
+| Multiple API processes on one database | Not supported (multi-writer fencing deferred) | build plan wave 4 |
 
 ## Agent runtime (milestone 4)
 

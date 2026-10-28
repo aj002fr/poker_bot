@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import logging
 import os
 import threading
 from collections.abc import AsyncIterator
@@ -37,6 +38,8 @@ from arena.api.manager import (
 from arena.domain.models import RULESET_IDS
 from arena.persistence.store import MemoryStore, Store
 from arena.table.projections import ProjectionDenied
+
+log = logging.getLogger("arena.api")
 
 DEFAULT_ORIGINS = ("http://localhost:5317", "http://127.0.0.1:5317")
 WS_AUTH_TIMEOUT_S = 5.0
@@ -91,7 +94,10 @@ def create_app(
         if background_pump:
             def pump_forever() -> None:
                 while not stop.wait(pump_interval_s):
-                    manager.pump()
+                    try:
+                        manager.pump()
+                    except Exception:  # noqa: BLE001 - the pump must outlive any one failure
+                        log.exception("pump iteration failed")
 
             thread = threading.Thread(target=pump_forever, name="arena-pump", daemon=True)
             thread.start()

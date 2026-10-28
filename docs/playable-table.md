@@ -1,9 +1,10 @@
 # Playable table (milestone 3b)
 
-A single-process, in-memory server (`arena/api/`) on the authoritative engine, and a
-React table (`web/`). One process and one lock mean one writer per table. Nothing is
-persisted: restarting the server clears every table. Persistence, receipts at rest
-and recovery come in milestone 5 under the same API.
+A single-process server (`arena/api/`) on the authoritative engine, and a React table
+(`web/`). Each table has one command queue, and therefore one writer. By default tables
+live in memory, so restarting the server clears them. With `ARENA_STORE=postgres`
+(`make dev-postgres`) every command commits to PostgreSQL, and a restart recovers
+each table. The API contract is the same either way; see [`persistence.md`](persistence.md).
 
 ```bash
 make setup   # uv sync + npm ci in web/

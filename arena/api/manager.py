@@ -929,9 +929,12 @@ class TableManager:
         except StoreUnavailable:
             return
         since = self.outage_since
-        self.outage_since = None
         with self._registry:
             tables = list(self.tables.values())
+        # Until each table is reloaded its deadlines are stale; keep it closed so no request expires them.
+        for live in tables:
+            live.dirty = True
+        self.outage_since = None
         for live in tables:
             if live.fenced or live.halted_reason is not None:
                 continue
@@ -942,7 +945,12 @@ class TableManager:
                     return
 
     def _reload(self, live: LiveTable, *, reason: str, paused_at: float | None = None) -> None:
-        stored = self.store.load(live.table_id)
+        try:
+            stored = self.store.load(live.table_id)
+        except StoreUnavailable:
+            self._outage()
+            live.dirty = True
+            raise storage_unavailable() from None
         if stored is None:
             raise ApiError(404, "table_not_found", "no such table")
         fresh = self._load(stored, reason=reason, paused_at=paused_at)

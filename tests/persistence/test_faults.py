@@ -9,7 +9,7 @@ import pytest
 
 from arena.api.clock import FakeClock
 from arena.api.manager import ApiError, SimulatedCrash
-from tests.api.helpers import HUMAN, ORIGIN, auth
+from tests.api.helpers import HUMAN, ORIGIN, Harness, auth
 from tests.persistence.helpers import (
     TickingClock,
     boot,
@@ -243,6 +243,31 @@ def test_storage_outage_pauses_and_restores_human_think_time(new_store):
     assert [(p.reason, p.remaining_ms, p.resumed_at is not None) for p in pauses] == [("storage_outage", 3000, True)]
     r = h.client.post(f"/tables/{h.table_id}/actions", headers=auth(h.tokens[seat]), content=raw)
     assert r.status_code == 200 and r.json()["replayed"] is False
+
+
+def test_outage_seen_only_by_heartbeat_pauses_every_table(new_store):
+    clock = FakeClock()
+    store = new_store()
+    h = boot(store, clock)
+    first = heads_up(h)
+    first_table = h.table_id
+    other = Harness(h.client, h.manager, clock)
+    second = heads_up(other)
+    clock.advance_ms(1000)
+    h.manager.heartbeat()
+    store.available = False
+    clock.advance_ms(1000)
+    h.manager.heartbeat()
+    assert h.manager.outage_since is not None
+    clock.advance_ms(30_000)
+    assert h.manager.pump() == 0
+    store.available = True
+    h.manager.pump()
+    h.table_id = first_table
+    assert h.snap(first)["turn"]["remaining_ms"] == 4000
+    assert other.snap(second)["turn"]["remaining_ms"] == 4000
+    for table_id in (first_table, other.table_id):
+        assert [p.reason for p in store.pauses(table_id)] == ["storage_outage"]
 
 
 def test_ambiguous_commit_is_resolved_from_the_store(new_store, store_kind):

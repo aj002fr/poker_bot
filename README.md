@@ -4,11 +4,11 @@ This is the authoritative poker engine for a practice arena where bots play shor
 single-table tournaments. It covers rulesets, dealing and betting, pot settlement,
 dead-button seating, eliminations and ICM scoring. It also has a private event log with
 explicit decks and state hashes, privacy-safe seat and spectator views, canonical JSON
-histories with hash-verified replay, and PHH export. A playable in-memory table
-(FastAPI plus a React table) lets humans and simple baseline bots play on the same
-engine. A local Python bot SDK runs bots in sandboxed workers with a 1 ms decision
-deadline, with baseline bots and a paired-seed benchmark runner. Persistence and the
-replay UI are later milestones.
+histories with hash-verified replay, and PHH export. A playable table (FastAPI plus a
+React table) lets humans and simple baseline bots play on the same engine, in memory or
+durably on PostgreSQL with crash recovery. A local Python bot SDK runs bots in sandboxed
+workers with a 1 ms decision deadline, with baseline bots and a paired-seed benchmark
+runner. The replay UI is a later milestone.
 
 All rules are **practice assumptions**, not official Sequoia rules. See
 [`docs/assumptions.md`](docs/assumptions.md) for every local rule choice and every place
@@ -37,11 +37,13 @@ arena/history/     canonical JSON histories, replay verification, PHH export
 arena/agents/      bot SDK (sdk.py), sandboxed worker pool and deadlines (worker.py),
                    process confinement (sandbox.py), baselines/
 arena/benchmark/   run manifests, paired seed-block benchmark runner (runner.py)
-arena/api/         in-memory FastAPI server: seat credentials, actions, deadlines, WebSocket
+arena/api/         FastAPI server: seat credentials, per-table command writer, deadlines, WebSocket
+arena/persistence/ memory and PostgreSQL stores, migrations, snapshot + replay recovery
 web/               React + TypeScript + Vite table (setup, lobby, play, results), Playwright e2e
 examples/          template_bot.py: copy it to start a bot
 tests/agents/      fault-injection bots, sandbox probes, fake-clock deadline tests, restore
 tests/api/         API behaviour and HTTP/WebSocket leak checks
+tests/persistence/ resume equivalence, store contract, crash/race/outage/fencing faults
 tests/golden/      spec fixtures as JSON (G, E and T series), re-settled by the oracles
 tests/property/    generated hands and tournaments, information-set and leak tests
 tests/history/     event schema, replay and tampering, PHH round trips, manifests
@@ -57,7 +59,9 @@ and Node 20+ for the web table.
 
 ```bash
 make setup         # uv sync --frozen, npm ci in web/
-make dev           # API on :8317, table on http://127.0.0.1:5317
+make dev           # API on :8317, table on http://127.0.0.1:5317 (tables in memory)
+make dev-postgres  # same, with tables in PostgreSQL (docker compose, port 54329)
+make verify-postgres  # persistence and API suites against PostgreSQL
 make verify-web    # web typecheck + Playwright happy path (npx playwright install chromium once)
 make verify-fast   # pytest -m "not release"
 make verify-release  # longer generated runs (marked release)
@@ -91,8 +95,10 @@ Run `make dev` and open http://127.0.0.1:5317. Choose a rule scenario, 2–8 sea
 and who sits where (a human, or a legal-random, check/fold or calling-station bot),
 then create the table. You take the first human seat. Every other human seat gets an
 "Open in new tab" link (each tab holds its own private seat credential), and the host
-starts the table once every human seat is taken. Tables live in memory, so restarting
-the server clears them. The endpoints, deadlines and privacy rules are in
+starts the table once every human seat is taken. With `make dev` tables live in memory,
+so restarting the server clears them; `make dev-postgres` keeps them and recovers
+them after a restart or crash ([`docs/persistence.md`](docs/persistence.md)). The
+endpoints, deadlines and privacy rules are in
 [`docs/playable-table.md`](docs/playable-table.md).
 
 ## Bots
