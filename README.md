@@ -8,7 +8,7 @@ histories with hash-verified replay, and PHH export. A playable table (FastAPI p
 React table) lets humans and simple baseline bots play on the same engine, in memory or
 durably on PostgreSQL with crash recovery. A local Python bot SDK runs bots in sandboxed
 workers with a 1 ms decision deadline, with baseline bots and a paired-seed benchmark
-runner. The replay UI is a later milestone.
+runner. The browser also replays finished tables and launches and reports batch runs.
 
 All rules are **practice assumptions**, not official Sequoia rules. See
 [`docs/assumptions.md`](docs/assumptions.md) for every local rule choice and every place
@@ -39,7 +39,7 @@ arena/agents/      bot SDK (sdk.py), sandboxed worker pool and deadlines (worker
 arena/benchmark/   run manifests, paired seed-block benchmark runner (runner.py)
 arena/api/         FastAPI server: seat credentials, per-table command writer, deadlines, WebSocket
 arena/persistence/ memory and PostgreSQL stores, migrations, snapshot + replay recovery
-web/               React + TypeScript + Vite table (setup, lobby, play, results), Playwright e2e
+web/               React + TypeScript + Vite: setup, lobby, table, results, replay, batch runs; Playwright e2e
 examples/          template_bot.py: copy it to start a bot
 tests/agents/      fault-injection bots, sandbox probes, fake-clock deadline tests, restore
 tests/api/         API behaviour and HTTP/WebSocket leak checks
@@ -62,7 +62,7 @@ make setup         # uv sync --frozen, npm ci in web/
 make dev           # API on :8317, table on http://127.0.0.1:5317 (tables in memory)
 make dev-postgres  # same, with tables in PostgreSQL (docker compose, port 54329)
 make verify-postgres  # persistence and API suites against PostgreSQL
-make verify-web    # web typecheck + Playwright happy path (npx playwright install chromium once)
+make verify-web    # web typecheck + Playwright suite (npx playwright install chromium once)
 make verify-fast   # pytest -m "not release"
 make verify-release  # longer generated runs (marked release)
 make cli-demo      # one seeded 6-player NLHE tournament
@@ -92,13 +92,20 @@ uv run python -m arena.cli schemas                                         # reg
 ## Playing in the browser
 
 Run `make dev` and open http://127.0.0.1:5317. Choose a rule scenario, 2–8 seats
-and who sits where (a human, or a legal-random, check/fold or calling-station bot),
-then create the table. You take the first human seat. Every other human seat gets an
+and who sits where (a human or a baseline bot; bots that do not support the ruleset
+are disabled), then create the table. You take the first human seat. Every other human seat gets an
 "Open in new tab" link (each tab holds its own private seat credential), and the host
 starts the table once every human seat is taken. With `make dev` tables live in memory,
 so restarting the server clears them; `make dev-postgres` keeps them and recovers
-them after a restart or crash ([`docs/persistence.md`](docs/persistence.md)). The
-endpoints, deadlines and privacy rules are in
+them after a restart or crash ([`docs/persistence.md`](docs/persistence.md)).
+
+After a table, **Replay this table** steps through every action and hand at 1–16×,
+from your seat or as a spectator; the host can switch to the reviewer view with every
+hole card. `make dev` also prints an **operator token** (saved to
+`artifacts/operator-token`). Paste it under **Operator** to seat registered bot files
+and to launch batch benchmark runs from **Batch runs**, whose reports show config and
+artifact hashes, mean points with confidence intervals, timing and fallbacks per
+scenario and seat count. The endpoints, deadlines and privacy rules are in
 [`docs/playable-table.md`](docs/playable-table.md).
 
 ## Bots

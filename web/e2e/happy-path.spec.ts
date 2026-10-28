@@ -127,7 +127,7 @@ test('two humans and four bots finish a six-seat table', async ({ browser }) => 
     }
     return out
   }
-  expect(samples.length).toBeGreaterThan(4)
+  for (const [, seat] of players) expect(samples.some((s) => s.seat === seat)).toBe(true)
   for (const s of samples) {
     const now = allowed(s.hand, s.seat)
     const prev = allowed(s.lastHand, s.seat)
