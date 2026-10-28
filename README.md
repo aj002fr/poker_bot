@@ -4,8 +4,9 @@ This is the authoritative poker engine for a practice arena where bots play shor
 single-table tournaments. It covers rulesets, dealing and betting, pot settlement,
 dead-button seating, eliminations and ICM scoring. It also has a private event log with
 explicit decks and state hashes, privacy-safe seat and spectator views, canonical JSON
-histories with hash-verified replay, and PHH export. It is headless: there is no web UI
-or agent sandbox yet (those are later milestones).
+histories with hash-verified replay, and PHH export. A playable in-memory table
+(FastAPI plus a React table) lets humans and simple baseline bots play on the same
+engine. The agent sandbox, persistence and replay UI are later milestones.
 
 All rules are **practice assumptions**, not official Sequoia rules. See
 [`docs/assumptions.md`](docs/assumptions.md) for every local rule choice and every place
@@ -32,6 +33,9 @@ arena/table/       dead-button positions, the table service, state hashes, proje
 arena/tournament/  standings, same-hand bust ranking, Malmuth-Harville ICM
 arena/history/     canonical JSON histories, replay verification, PHH export
 arena/benchmark/   run manifests (the benchmark runner arrives in milestone 4)
+arena/api/         in-memory FastAPI server: seat credentials, actions, deadlines, WebSocket
+web/               React + TypeScript + Vite table (setup, lobby, play, results), Playwright e2e
+tests/api/         API behaviour and HTTP/WebSocket leak checks
 tests/golden/      spec fixtures as JSON (G, E and T series), re-settled by the oracles
 tests/property/    generated hands and tournaments, information-set and leak tests
 tests/history/     event schema, replay and tampering, PHH round trips, manifests
@@ -42,10 +46,13 @@ docs/              assumptions and discrepancies, G20/G21 states, view contracts
 
 ## Running locally
 
-You need [uv](https://docs.astral.sh/uv/). It installs Python 3.12 if it is missing.
+You need [uv](https://docs.astral.sh/uv/) (it installs Python 3.12 if it is missing)
+and Node 20+ for the web table.
 
 ```bash
-make setup         # uv sync --frozen
+make setup         # uv sync --frozen, npm ci in web/
+make dev           # API on :8317, table on http://127.0.0.1:5317
+make verify-web    # web typecheck + Playwright happy path (npx playwright install chromium once)
 make verify-fast   # pytest -m "not release"
 make verify-release  # longer generated runs (marked release)
 make cli-demo      # one seeded 6-player NLHE tournament
@@ -71,6 +78,16 @@ uv run python -m arena.cli export-phh --table-id t_demo --out artifacts/t_demo.p
 uv run python -m arena.cli run-baseline --players 6 --tables 20 --seed demo   # manifest + histories
 uv run python -m arena.cli schemas                                         # regenerate docs/schemas
 ```
+
+## Playing in the browser
+
+Run `make dev` and open http://127.0.0.1:5317. Choose a rule scenario, 2–8 seats
+and who sits where (a human, or a legal-random, check/fold or calling-station bot),
+then create the table. You take the first human seat. Every other human seat gets an
+"Open in new tab" link (each tab holds its own private seat credential), and the host
+starts the table once every human seat is taken. Tables live in memory, so restarting
+the server clears them. The endpoints, deadlines and privacy rules are in
+[`docs/playable-table.md`](docs/playable-table.md).
 
 The view types other components build on are documented in
 [`docs/observations-and-projections.md`](docs/observations-and-projections.md). History,

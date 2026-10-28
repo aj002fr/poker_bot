@@ -86,11 +86,29 @@ Other observations that needed no correction:
   `policy-seat-N` stream per baseline seat. Seeds appear only in private histories
   and `private/seeds.json`. The run manifest holds only their hash.
 
+## Playable table server (milestone 3b)
+
+Local choices in `arena/api/`. The details are in [`playable-table.md`](playable-table.md).
+
+| Choice | Default | Where |
+| --- | --- | --- |
+| Human deadline | `human_turn_ms` (20,000) from when the decision is scheduled, on a monotonic clock; `received <= deadline` is on time | `TableManager._advance`, `_expire` |
+| Human timeout | `apply_fallback("timeout")`: check if legal, otherwise fold; the late action gets 409 `deadline_passed` | `TableManager` |
+| Bot failure | Exception: `bot_error`. Rejected action: `invalid_action`. One fallback, no retry. | `TableManager._bot_act` |
+| Bot pacing | 700 ms per move, plus 1,500 ms before a hand's first bot move. Presentation only. | `ARENA_BOT_DELAY_MS`, `ARENA_HAND_PAUSE_MS` |
+| Idempotency scope | Per table, keyed by `action_id`, accepted actions only | `LiveTable.receipts` |
+| Starting a table | Host credential, every human seat claimed | `TableManager.start` |
+| Unauthenticated reads | Spectator view (public information only) | `Principal.viewer` |
+| Reviewer history | Host credential and a completed table; otherwise 403 | `TableManager.history` |
+| WebSocket origin | Allowlist; a missing `Origin` (non-browser client) is allowed | `create_app` |
+| Persistence | None. Tables live in memory until the process exits. | milestone 5 |
+
 ## Not yet covered (later milestones)
 
 - T12 at the agent level (worker isolation, budgets, timeouts) is milestone 4. The
   table-level fallback path is tested now.
 - The official-rules adapter is not included. Everything here is practice assumptions.
-- Metamorphic tests from spec 12.2 (suit renaming, seat rotation, chip scaling) and
-  the HTTP, WebSocket and DOM privacy checks belong to the milestone 3b/5/6/7 work.
-  Information-set tests cover the in-process views now.
+- Metamorphic tests from spec 12.2 (suit renaming, seat rotation, chip scaling) belong
+  to milestone 7. Information-set tests cover the in-process views. HTTP, WebSocket
+  and DOM leak checks cover the playable table (`tests/api/test_leaks.py`,
+  `web/e2e/`).
