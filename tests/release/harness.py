@@ -52,6 +52,8 @@ class Gate:
     inputs: tuple[str, ...]
     exclusive: bool = False
     """Run alone on an otherwise idle machine (timing-sensitive or real-time suites)."""
+    after: bool = False
+    """Runs last: its shards check other gates' checkpoints."""
     applicable: bool = True
     not_applicable_reason: str = ""
     cost: str = "players"
@@ -132,7 +134,7 @@ GATES: list[Gate] = [
     Gate("determinism", "Deterministic repeat", "13 / 10",
          "Bulk-gate shards rerun in fresh processes with different hash seeds give identical result hashes",
          "tests.release.workloads.determinism", ENGINE_INPUTS + ORACLE_INPUTS + (
-             "tests/release/workloads/*.py",)),
+             "tests/release/workloads/*.py", "tests/metamorphic/*.py"), after=True),
     Gate("official_compat", "Official compatibility", "13", "After the official kit arrives: curated traces, "
          ">= 10,000 matched hands and >= 1,000 full tables against its simulator", "", (), applicable=False,
          not_applicable_reason="The official Sequoia kit has not been released; arena/adapters/official.py is "
@@ -281,6 +283,7 @@ def _record_crash(ref: ShardRef, code: int) -> None:
 class RunPlan:
     exclusive: list[ShardRef] = field(default_factory=list)
     parallel: list[ShardRef] = field(default_factory=list)
+    last: list[ShardRef] = field(default_factory=list)
     up_to_date: int = 0
 
 
@@ -293,15 +296,15 @@ def plan(gate_ids: list[str] | None, *, fresh: bool = False) -> RunPlan:
             if not fresh and ref.state() == "passed":
                 out.up_to_date += 1
                 continue
-            (out.exclusive if gate.exclusive else out.parallel).append(ref)
+            (out.last if gate.after else out.exclusive if gate.exclusive else out.parallel).append(ref)
     out.parallel.sort(key=_cost, reverse=True)
     return out
 
 
 def run(gate_ids: list[str] | None, *, jobs: int, fresh: bool = False, exclusive_first: bool = True) -> None:
     p = plan(gate_ids, fresh=fresh)
-    print(f"{p.up_to_date} shards up to date; {len(p.exclusive)} exclusive and {len(p.parallel)} parallel to run "
-          f"with {jobs} jobs", flush=True)
+    print(f"{p.up_to_date} shards up to date; {len(p.exclusive)} exclusive, {len(p.parallel)} parallel and "
+          f"{len(p.last)} final to run with {jobs} jobs", flush=True)
 
     def run_exclusive() -> None:
         for ref in p.exclusive:
@@ -310,21 +313,25 @@ def run(gate_ids: list[str] | None, *, jobs: int, fresh: bool = False, exclusive
             _record_crash(ref, code)
             print(f"  {ref.id}: {ref.state()}", flush=True)
 
+    def pool(refs: list[ShardRef]) -> None:
+        pending = list(refs)
+        running: dict[subprocess.Popen, ShardRef] = {}
+        done = 0
+        t0 = time.time()
+        while pending or running:
+            while pending and len(running) < jobs:
+                ref = pending.pop(0)
+                running[_launch(ref)] = ref
+            time.sleep(0.5)
+            for proc in [pr for pr in running if pr.poll() is not None]:
+                ref = running.pop(proc)
+                _record_crash(ref, proc.returncode)
+                done += 1
+                print(f"  [{done}/{len(refs)} {time.time() - t0:.0f}s] {ref.id}: {ref.state()}", flush=True)
+
     if exclusive_first:
         run_exclusive()
-    pending = list(p.parallel)
-    running: dict[subprocess.Popen, ShardRef] = {}
-    done = 0
-    t0 = time.time()
-    while pending or running:
-        while pending and len(running) < jobs:
-            ref = pending.pop(0)
-            running[_launch(ref)] = ref
-        time.sleep(0.5)
-        for proc in [pr for pr in running if pr.poll() is not None]:
-            ref = running.pop(proc)
-            _record_crash(ref, proc.returncode)
-            done += 1
-            print(f"  [{done}/{len(p.parallel)} {time.time() - t0:.0f}s] {ref.id}: {ref.state()}", flush=True)
+    pool(p.parallel)
     if not exclusive_first:
         run_exclusive()
+    pool(p.last)
