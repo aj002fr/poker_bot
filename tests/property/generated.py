@@ -105,7 +105,7 @@ def illegal_probe(hand: PokerKitHand, rng: SeededRng) -> Action:
     return candidates[rng.randbelow(len(candidates))]
 
 
-def play_generated_hand(seed: int, ruleset: str, n: int) -> PokerKitHand:
+def play_generated_hand(seed: int, ruleset: str, n: int, stats: dict[str, int] | None = None) -> PokerKitHand:
     spec = random_spec(seed, ruleset, n)
     hand = PokerKitHand(spec)
     rng = SeededRng(seed, "policy")
@@ -124,6 +124,8 @@ def play_generated_hand(seed: int, ruleset: str, n: int) -> PokerKitHand:
             else:
                 raise AssertionError(f"illegal probe accepted: {probe}")
             assert (hand.actor_seat, hand.players(), len(hand.events)) == before
+            if stats is not None:
+                stats["illegal_probes_rejected"] = stats.get("illegal_probes_rejected", 0) + 1
         action = legal_random(hand.actor_seat, hand.legal_actions(), rng)
         hand.apply(action)
         submitted += 1
