@@ -525,6 +525,27 @@ class PokerKitHand:
             pots.append(PotResult(amount, eligible, awards))
         return pots
 
+    def _engine_rule_awards(self) -> dict[int, int]:
+        """What PokerKit's own split rule pays for the spec pots (assumptions D5, D6).
+
+        Adjacent pot layers with the same eligible set are merged, each merged pot is
+        split evenly among its tied winners, and the whole remainder goes to the first
+        of them in engine order. The two settlements may then differ only in where the
+        odd chips land, by up to ``winners - 1`` chips per pot for one seat.
+        """
+        merged: list[tuple[int, tuple[int, ...], list[int]]] = []
+        for pot in self.pots:
+            if merged and merged[-1][1] == pot.eligible:
+                merged[-1] = (merged[-1][0] + pot.amount, pot.eligible, merged[-1][2])
+            else:
+                merged.append((pot.amount, pot.eligible, list(pot.awards)))
+        out: dict[int, int] = {}
+        for amount, _, winners in merged:
+            share, remainder = divmod(amount, len(winners))
+            for k, seat in enumerate(winners):
+                out[seat] = out.get(seat, 0) + share + (remainder if k == 0 else 0)
+        return out
+
     def _finish(self) -> None:
         self.pots = self._settle_by_level()
         spec_awards: dict[int, int] = {}
@@ -532,15 +553,20 @@ class PokerKitHand:
             for seat, amount in pot.awards.items():
                 spec_awards[seat] = spec_awards.get(seat, 0) + amount
         if len(self.folded) < len(self.seats) - 1:
+            engine_rule = {s: v for s, v in self._engine_rule_awards().items() if v}
+            engine = {s: v for s, v in self._engine_awards.items() if v}
+            if engine != engine_rule:
+                raise EngineDiscrepancy(
+                    f"settlement differs beyond odd chips: spec {spec_awards}, PokerKit {self._engine_awards}, "
+                    f"PokerKit's rule applied to the spec pots {engine_rule}"
+                )
             winners = {s for pot in self.pots for s in pot.awards}
             correction = {}
             for seat in self.seats:
                 diff = spec_awards.get(seat, 0) - self._engine_awards.get(seat, 0)
                 if diff:
-                    if seat not in winners or abs(diff) > len(self.pots):
-                        raise EngineDiscrepancy(
-                            f"settlement differs beyond odd chips: spec {spec_awards}, PokerKit {self._engine_awards}"
-                        )
+                    if seat not in winners:
+                        raise EngineDiscrepancy(f"odd-chip correction pays seat {seat}, which won no pot")
                     correction[seat] = diff
             if sum(correction.values()) != 0:
                 raise EngineDiscrepancy("odd-chip correction is not chip-neutral")

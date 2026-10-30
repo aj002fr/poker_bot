@@ -50,7 +50,7 @@ only `pokerkit_native`, and nothing in the engine silently re-ranks hands.
 | D2 | A check, then a short all-in bet, then a call: PokerKit lets the original checker raise. | Default `short_bet_reopens_checker=false` blocks the raise. `true` matches PokerKit. | G21a–d |
 | D3 | Each street's "last full raise" starts at 0, so preflop a short all-in raise over the BB reopens a limper. | The BB counts as the opening full increment, so the limper may only call or fold. | G09b |
 | D4 | Short-deck order, see above. | Same as the spec. Contrary to the plan's guess; reported, not frozen. | E07, E08 |
-| D5 | The whole odd-chip remainder of a split pot goes to the first tied winner (104 three ways is 36/34/34). | One chip each, clockwise from the first seat after the button: 35/35/34. The adapter emits `OddChipCorrection`. | G22b, G15, G22 |
+| D5 | The whole odd-chip remainder of a split pot goes to the first tied winner (104 three ways is 36/34/34). | One chip each, clockwise from the first seat after the button: 35/35/34. The adapter recomputes PokerKit's rule on the spec pots and requires PokerKit's awards to equal it exactly before it emits `OddChipCorrection`; any other difference raises `EngineDiscrepancy`. (Until milestone 7 the check was a per-seat bound of one chip per pot, which rejected legal four- and five-way board ties; found by the release state-machine gate.) | G22b, G15, G22, R-uncertainty_shortdeck-8-1002567 |
 | D6 | Adjacent pot layers with the same eligible set are merged before splitting. | One pot per contribution level, each split on its own. Totals differ only through odd-chip placement. | G15, G22 |
 
 Other observations that needed no correction:

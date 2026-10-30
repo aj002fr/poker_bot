@@ -69,16 +69,15 @@ class _Recorder:
                 super().__init__(spec)
 
             def apply(self, action: Action, *, auto_reason: str | None = None):
-                actor = self.actor_seat
+                if auto_reason is not None:  # the adapter's own automatic actions are not steps
+                    return super().apply(action, auto_reason=auto_reason)
+                step = {"actor": self.actor_seat, "do": action.model_dump(exclude_none=True)}
+                rec.steps.append(step)
                 try:
-                    out = super().apply(action, auto_reason=auto_reason)
+                    return super().apply(action)
                 except IllegalAction:
+                    rec.steps.remove(step)
                     raise
-                except Exception:
-                    rec.steps.append({"actor": actor, "do": action.model_dump(exclude_none=True)})
-                    raise
-                rec.steps.append({"actor": actor, "do": action.model_dump(exclude_none=True)})
-                return out
 
         return Recording
 
@@ -184,6 +183,11 @@ def _with_stack(fx: dict[str, Any], seat: int, value: int) -> dict[str, Any]:
     return out
 
 
+def _complexity(stack: int) -> tuple[int, int]:
+    """Rounder first: 100 is simpler than 99."""
+    return sum(ch != "0" for ch in str(stack)), stack
+
+
 def minimize(fx: dict[str, Any], fails: Callable[[dict[str, Any]], bool]) -> dict[str, Any]:
     """Greedy shrink: drop non-marker seats, then trim stacks, while ``fails`` holds."""
     assert fails(fx), "the starting fixture does not show the failure"
@@ -196,8 +200,9 @@ def minimize(fx: dict[str, Any], fails: Callable[[dict[str, Any]], bool]) -> dic
                 fx, changed = cand, True
         for seat in sorted(int(x) for x in fx["setup"]["stacks"]):
             current = fx["setup"]["stacks"][str(seat)]
-            for value in sorted({100 * (current // 100), 10 * (current // 10), current // 2, current - 1}):
-                if 0 < value < current:
+            for value in sorted({100 * (current // 100), 10 * (current // 10), current // 2, current - 1},
+                                key=_complexity):
+                if 0 < value < current and _complexity(value) < _complexity(current):
                     cand = _with_stack(fx, seat, value)
                     if fails(cand):
                         fx, changed = cand, True

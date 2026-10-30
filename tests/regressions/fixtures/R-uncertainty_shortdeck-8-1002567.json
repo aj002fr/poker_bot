@@ -1,0 +1,162 @@
+{
+ "id": "R-uncertainty_shortdeck-8-1002567",
+ "kind": "full_trace",
+ "ruleset": "uncertainty_shortdeck",
+ "setup": {
+  "seats": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "stacks": {
+   "1": 50,
+   "2": 100,
+   "3": 300,
+   "4": 2700,
+   "5": 50,
+   "6": 50,
+   "7": 3
+  },
+  "button": 1,
+  "small_blind_seat": 2,
+  "big_blind_seat": 3,
+  "blinds": [
+   50,
+   100
+  ],
+  "hole": {
+   "2": "6dAd",
+   "3": "9dTh",
+   "4": "JsJc",
+   "5": "As7s",
+   "6": "9cKd",
+   "7": "7d6h",
+   "1": "QcQh"
+  },
+  "board": "TsKsJdAcQd"
+ },
+ "local_rules": {
+  "short_bet_reopens_checker": true
+ },
+ "steps": [
+  {
+   "actor": 4,
+   "do": {
+    "type": "raise_to",
+    "amount": 200
+   }
+  },
+  {
+   "actor": 5,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 6,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 7,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "fold"
+   }
+  },
+  {
+   "actor": 2,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 3,
+   "do": {
+    "type": "fold"
+   }
+  }
+ ],
+ "origin": {
+  "generator": "tests.property.generated.play_generated_hand",
+  "seed": 1002567,
+  "ruleset": "uncertainty_shortdeck",
+  "players": 8
+ },
+ "expect": {
+  "contributions": {
+   "2": 100,
+   "3": 100,
+   "4": 100,
+   "5": 50,
+   "6": 50,
+   "7": 3,
+   "1": 0
+  },
+  "pots": [
+   {
+    "amount": 18,
+    "eligible": [
+     2,
+     4,
+     5,
+     6,
+     7
+    ],
+    "awards": {
+     "2": 4,
+     "4": 4,
+     "5": 4,
+     "6": 3,
+     "7": 3
+    }
+   },
+   {
+    "amount": 235,
+    "eligible": [
+     2,
+     4,
+     5,
+     6
+    ],
+    "awards": {
+     "2": 59,
+     "4": 59,
+     "5": 59,
+     "6": 58
+    }
+   },
+   {
+    "amount": 150,
+    "eligible": [
+     2,
+     4
+    ],
+    "awards": {
+     "2": 75,
+     "4": 75
+    }
+   }
+  ],
+  "final_stacks": {
+   "2": 138,
+   "3": 200,
+   "4": 2738,
+   "5": 63,
+   "6": 61,
+   "7": 3,
+   "1": 50
+  }
+ },
+ "description": "Minimized from generated hand seed 1002567 (uncertainty_shortdeck, N=8), which failed with 'EngineDiscrepancy: settlement differs beyond odd chips'. Expected settlement from the independent pot ledger and evaluators."
+}
