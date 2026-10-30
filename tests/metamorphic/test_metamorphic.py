@@ -48,6 +48,14 @@ def test_relations_are_not_vacuous():
         R._compare(base, base.table, R.Frame(card=lambda c: c[0] + {"c": "d", "d": "c"}.get(c[1], c[1])))
 
 
+def test_rotation_maps_odd_chip_corrections():
+    """Release-gate case metamorphic/plo4/5/160: the correction's seat-keyed payloads follow the rotation."""
+    base = R.play_base(R.base_config("uncertainty_plo4", 5), "meta|uncertainty_plo4|5|160")
+    assert any(e.type == "OddChipCorrection" for rec in base.table.hands for e in rec.events)
+    for r in (2, 4):
+        R.seat_rotation(base, r)
+
+
 def test_odd_chip_hands_are_excluded_not_compared():
     for i in range(40):
         base = R.play_base(R.base_config("practice_nlhe", 8), f"meta-fast|odd|{i}")

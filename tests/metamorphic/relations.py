@@ -45,9 +45,9 @@ from arena.table.service import Table
 SUITS = "cdhs"
 SEAT_KEYS = {"seat"}
 SEAT_LIST_KEYS = {"eligible", "seats", "folded"}
-SEAT_DICT_KEYS = {"bets", "awards", "final_stacks", "stacks", "contributions"}
+SEAT_DICT_KEYS = {"bets", "awards", "final_stacks", "stacks", "contributions", "transfers", "engine_awards"}
 CHIP_KEYS = {"amount", "added", "street_committed"}
-CHIP_DICT_KEYS = {"bets", "awards", "final_stacks", "stacks", "contributions"}
+CHIP_DICT_KEYS = {"bets", "awards", "final_stacks", "stacks", "contributions", "transfers", "engine_awards"}
 CARD_KEYS = {"card"}
 CARD_LIST_KEYS = {"cards"}
 
