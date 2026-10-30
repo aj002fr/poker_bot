@@ -119,7 +119,7 @@ def gate_report(gate, all_results: dict[str, list[dict[str, Any]]]) -> dict[str,
     details: dict[str, Any] = {}
     for r in results:
         for k, v in r.items():
-            if k in ("summary", "timing", "environment", "mutants", "suite", "relations"):
+            if k in ("summary", "timing", "environment", "mutants", "suite", "relations", "repeat"):
                 details.setdefault(k, []).append(v)
     return {
         "id": gate.id, "title": gate.title, "section": gate.section, "requirement": gate.requirement,

@@ -114,12 +114,13 @@ GATES: list[Gate] = [
     Gate("isolated_tournaments", "Isolated-worker tournaments", "build plan wave 6",
          "About 500 eight-bot tournaments through real sandboxed workers under the 1 ms deadline; every table "
          "valid, replayed, hash-verified and re-settled by the oracles",
-         "tests.release.workloads.isolated", _bulk("isolated", "tests.release.workloads.isolated"), exclusive=True),
+         "tests.release.workloads.isolated", _bulk("isolated", "tests.release.workloads.isolated") + (
+             "tests/release/workloads/tournaments.py",), exclusive=True),
     Gate("performance", "Performance", "13",
          ">= 100,000 baseline decisions in sandboxed workers; p50/p95/p99/max, 1 ms fallback rate, worker/IPC split, "
          "throughput, peak memory; no silent deadline violations; declared baseline suitability",
-         "tests.release.workloads.performance", _bulk("performance", "tests.release.workloads.performance"),
-         exclusive=True),
+         "tests.release.workloads.performance", _bulk("performance", "tests.release.workloads.performance") + (
+             "tests/release/workloads/isolated.py", "tests/release/workloads/tournaments.py"), exclusive=True),
     Gate("metamorphic", "Metamorphic relations", "12.2",
          "Suit renaming, seat/button rotation, chip scaling without rounding effects, anonymous label relabeling, "
          "serial versus parallel scheduling of one manifest",

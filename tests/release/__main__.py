@@ -60,7 +60,11 @@ def main(argv: list[str] | None = None) -> int:
         return build_report()
     if args.cmd == "status":
         for gate in harness.GATES:
-            refs = harness.shard_refs(gate)
+            try:
+                refs = harness.shard_refs(gate)
+            except Exception as exc:
+                print(f"{gate.id:22s} cannot list shards: {type(exc).__name__}: {exc}")
+                continue
             states = Counter(ref.state() for ref in refs)
             print(f"{gate.id:22s} {len(refs):4d} shards  " + "  ".join(f"{k}={v}" for k, v in sorted(states.items())))
         return 0
