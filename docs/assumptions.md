@@ -178,7 +178,25 @@ The SDK and runtime are described in `docs/agent-sdk.md`, and the sandbox in
 ## Not yet covered (later milestones)
 
 - The official-rules adapter is not included. Everything here is practice assumptions.
-- Metamorphic tests from spec 12.2 (suit renaming, seat rotation, chip scaling) belong
-  to milestone 7. Information-set tests cover the in-process views. HTTP, WebSocket
-  and DOM leak checks cover the playable table (`tests/api/test_leaks.py`,
-  `web/e2e/`).
+- Information-set tests cover the in-process views. HTTP, WebSocket and DOM leak
+  checks cover the playable table (`tests/api/test_leaks.py`, `web/e2e/`).
+
+## Release verification (milestone 7)
+
+- `make verify-release` runs every section 13 gate as checkpointed shards and writes
+  `artifacts/test-report.json`. See `docs/release-verification.md`.
+- **Metamorphic relations (12.2).** These are suit renaming, seat/button rotation,
+  chip scaling, table relabel, and serial versus parallel scheduling. Chip scaling
+  cannot be exact once a pot splits unevenly, so a table is compared only up to its
+  first odd-chip split, and the rest is counted as an exclusion.
+- **Seeded defects (12.4).** All eight are caught by named tests (the table in
+  `docs/release-verification.md`).
+- **Suitability threshold.** The performance gate declares baselines suitable for the
+  1 ms budget on this VM when the fallback rate is at most 1% and the pooled p99 end
+  to end is at most 0.5 ms. Both are fixed in `tests/release/workloads/performance.py`.
+- **Skips.** Two skips are structural and reported as exclusions:
+  - the lost-acknowledgement injection exists only in the memory store;
+  - schema migrations exist only for PostgreSQL.
+  Any other skip fails its gate.
+- **Official compatibility.** This gate is reported as not applicable until the kit
+  arrives.

@@ -64,9 +64,13 @@ make dev-postgres  # same, with tables in PostgreSQL (docker compose, port 54329
 make verify-postgres  # persistence and API suites against PostgreSQL
 make verify-web    # web typecheck + Playwright suite (npx playwright install chromium once)
 make verify-fast   # pytest -m "not release"
-make verify-release  # longer generated runs (marked release)
+make verify-release  # every release gate as resumable shards -> artifacts/test-report.{json,md}
+make verify-release-status  # shard states per gate
 make cli-demo      # one seeded 6-player NLHE tournament
 ```
+
+Release verification (spec sections 12 and 13), its gates, checkpoints, failing-seed
+minimizer and mutation checks are described in `docs/release-verification.md`.
 
 The CLI plays seeded headless hands and tournaments with simple built-in policies
 (`legal_random`, `check_or_call`, `check_or_fold`, `shove`):
