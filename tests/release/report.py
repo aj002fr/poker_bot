@@ -189,6 +189,10 @@ def _fmt(v: Any) -> str:
     return str(v)
 
 
+def _clip(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[:limit] + " ... (full detail in test-report.json)"
+
+
 def render_markdown(report: dict[str, Any]) -> str:
     env = report["environment"]
     out = [
@@ -221,9 +225,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         if g["checks"]:
             out += ["", "| Check | Result | Detail |", "| --- | --- | --- |"]
             for c in g["checks"]:
-                out.append(f"| {c['check']} | {'pass' if c['passed'] else 'FAIL'} | {_fmt(c['detail'])[:400]} |")
+                out.append(f"| {c['check']} | {'pass' if c['passed'] else 'FAIL'} | {_clip(_fmt(c['detail']), 1500)} |")
         if g["counts"]:
-            out += ["", "Counts: " + _fmt(g["counts"])[:3000]]
+            out += ["", "Counts: " + _clip(_fmt(g["counts"]), 3000)]
         if g["exclusions"]:
             out += ["", "Exclusions (counted, never passed): " + _fmt(g["exclusions"])]
         for p in g["shard_problems"][:10]:
