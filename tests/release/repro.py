@@ -76,7 +76,9 @@ class _Recorder:
                 try:
                     return super().apply(action)
                 except IllegalAction:
-                    rec.steps.remove(step)
+                    # by identity: list.remove would drop an earlier, equal step
+                    assert rec.steps[-1] is step
+                    rec.steps.pop()
                     raise
 
         return Recording

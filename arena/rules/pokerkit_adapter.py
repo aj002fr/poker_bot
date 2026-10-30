@@ -528,17 +528,20 @@ class PokerKitHand:
     def _engine_rule_awards(self) -> dict[int, int]:
         """What PokerKit's own split rule pays for the spec pots (assumptions D5, D6).
 
-        Adjacent pot layers with the same eligible set are merged, each merged pot is
-        split evenly among its tied winners, and the whole remainder goes to the first
-        of them in engine order. The two settlements may then differ only in where the
-        odd chips land, by up to ``winners - 1`` chips per pot for one seat.
+        PokerKit forms its pots after killing every hand that wins nothing, so adjacent
+        pot layers merge when their eligible sets agree on the surviving hands. Each
+        merged pot is split evenly among its tied winners, and the whole remainder goes
+        to the first of them in engine order. The two settlements may then differ only
+        in where the odd chips land, by up to ``winners - 1`` chips per pot for one seat.
         """
+        survivors = {s for pot in self.pots for s in pot.awards}
         merged: list[tuple[int, tuple[int, ...], list[int]]] = []
         for pot in self.pots:
-            if merged and merged[-1][1] == pot.eligible:
-                merged[-1] = (merged[-1][0] + pot.amount, pot.eligible, merged[-1][2])
+            key = tuple(s for s in pot.eligible if s in survivors)
+            if merged and merged[-1][1] == key:
+                merged[-1] = (merged[-1][0] + pot.amount, key, merged[-1][2])
             else:
-                merged.append((pot.amount, pot.eligible, list(pot.awards)))
+                merged.append((pot.amount, key, list(pot.awards)))
         out: dict[int, int] = {}
         for amount, _, winners in merged:
             share, remainder = divmod(amount, len(winners))

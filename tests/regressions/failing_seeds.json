@@ -37,5 +37,54 @@
   "fixture": "tests/regressions/fixtures/R-uncertainty_shortdeck-8-1002567.json",
   "found": "2026-10-28",
   "note": "same root cause as seed 1002567"
+ },
+ {
+  "gate": "state_machine",
+  "ruleset": "uncertainty_plo4",
+  "players": 7,
+  "seed": 1000548,
+  "error": "EngineDiscrepancy: settlement differs beyond odd chips",
+  "fixture": "tests/regressions/fixtures/R-uncertainty_plo4-7-1000548.json",
+  "found": "2026-10-30"
+ },
+ {
+  "gate": "state_machine",
+  "ruleset": "uncertainty_plo4",
+  "players": 7,
+  "seed": 1001010,
+  "error": "EngineDiscrepancy: settlement differs beyond odd chips",
+  "fixture": "tests/regressions/fixtures/R-uncertainty_plo4-7-1000548.json",
+  "found": "2026-10-30",
+  "note": "same root cause as seed 1000548"
+ },
+ {
+  "gate": "state_machine",
+  "ruleset": "uncertainty_plo4",
+  "players": 8,
+  "seed": 1011505,
+  "error": "EngineDiscrepancy: settlement differs beyond odd chips",
+  "fixture": "tests/regressions/fixtures/R-uncertainty_plo4-7-1000548.json",
+  "found": "2026-10-30",
+  "note": "same root cause as seed 1000548"
+ },
+ {
+  "gate": "state_machine",
+  "ruleset": "uncertainty_plo4",
+  "players": 8,
+  "seed": 1016058,
+  "error": "EngineDiscrepancy: settlement differs beyond odd chips",
+  "fixture": "tests/regressions/fixtures/R-uncertainty_plo4-7-1000548.json",
+  "found": "2026-10-30",
+  "note": "same root cause as seed 1000548"
+ },
+ {
+  "gate": "state_machine",
+  "ruleset": "uncertainty_plo4",
+  "players": 8,
+  "seed": 1015492,
+  "error": "EngineDiscrepancy: settlement differs beyond odd chips",
+  "fixture": "tests/regressions/fixtures/R-uncertainty_plo4-7-1000548.json",
+  "found": "2026-10-30",
+  "note": "same root cause as seed 1000548"
  }
 ]
