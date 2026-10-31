@@ -3,9 +3,9 @@ import { expect, type APIRequestContext, type Page } from '@playwright/test'
 export const API = 'http://127.0.0.1:8417'
 export const OPERATOR = 'e2e-operator-token'
 
-export type SeatSpec = { kind: 'human' } | { kind: 'bot'; policy: string }
+export type SeatSpec = { kind: 'human' } | { kind: 'bot'; policy: string; reveal?: boolean }
 export const human: SeatSpec = { kind: 'human' }
-export const bot = (policy: string): SeatSpec => ({ kind: 'bot', policy })
+export const bot = (policy: string, reveal?: boolean): SeatSpec => ({ kind: 'bot', policy, ...(reveal === undefined ? {} : { reveal }) })
 
 export interface TableHandle {
   tableId: string
@@ -20,10 +20,15 @@ export async function createTable(
   request: APIRequestContext,
   seats: SeatSpec[],
   config: Record<string, unknown> = {},
-  { seed = 'e2e', start = true, operator = false }: { seed?: string; start?: boolean; operator?: boolean } = {},
+  {
+    seed = 'e2e',
+    start = true,
+    operator = false,
+    styles,
+  }: { seed?: string; start?: boolean; operator?: boolean; styles?: Record<string, unknown> } = {},
 ): Promise<TableHandle> {
   const res = await request.post(`${API}/tables`, {
-    data: { config, seats, seed },
+    data: { config, seats, seed, ...(styles ? { styles } : {}) },
     headers: operator ? auth(OPERATOR) : {},
   })
   expect(res.status(), await res.text()).toBe(201)
@@ -176,3 +181,43 @@ export async function tabTo(page: Page, target: ReturnType<Page['locator']>, max
   }
   throw new Error(`could not reach ${target} with Tab`)
 }
+
+export const WIDTHS = [
+  { width: 360, height: 780 },
+  { width: 768, height: 1024 },
+  { width: 1440, height: 1000 },
+]
+
+type Box = { id: string; x: number; y: number; w: number; h: number }
+
+async function feltBoxes(page: Page) {
+  return page.evaluate(() => {
+    const box = (el: Element, id: string) => {
+      const r = el.getBoundingClientRect()
+      return { id, x: r.x, y: r.y, w: r.width, h: r.height }
+    }
+    const felt = document.querySelector('.felt')!
+    return {
+      felt: box(felt, 'felt'),
+      seats: [...felt.querySelectorAll('[data-testid^="seat-"]')].map((e) => box(e, e.getAttribute('data-testid')!)),
+      board: box(felt.querySelector('.board')!, 'board'),
+    }
+  })
+}
+
+const overlap = (a: Box, b: Box) =>
+  Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y))
+
+export async function expectCleanFelt(page: Page, seats: number) {
+  const { felt, seats: boxes, board } = await feltBoxes(page)
+  expect(boxes).toHaveLength(seats)
+  for (const [i, a] of boxes.entries()) {
+    expect(a.x, `${a.id} left edge`).toBeGreaterThanOrEqual(felt.x - 0.5)
+    expect(a.y, `${a.id} top edge`).toBeGreaterThanOrEqual(felt.y - 0.5)
+    expect(a.x + a.w, `${a.id} right edge`).toBeLessThanOrEqual(felt.x + felt.w + 0.5)
+    expect(a.y + a.h, `${a.id} bottom edge`).toBeLessThanOrEqual(felt.y + felt.h + 0.5)
+    expect(overlap(a, board), `${a.id} overlaps the board`).toBeLessThanOrEqual(1)
+    for (const b of boxes.slice(i + 1)) expect(overlap(a, b), `${a.id} overlaps ${b.id}`).toBeLessThanOrEqual(1)
+  }
+}
+

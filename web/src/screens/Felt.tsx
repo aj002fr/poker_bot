@@ -30,7 +30,7 @@ function Markers({ view, seat, position }: { view: TableView; seat: number; posi
         </span>
       )}
       {position && position !== 'BTN' && (
-        <span className="marker marker-pos" title={POSITION_NAMES[position]} data-testid={`seat-pos-${seat}`}>
+        <span className="marker marker-pos" title={POSITION_NAMES[position]} data-testid={`pos-badge-${seat}`}>
           {position}
         </span>
       )}
@@ -104,7 +104,7 @@ function Seat({
         {player.street_committed > 0 && <span className="mono seat-bet">bet {chips(player.street_committed)}</span>}
       </div>
       {stats && !hero && stats.hands > 0 && (
-        <div className="seat-stats mono" data-testid={`seat-stats-${player.seat}`} title={badgeTitle(stats)}>
+        <div className="seat-stats mono" data-testid={`stats-badge-${player.seat}`} title={badgeTitle(stats)}>
           {badgeText(stats)}
         </div>
       )}
