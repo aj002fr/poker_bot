@@ -20,7 +20,8 @@ from pathlib import Path
 from typing import Any, Literal
 
 from arena.agents.baselines import BASELINES, baseline_info, load_baseline
-from arena.agents.sdk import TableInfo, UnsupportedRuleset
+from arena.agents.sdk import TableInfo, UnsupportedRuleset, load_bot
+from arena.agents.styles import PROFILES, STYLES, style_artifact_hash
 from arena.agents.worker import (
     AgentLoadError,
     Artifact,
@@ -37,7 +38,9 @@ from arena.domain.models import RULESET_IDS, TournamentConfig
 from arena.table.projections import observation
 from arena.table.service import ActionRejected, Table
 
-Source = Literal["baseline", "registered"]
+Source = Literal["baseline", "registered", "style"]
+BUILTIN_SOURCES = ("baseline", "style")
+"""Repository-owned bots: trusted, run in-process at live tables and allowed in in-process runs."""
 
 BASELINE_TEXT: dict[str, tuple[str, str]] = {
     "check_fold": ("Check / fold", "Checks when free, otherwise folds."),
@@ -70,6 +73,7 @@ class BotSpec:
     artifact: Artifact | None = None
     original_path: str | None = None
     registered_at: str | None = None
+    style: str | None = None
 
     def public(self, *, operator: bool = False, alias_of: str | None = None, alias_id: str | None = None) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -83,6 +87,8 @@ class BotSpec:
             "bot_name": self.bot_name,
             "alias_of": alias_of,
         }
+        if self.style is not None:
+            out["style"] = self.style
         if operator and self.source == "registered":
             out["original_path"] = self.original_path
             out["registered_at"] = self.registered_at
@@ -99,29 +105,41 @@ def _baseline_spec(name: str) -> BotSpec:
     )
 
 
+def _style_spec(style: str) -> BotSpec:
+    profile = PROFILES[style]
+    return BotSpec(
+        id=profile.policy_id, label=profile.name, description=profile.description, source="style",
+        artifact_hash=style_artifact_hash(style), rulesets=profile.rulesets, state_mode="explicit",
+        bot_name=profile.policy_id, run_path=STYLES[style], style=style,
+    )
+
+
 @dataclass
 class BotRegistry:
     """Bot choices for live seats; owns the sandbox worker pool for registered files."""
 
     pool_size: int = 4
     baselines: dict[str, BotSpec] = field(init=False)
+    styles: dict[str, BotSpec] = field(init=False)
     registered: dict[str, BotSpec] = field(init=False, default_factory=dict)
     _pool: WorkerPool | None = field(init=False, default=None)
     _lock: threading.Lock = field(init=False, default_factory=threading.Lock)
 
     def __post_init__(self) -> None:
         self.baselines = {name: _baseline_spec(name) for name in BASELINES}
+        self.styles = {spec.id: spec for spec in (_style_spec(sid) for sid in STYLES)}
 
     # -- lookup
     def resolve(self, policy_id: str | None) -> BotSpec | None:
         if policy_id is None:
             return None
         policy_id = LEGACY_ALIASES.get(policy_id, policy_id)
-        return self.baselines.get(policy_id) or self.registered.get(policy_id)
+        return self.baselines.get(policy_id) or self.styles.get(policy_id) or self.registered.get(policy_id)
 
     def catalog(self, *, operator: bool = False) -> list[dict[str, Any]]:
         out = [s.public() for s in self.baselines.values()]
         out += [self.baselines[target].public(alias_of=target, alias_id=alias) for alias, target in LEGACY_ALIASES.items()]
+        out += [s.public() for s in self.styles.values()]
         if operator:
             out += [s.public(operator=True) for s in self.registered.values()]
         return out
@@ -186,6 +204,10 @@ class BotRegistry:
         if spec.source == "baseline":
             bot, bot_info = load_baseline(spec.id)
             return InProcessSeat(seat, bot, bot_info, info, spec.artifact_hash)
+        if spec.source == "style":
+            assert spec.run_path is not None
+            bot, bot_info = load_bot(spec.run_path, module_name=f"arena_{spec.id}")
+            return InProcessSeat(seat, bot, bot_info, info, spec.artifact_hash)
         assert spec.artifact is not None
         return WorkerSeat(seat, spec.artifact, info, self.pool().acquire, budget_ns=info.decision_budget_ns)
 
@@ -205,8 +227,11 @@ def live_table_info(config: TournamentConfig, table_id: str, seat: int, seed: st
     )
 
 
-def bot_turn(table: Table, agent: SeatAgent) -> None:
-    """One bot decision, consumed exactly once: by the accepted action or by a fallback."""
+def bot_turn(table: Table, agent: SeatAgent) -> tuple[str, str | None]:
+    """One bot decision, consumed exactly once: by the accepted action or by a fallback.
+
+    Returns the decision id and the bot's private note when its action was accepted.
+    """
     seat = agent.seat
     agent.prepare()
     obs = observation(table, seat)
@@ -223,7 +248,8 @@ def bot_turn(table: Table, agent: SeatAgent) -> None:
             decision.rejected = {"code": exc.code}
         else:
             agent.accept()
-            return
+            return obs.decision_id, decision.note
     agent.reject()
     agent.stats.fallbacks[decision.fallback] += 1
     table.apply_fallback(seat, decision.fallback, decision.rejected)
+    return obs.decision_id, None

@@ -22,7 +22,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError
 
-from arena.api.seats import BotRegistry, BotSpec
+from arena.api.seats import BUILTIN_SOURCES, BotRegistry, BotSpec
 from arena.benchmark.runner import Entrant, run_benchmark
 from arena.domain.models import RulesetId, TournamentConfig
 
@@ -135,7 +135,7 @@ def _entrants(specs: list[BotSpec], players: int) -> list[Entrant]:
         seen[s.id] += 1
         name = s.id if totals[s.id] == 1 else f"{s.id}#{seen[s.id]}"
         assert s.run_path is not None
-        out.append(Entrant(name=name, path=s.run_path, builtin=s.source == "baseline"))
+        out.append(Entrant(name=name, path=s.run_path, builtin=s.source in BUILTIN_SOURCES))
     return out
 
 
@@ -160,7 +160,7 @@ class RunManager:
             if spec is None:
                 raise RunRejected("unknown_bot", f"bot {i}: no baseline or registered bot with that id")
             specs.append(spec)
-        if body.isolation == "in_process" and any(s.source != "baseline" for s in specs):
+        if body.isolation == "in_process" and any(s.source not in BUILTIN_SOURCES for s in specs):
             raise RunRejected("isolation_required", "registered bot files only run sandboxed")
         cells = []
         for c in body.cells:

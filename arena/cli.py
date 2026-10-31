@@ -174,14 +174,19 @@ DEFAULT_FIELDS = {
 
 def _entrant(spec: str):
     from arena.agents.baselines import BASELINES
+    from arena.agents.styles import STYLES, resolve_style
     from arena.benchmark.runner import Entrant
 
     name = spec.removeprefix("baseline:")
     if name in BASELINES:
         return Entrant(name=name, path=BASELINES[name], builtin=True)
+    style = resolve_style(spec) if not spec.endswith(".py") else None
+    if style is not None:
+        return Entrant(name=f"style_{style}", path=STYLES[style], builtin=True)
     path = Path(spec)
     if not path.exists():
-        raise SystemExit(f"bot {spec!r} is neither a file nor a baseline ({', '.join(sorted(BASELINES))})")
+        raise SystemExit(f"bot {spec!r} is neither a file, a baseline ({', '.join(sorted(BASELINES))}) "
+                         f"nor a style ({', '.join(STYLES)})")
     return Entrant(name=path.stem if path.is_file() else path.name, path=path.resolve())
 
 
@@ -371,12 +376,14 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("match", help="play your bot against the baselines and report points and timing")
     p.add_argument("--bot", required=True, help="bot file (or directory with bot.py) defining make_bot()")
-    p.add_argument("--opponents", default=None, help="comma-separated baselines or bot paths, cycled to fill seats")
+    p.add_argument("--opponents", default=None,
+                   help="comma-separated baselines, styles (rock, aggressive, super_aggressive, station, weak_tight, "
+                        "switcher) or bot paths, cycled to fill seats")
     bench_args(p, tables=240)
     p.set_defaults(fn=cmd_match)
 
     p = sub.add_parser("benchmark", help="seat-balanced paired-seed benchmark of N bots")
-    p.add_argument("--bots", required=True, help="comma-separated baselines or bot paths, one per seat")
+    p.add_argument("--bots", required=True, help="comma-separated baselines, styles or bot paths, one per seat")
     bench_args(p, tables=480)
     p.set_defaults(fn=cmd_benchmark)
 

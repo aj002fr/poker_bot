@@ -91,9 +91,32 @@ class Recorder:
         return body
 
 
+def showdown_lists(snap: dict) -> list[list[dict]]:
+    """Showdown item lists in ``stats`` and ``reveal``: the only cards allowed outside view/last_hand."""
+    out = []
+    if snap.get("stats"):
+        out += [s["showdowns"]["items"] for s in snap["stats"]["seats"].values()]
+    if snap.get("reveal"):
+        out += [s["showdowns"] for s in snap["reveal"]["seats"]]
+    return out
+
+
+def check_showdowns(snap: dict, ledger: Ledger) -> list[str]:
+    problems = []
+    for items in showdown_lists(snap):
+        for item in items:
+            hid = item["hand_id"]
+            extra = cards_in(item) - ledger.revealed[hid] - set(ledger.board[hid])
+            if extra:
+                problems.append(f"showdown {hid} leaks {extra}")
+    return problems
+
+
 def check_snapshot(snap: dict, seat: int | None, ledger: Ledger) -> list[str]:
-    problems: list[str] = []
-    rest = {k: v for k, v in snap.items() if k not in {"view", "last_hand"}}
+    problems: list[str] = check_showdowns(snap, ledger)
+    rest = copy.deepcopy({k: v for k, v in snap.items() if k not in {"view", "last_hand"}})
+    for items in showdown_lists(rest):
+        items.clear()
     if cards_in(rest):
         problems.append(f"cards outside view/last_hand: {cards_in(rest)}")
     view = snap.get("view")
@@ -251,6 +274,8 @@ def test_leak_checker_catches_an_injected_card():
                                                       "data": {"seat": 1, "card": hidden[0]}}),
         lambda s: s["setup"].__setitem__("note", f"debug deck {hidden[0]}"),
         lambda s: s["view"]["board"].append(hidden[0]),
+        lambda s: s["stats"]["seats"]["1"]["showdowns"]["items"].append(
+            {"hand_id": hand_id, "cards": [hidden[0], hidden[1]], "board": []}),
     ):
         leaked = copy.deepcopy(snap)
         mutate(leaked)

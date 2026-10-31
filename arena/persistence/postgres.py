@@ -23,6 +23,7 @@ from arena.persistence.models import (
     AwardRow,
     CheckpointRow,
     CommitBatch,
+    NoteRow,
     ParticipantRow,
     PauseRow,
     ReceiptRow,
@@ -34,7 +35,7 @@ from arena.persistence.store import OwnershipLost, StoreError, StoreUnavailable
 
 MIGRATIONS_PACKAGE = "arena.persistence.migrations"
 _TABLE_COLUMNS = ("config", "config_hash", "deck_seed", "bot_seed", "host_token_hash", "status", "version",
-                  "state_version", "event_count", "scheduler", "halted_reason")
+                  "state_version", "event_count", "scheduler", "halted_reason", "setup")
 
 
 def _ts(epoch: float | None) -> datetime | None:
@@ -173,6 +174,10 @@ class PostgresStore:
                     "VALUES (%s, %s, %s, %s, %s, %s)",
                     (tid, a.seat, Jsonb(a.positions), a.points, a.method, a.hand_number),
                 )
+            if batch.notes:
+                with conn.cursor() as cur:
+                    cur.executemany("INSERT INTO bot_notes (table_id, decision_id, seat, note) VALUES (%s, %s, %s, %s)",
+                                    [(tid, n.decision_id, n.seat, n.note) for n in batch.notes])
             for pause in batch.pauses:
                 self._put_pause(conn, tid, pause)
             conn.execute("INSERT INTO outbox (table_id, version, kind) VALUES (%s, %s, %s)",
@@ -184,7 +189,8 @@ class PostgresStore:
     def _table_values(row: TableRow) -> tuple[Any, ...]:
         return (Jsonb(row.config), row.config_hash, row.deck_seed, row.bot_seed, row.host_token_hash, row.status,
                 row.version, row.state_version, row.event_count,
-                Jsonb(row.scheduler) if row.scheduler is not None else None, row.halted_reason)
+                Jsonb(row.scheduler) if row.scheduler is not None else None, row.halted_reason,
+                Jsonb(row.setup) if row.setup is not None else None)
 
     @staticmethod
     def _put_pause(conn, table_id: str, pause: PauseRow) -> None:
@@ -236,8 +242,10 @@ class PostgresStore:
             unpublished = [r["version"] for r in conn.execute(
                 "SELECT version FROM outbox WHERE table_id = %s AND published_at IS NULL ORDER BY version",
                 (table_id,))]
+            notes = [NoteRow(r["decision_id"], r["seat"], r["note"]) for r in conn.execute(
+                "SELECT decision_id, seat, note FROM bot_notes WHERE table_id = %s ORDER BY decision_id", (table_id,))]
             return StoredTable(table, t["owner_id"], participants, events, snapshot, receipts, checkpoints, awards,
-                               open_pause, t["scheduler_age"], unpublished)
+                               open_pause, t["scheduler_age"], unpublished, notes)
 
     def table_ids(self) -> list[str]:
         with self._conn() as conn:
