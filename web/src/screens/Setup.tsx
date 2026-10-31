@@ -68,7 +68,7 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
           ? { kind: 'human' }
           : { kind: 'bot', policy: mode === 'random' ? RANDOM : a, ...(mode === 'mixed' ? { reveal: a !== RANDOM && !hide[i] } : {}) },
       ),
-      styles: { mode, learning_aids: learningAids },
+      styles: { mode, learning_aids: learningAids && ruleset === 'practice_nlhe' },
     }),
     [ruleset, seatCount, stack, handCap, turnSeconds, assignments, mode, hide, learningAids],
   )
@@ -302,9 +302,14 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
         </div>
 
         <label className="toggle toggle-field">
-          <input type="checkbox" checked={learningAids} onChange={(e) => setLearningAids(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={learningAids && ruleset === 'practice_nlhe'}
+            disabled={ruleset !== 'practice_nlhe'}
+            onChange={(e) => setLearningAids(e.target.checked)}
+          />
           <span>
-            <strong>Learning aids</strong>: your hand in words, <Term k="position">position</Term> tips, the opening chart,{' '}
+            <strong>Learning aids{ruleset === 'practice_nlhe' ? '' : " (No-limit Hold'em only)"}</strong>: your hand in words, <Term k="position">position</Term> tips, the opening chart,{' '}
             <Term k="pot_odds">pot odds</Term>, <Term k="equity">equity</Term> and a recap after each hand. Built only from your own
             cards and what everyone can see.
           </span>
