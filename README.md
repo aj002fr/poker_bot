@@ -112,6 +112,18 @@ artifact hashes, mean points with confidence intervals, timing and fallbacks per
 scenario and seat count. The endpoints, deadlines and privacy rules are in
 [`docs/playable-table.md`](docs/playable-table.md).
 
+New to poker? Open **Learn** for five short practice tables, from heads-up against a
+labelled calling station to a full table of hidden random styles, with progress kept in
+this browser. On No-limit Hold'em tables, setup also has an **Opponent styles** mode
+(labelled, hidden, mixed or random) and a **Learning aids** switch. With aids on, the
+table shows your hand in words, position labels and tips, the opening chart for your
+seat, pot odds, equity against random hands, an optional coach hint and a recap after
+each hand. All of these use only your own cards and public information. A **Notes and
+guess** panel tracks every opponent's stats with sample sizes and records your style
+guesses. When the table ends, the **Reveal** scores those guesses against each seat's
+true style and shows the evidence. `ARENA_SCREENSHOTS=/some/dir npx playwright test
+screenshots` (in `web/`) captures a walkthrough of these screens.
+
 ## Bots
 
 Write a bot by copying [`examples/template_bot.py`](examples/template_bot.py), then play
