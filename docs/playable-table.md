@@ -19,13 +19,16 @@ The browser talks to the API through the Vite proxy at `/api`.
 | --- | --- | --- |
 | `GET /catalog` | none, or operator | Rulesets and bot choices with artifact hashes and supported rulesets. Registered files are listed for the operator only. |
 | `POST /configs/resolve` | none, or operator | Validates a setup and returns the resolved config and its hash, without creating anything |
-| `POST /tables` | none, or operator | `{config, seats: [{kind: human}, {kind: bot, policy}], seed?}`. Returns `table_id` and a private **host** credential. `seed` is optional, private and never returned. Seating a registered file needs the operator credential; a bot that does not support the ruleset gets 422 `unsupported_ruleset`. |
+| `POST /tables` | none, or operator | `{config, seats: [{kind: human}, {kind: bot, policy, reveal?}], seed?, styles?}`. Returns `table_id` and a private **host** credential. `seed` is optional, private and never returned. Seating a registered file needs the operator credential; a bot that does not support the ruleset gets 422 `unsupported_ruleset`. `styles` sets the style mode (labelled, hidden, mixed, random), random pool and learning aids ([`opponent-styles.md`](opponent-styles.md)). |
 | `POST /tables/{id}/join` | none | Claims an open human seat (`{seat?}`) before start. Returns a private **seat** credential, once. |
 | `POST /tables/{id}/start` | host | Freezes the table. 409 if a human seat is unclaimed. |
 | `GET /tables/{id}` | seat or none | The caller's snapshot: seat view for a seat credential, spectator view otherwise |
 | `POST /tables/{id}/actions` | seat | `ActionEnvelope`. The acting seat comes from the credential only. |
 | `GET /tables/{id}/history` | seat, none, or host + `?perspective=reviewer` | `HistoryView` for the caller. The reviewer view needs the host credential and a completed table. |
 | `GET /tables/{id}/replay?perspective=&hand=` | seat, none, or host | Replay frames for one hand, re-simulated from the private log: `seat` (own cards and showdowns, during and after the table), `spectator`, or `reviewer` (every hole card; host credential and a completed table only) |
+| `GET /styles` | none | Style profiles, table modes, stat definitions, opening charts and the 13×13 hand grid |
+| `GET /tables/{id}/stats` | any | Table-reading stats per seat from public events, with every showdown. 409 before start. |
+| `GET /tables/{id}/aids` | seat | Learning aids from the seat's own view: position, hand in words, draws, equity against random hands, pot odds and a coach hint on its turn |
 | `GET /operator` | operator | 200 when the bearer token is the operator credential |
 | `GET /bots`, `POST /bots` | operator | List or register a local bot file (`{path}`, absolute). It is copied, hashed and loaded only in a sandboxed worker. |
 | `POST /runs`, `GET /runs`, `GET /runs/{id}` | operator | Launch the milestone 4 benchmark runner in the background over scenario × seat-count cells, list runs, and read one run with per-cell manifests and summaries |
@@ -41,7 +44,7 @@ gets 401. The WebSocket rejects a browser `Origin` outside the allowlist
 
 ### Snapshot
 
-`{table_id, status, version, viewer, setup, view, turn, last_hand, results}`
+`{table_id, status, version, viewer, setup, view, turn, last_hand, results, stats, reveal}`
 
 - `view`: `table_view(table, viewer)` from `arena.table.projections`.
 - `turn`: `{seat, kind, decision_id, turn_ms, remaining_ms}`. `remaining_ms` is
@@ -51,6 +54,12 @@ gets 401. The WebSocket rejects a browser `Origin` outside the allowlist
   showdown stays visible.
 - `results`: placements, points, payouts, eliminations and per-seat fallback counts,
   built from public events.
+- `setup.styles` and per-seat `hidden`/`style`: hidden seats show only "Player N" until
+  the table completes.
+- `stats`: table-reading stats per seat, from public events (null before start).
+- `reveal`: once complete, every seat's real identity, a lineup hash and the evidence
+  for its style. See [`opponent-styles.md`](opponent-styles.md).
+- Reviewer replay frames carry `bot_note` (a bot's private reasoning) after completion.
 
 ### Errors
 
@@ -60,10 +69,10 @@ locations and messages, and never echo the submitted input.
 | Status | Codes |
 | --- | --- |
 | 401 | `invalid_credential`, `seat_credential_required`, `operator_required` (no credential) |
-| 403 | `projection_denied` (`ProjectionDenied`), `credential_wrong_table`, `host_credential_required`, `reviewer_permission_required`, `operator_required` (wrong credential) |
+| 403 | `projection_denied` (`ProjectionDenied`), `credential_wrong_table`, `host_credential_required`, `reviewer_permission_required`, `operator_required` (wrong credential), `learning_aids_disabled` |
 | 404 | `table_not_found`, `hand_not_found`, `run_not_found` |
 | 409 | `out_of_turn`, `stale_decision`, `stale_version`, `wrong_hand`, `table_complete`, `deadline_passed`, `action_id_conflict`, `seats_unclaimed`, `already_started`, `not_started`, `seat_unavailable`, `no_open_seat`, `bot_start_failed` |
-| 422 | `invalid_schema`, `illegal_action`, `table_mismatch`, `invalid_config`, `invalid_seat`, `invalid_request`, `unsupported_ruleset`, `invalid_perspective`, bot registration and run validation codes |
+| 422 | `invalid_schema`, `illegal_action`, `table_mismatch`, `invalid_config`, `invalid_seat`, `invalid_styles`, `invalid_request`, `unsupported_ruleset`, `invalid_perspective`, bot registration and run validation codes |
 
 ## Actions, idempotency and deadlines
 
@@ -91,6 +100,8 @@ locations and messages, and never echo the submitted input.
   - Baselines (`check_fold`, `calling_station`, `legal_random`, and the NLHE-only
     `nlhe_heuristic`) run in-process. The 3b ids `check_or_fold` and `check_or_call`
     stay accepted as aliases.
+  - Opponent styles (`style_rock`, ..., and `style_random`) are trusted repository code
+    and also run in-process.
   - Registered files (operator only) run in a sandboxed worker under the table's
     `bot_budget_ns`, with the benchmark runner's fallbacks.
   - Each seat sees only its own `Observation`. Its policy seed derives from the

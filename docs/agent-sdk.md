@@ -41,10 +41,11 @@ exit code 5), and no hands are played.
   (`policy-seat-N`), independent of the deck seed. Explicit-state bots should keep their
   random stream position in `state`, as the template does. Do not read the wall clock.
   Workers run with `PYTHONHASHSEED=0`.
-- **Imports.** A bot can import the standard library, `arena.agents.sdk` and the
-  arena's domain types (already loaded in the worker), plus packages installed in the
-  arena's environment. It cannot read the rest of the repository, so engine modules
-  such as `arena.table` cannot be imported from a sandboxed worker.
+- **Imports.** A bot can import the standard library, `arena.agents.sdk`, the arena's
+  domain types, `arena.table.player_stats` and the style engine
+  (`arena.agents.styles.*`), all already loaded in the worker, plus packages installed
+  in the arena's environment. It cannot read the rest of the repository, so other engine
+  modules such as `arena.table.service` cannot be imported from a sandboxed worker.
 - **Untimed setup.** `make_bot()`, `initial_state()` and `start_table()` run when the
   worker loads, before the first decision. Do imports and precomputation there. Loading
   has a 10 s limit.
@@ -59,6 +60,46 @@ Action helpers: `fold()`, `check()`, `call()`, `raise_to(amount)` (a street tota
 an increment), `check_or_fold(legal)`, `check_or_call(legal)`, and
 `clamp_raise_to(legal, target)`, which returns the legal raise closest to the target or
 `None`. A bot may also return a plain dict that matches the `Action` schema.
+
+## Opponent styles, notes and table reading
+
+Six style opponents (`rock`, `aggressive`, `super_aggressive`, `station`, `weak_tight`
+and the advanced `switcher`) are built in. They are described, with their measured
+stats, in [`opponent-styles.md`](opponent-styles.md). Use them as sparring partners:
+
+```bash
+uv run python -m arena.cli match --bot my_bot.py --opponents rock,aggressive,station
+```
+
+- **Reasoning notes.** `with_note(action, "why")` wraps an action with a private note
+  (at most 200 characters, `MAX_NOTE_CHARS`). The arena strips it before validating the
+  action. At live tables notes are stored apart from the event log and shown only in
+  the host's reviewer replay after the table ends. They never reach opponents.
+- **Reading opponents.** `arena.table.player_stats.StatsTracker` builds hands played,
+  preflop raise, aggression, response to reraises and showdowns from public events.
+  Feed it each observation (`tracker.observe(obs)`; events are de-duplicated by
+  `seq`) and keep it in explicit state with `to_state()` and
+  `StatsTracker.from_state(...)`. Keep an eye on the 64 KiB state limit: pass
+  `max_showdowns=` to cap the stored showdowns. A bot sees each hand only up to its own
+  decision, so its counts can trail the table's.
+
+```python
+from arena.agents.sdk import ExplicitStateBot, check_or_fold, with_note
+from arena.table.player_stats import StatsTracker
+
+class Reader(ExplicitStateBot):
+    name, rulesets = "reader", ("practice_nlhe",)
+
+    def initial_state(self, table):
+        return {"stats": StatsTracker(table.seats, max_showdowns=2).to_state()}
+
+    def decide(self, obs, state):
+        tracker = StatsTracker.from_state(state["stats"])
+        tracker.observe(obs)
+        loose = [s for s in obs.seats if s != obs.hero_seat and (tracker.rates(s)["vpip"] or 0) > 0.4]
+        action = with_note(check_or_fold(obs.legal), f"loose players: {loose}")
+        return action, {"stats": tracker.to_state()}
+```
 
 ## Decisions, deadline and fallback
 
