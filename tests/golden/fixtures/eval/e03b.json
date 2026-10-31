@@ -1,0 +1,41 @@
+{
+ "id": "E03b",
+ "kind": "full_trace",
+ "ruleset": "practice_nlhe",
+ "description": "Board quads with a king on board: the board kicker plays and both tie.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "Qh3d",
+   "1": "Jh4d"
+  },
+  "board": "9c9d9h9sKc"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 40,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "0": 20,
+     "1": 20
+    }
+   }
+  ],
+  "board_cards": 5
+ }
+}

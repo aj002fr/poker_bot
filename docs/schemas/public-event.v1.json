@@ -1,0 +1,38 @@
+{
+  "additionalProperties": false,
+  "description": "One event as a given viewer may see it: only allowlisted fields of ``data``.",
+  "properties": {
+    "data": {
+      "additionalProperties": true,
+      "title": "Data",
+      "type": "object"
+    },
+    "hand_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Hand Id"
+    },
+    "seq": {
+      "title": "Seq",
+      "type": "integer"
+    },
+    "type": {
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "seq",
+    "hand_id",
+    "type",
+    "data"
+  ],
+  "title": "PublicEvent",
+  "type": "object"
+}

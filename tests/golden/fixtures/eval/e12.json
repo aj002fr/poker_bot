@@ -1,0 +1,84 @@
+{
+ "id": "E12",
+ "kind": "full_trace",
+ "ruleset": "uncertainty_plo4",
+ "description": "PLO: a 2000 stack cannot shove (all-in unavailable above the cap); a 30-chip button may make a short all-in to 30 which does not reopen the limper.",
+ "setup": {
+  "stacks": {
+   "0": 30,
+   "1": 2000,
+   "2": 2000,
+   "3": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 3,
+   "legal": {
+    "max_raise_to": 70,
+    "all_in_raise_to": null
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "legal": {
+    "can_raise": true,
+    "short_all_in_raise_to": 30,
+    "min_full_raise_to": null
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 30
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 20,
+    "can_raise": true,
+    "min_full_raise_to": 50
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 10,
+    "can_raise": true,
+    "min_full_raise_to": 50
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 3,
+   "legal": {
+    "call_amount": 10,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "contributions": {
+   "0": 30,
+   "1": 30,
+   "2": 30,
+   "3": 30
+  }
+ }
+}

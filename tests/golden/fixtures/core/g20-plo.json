@@ -1,0 +1,52 @@
+{
+ "id": "G20-plo",
+ "kind": "full_trace",
+ "ruleset": "uncertainty_plo4",
+ "description": "PLO short BB 7 of 20: pot cap for A prices the call at 20: 20 + (10+7) + 20 = 57; after A calls 20, SB cap is 20 + 37 + 10 = 67.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 7
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 0,
+   "legal": {
+    "call_amount": 20,
+    "min_full_raise_to": 40,
+    "max_raise_to": 57,
+    "pot_raise_to": 57,
+    "all_in_raise_to": null
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 10,
+    "min_full_raise_to": 40,
+    "max_raise_to": 67
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "contributions": {
+   "0": 20,
+   "1": 20,
+   "2": 7
+  }
+ }
+}

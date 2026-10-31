@@ -1,0 +1,92 @@
+{
+ "id": "G13",
+ "kind": "full_trace",
+ "description": "Stacks 100/250/400 all in, A>B>C: C (button) shoves 400 first, gets 150 back; main 300 to A; side 300 to B.",
+ "setup": {
+  "stacks": {
+   "0": 100,
+   "1": 250,
+   "2": 400
+  },
+  "button": 2,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "AsAd",
+   "1": "KsKd",
+   "2": "QsQd"
+  },
+  "board": "2c3d7h9sJc"
+ },
+ "steps": [
+  {
+   "actor": 2,
+   "legal": {
+    "min_full_raise_to": 40,
+    "max_raise_to": 400
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 400
+   }
+  },
+  {
+   "actor": 0,
+   "legal": {
+    "call_amount": 90,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 230,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  }
+ ],
+ "expect": {
+  "excess_returned": {
+   "2": 150
+  },
+  "contributions": {
+   "0": 100,
+   "1": 250,
+   "2": 250
+  },
+  "pots": [
+   {
+    "amount": 300,
+    "eligible": [
+     0,
+     1,
+     2
+    ],
+    "awards": {
+     "0": 300
+    }
+   },
+   {
+    "amount": 300,
+    "eligible": [
+     1,
+     2
+    ],
+    "awards": {
+     "1": 300
+    }
+   }
+  ],
+  "final_stacks": {
+   "0": 300,
+   "1": 300,
+   "2": 150
+  }
+ }
+}

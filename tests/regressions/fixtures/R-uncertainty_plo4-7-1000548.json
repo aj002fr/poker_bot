@@ -1,0 +1,165 @@
+{
+ "id": "R-uncertainty_plo4-7-1000548",
+ "kind": "full_trace",
+ "ruleset": "uncertainty_plo4",
+ "setup": {
+  "seats": [
+   0,
+   1,
+   2,
+   6,
+   7
+  ],
+  "stacks": {
+   "0": 50,
+   "1": 900,
+   "2": 1,
+   "6": 1,
+   "7": 359
+  },
+  "button": 6,
+  "small_blind_seat": 7,
+  "big_blind_seat": 0,
+  "blinds": [
+   25,
+   50
+  ],
+  "hole": {
+   "7": "6hTd3cKc",
+   "0": "8sKhJd8d",
+   "1": "2sKdAhJs",
+   "2": "6cTh3sQd",
+   "6": "9c6sAc7h"
+  },
+  "board": "TcQs9sAd6d"
+ },
+ "local_rules": {
+  "short_bet_reopens_checker": false
+ },
+ "steps": [
+  {
+   "actor": 1,
+   "do": {
+    "type": "raise_to",
+    "amount": 100
+   }
+  },
+  {
+   "actor": 2,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 6,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 7,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 7,
+   "do": {
+    "type": "raise_to",
+    "amount": 173
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 7,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 7,
+   "do": {
+    "type": "raise_to",
+    "amount": 86
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "call"
+   }
+  }
+ ],
+ "origin": {
+  "generator": "tests.property.generated.play_generated_hand",
+  "seed": 1000548,
+  "ruleset": "uncertainty_plo4",
+  "players": 7
+ },
+ "expect": {
+  "contributions": {
+   "7": 359,
+   "0": 50,
+   "1": 359,
+   "2": 1,
+   "6": 1
+  },
+  "pots": [
+   {
+    "amount": 5,
+    "eligible": [
+     0,
+     1,
+     2,
+     6,
+     7
+    ],
+    "awards": {
+     "0": 3,
+     "1": 2
+    }
+   },
+   {
+    "amount": 147,
+    "eligible": [
+     0,
+     1,
+     7
+    ],
+    "awards": {
+     "0": 74,
+     "1": 73
+    }
+   },
+   {
+    "amount": 618,
+    "eligible": [
+     1,
+     7
+    ],
+    "awards": {
+     "1": 618
+    }
+   }
+  ],
+  "final_stacks": {
+   "7": 0,
+   "0": 77,
+   "1": 1234,
+   "2": 0,
+   "6": 0
+  }
+ },
+ "description": "Minimized from generated hand seed 1000548 (uncertainty_plo4, N=7), which failed with 'EngineDiscrepancy: settlement differs beyond odd chips'. Expected settlement from the independent pot ledger and evaluators. PokerKit kills the hands of seats 7, 2 and 6 (they win nothing) before pushing chips, so the 5-chip and 147-chip layers are both contested by seats 0 and 1 only and PokerKit merges them into one 152-chip pot split 76/76 (assumption D6). The spec splits each layer on its own (3/2 and 74/73), so the odd-chip correction moves one chip from seat 1 to seat 0."
+}

@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "description": "A canonical action. ``amount`` is the total street contribution for ``raise_to``.",
+  "properties": {
+    "amount": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Amount"
+    },
+    "type": {
+      "enum": [
+        "fold",
+        "check",
+        "call",
+        "raise_to"
+      ],
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "title": "Action",
+  "type": "object"
+}

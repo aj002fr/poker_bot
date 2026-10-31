@@ -1,0 +1,74 @@
+{
+ "id": "G09b",
+ "kind": "full_trace",
+ "description": "Preflop analogue of G09 (PokerKit discrepancy D3): UTG limps, button all-in 30 is a short raise; the limper may call but not re-raise.",
+ "setup": {
+  "stacks": {
+   "0": 30,
+   "1": 2000,
+   "2": 2000,
+   "3": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 3,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "legal": {
+    "short_all_in_raise_to": 30
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 30
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 20,
+    "can_raise": true,
+    "min_full_raise_to": 50
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 10,
+    "can_raise": true,
+    "min_full_raise_to": 50
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 3,
+   "legal": {
+    "call_amount": 10,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "state": {
+    "street": "flop"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ]
+}

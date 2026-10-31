@@ -1,0 +1,27 @@
+{
+ "id": "G20d",
+ "kind": "full_trace",
+ "description": "Generated-test regression: BB posts 1 of a nominal 100 with the SB dead; a short all-in call to 17 must not stop the next player calling the nominal 100, and the button's full raise minimum stays 200.",
+ "setup": {
+  "seats": [1, 2, 3, 4, 7],
+  "stacks": {"1": 139, "2": 2512, "4": 1, "7": 17},
+  "blinds": [50, 100],
+  "button": 2,
+  "small_blind_seat": null,
+  "big_blind_seat": 4
+ },
+ "steps": [
+  {"actor": 7, "legal": {"call_amount": 17, "can_raise": false}, "do": {"type": "call"}},
+  {"actor": 1, "legal": {"call_amount": 100, "can_raise": true, "short_all_in_raise_to": 139}, "do": {"type": "call"}},
+  {"actor": 2, "legal": {"call_amount": 100, "can_raise": true, "min_full_raise_to": 200}, "do": {"type": "raise_to", "amount": 300}},
+  {"actor": 1, "legal": {"call_amount": 39}, "do": {"type": "call"}}
+ ],
+ "expect": {
+  "contributions": {"1": 139, "2": 139, "4": 1, "7": 17},
+  "pots": [
+   {"amount": 4, "eligible": [1, 2, 4, 7]},
+   {"amount": 48, "eligible": [1, 2, 7]},
+   {"amount": 244, "eligible": [1, 2]}
+  ]
+ }
+}

@@ -1,0 +1,40 @@
+{
+ "id": "E09",
+ "kind": "full_trace",
+ "ruleset": "uncertainty_plo4",
+ "description": "PLO: board royal flush does not play; exactly two hole cards, AKQ98 beats AKQ54.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "2h3d4c5h",
+   "1": "9h8d7c6c"
+  },
+  "board": "AsKsQsJsTs"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 40,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "1": 40
+    }
+   }
+  ],
+  "board_cards": 5
+ }
+}

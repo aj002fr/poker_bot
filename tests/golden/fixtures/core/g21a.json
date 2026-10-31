@@ -1,0 +1,89 @@
+{
+ "id": "G21a",
+ "kind": "full_trace",
+ "local_rules": {
+  "short_bet_reopens_checker": false
+ },
+ "description": "Default local rule: A checks, B all-in 40 (below the 100 minimum), C calls: A may call/fold but not raise.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 140,
+   "2": 2000
+  },
+  "button": 2,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "blinds": [
+   50,
+   100
+  ]
+ },
+ "steps": [
+  {
+   "actor": 2,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "state": {
+    "street": "flop"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "can_raise": true,
+    "short_all_in_raise_to": 40,
+    "min_full_raise_to": null
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 40
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 40,
+    "can_raise": true,
+    "min_full_raise_to": 140
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 0,
+   "legal": {
+    "call_amount": 40,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ]
+}

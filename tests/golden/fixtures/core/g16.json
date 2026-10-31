@@ -1,0 +1,52 @@
+{
+ "id": "G16",
+ "kind": "full_trace",
+ "description": "All fold to the BB: immediate award, no board, no hole cards revealed.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 2000,
+   "3": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 3,
+   "do": {
+    "type": "fold"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "fold"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "fold"
+   }
+  }
+ ],
+ "expect": {
+  "final_stacks": {
+   "0": 2000,
+   "1": 1990,
+   "2": 2010,
+   "3": 2000
+  },
+  "board_cards": 0,
+  "revealed": [],
+  "ended_by_fold": true,
+  "events_exclude": [
+   "BoardDealt",
+   "CardsRevealed",
+   "CardBurned"
+  ]
+ }
+}

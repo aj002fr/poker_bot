@@ -1,0 +1,44 @@
+{
+ "id": "E02",
+ "kind": "full_trace",
+ "ruleset": "practice_nlhe",
+ "description": "Royal flush on the board: every live player ties regardless of hole cards.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2,
+  "hole": {
+   "0": "2c3d",
+   "1": "4c5d",
+   "2": "6h7h"
+  },
+  "board": "AsKsQsJsTs"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 60,
+    "eligible": [
+     0,
+     1,
+     2
+    ],
+    "awards": {
+     "0": 20,
+     "1": 20,
+     "2": 20
+    }
+   }
+  ]
+ }
+}

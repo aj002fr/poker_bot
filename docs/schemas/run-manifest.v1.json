@@ -1,0 +1,303 @@
+{
+  "$defs": {
+    "CodeInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "arena_version": {
+          "title": "Arena Version",
+          "type": "string"
+        },
+        "commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Commit"
+        },
+        "dependency_lock_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dependency Lock Sha256"
+        },
+        "dirty": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dirty"
+        },
+        "pokerkit_version": {
+          "title": "Pokerkit Version",
+          "type": "string"
+        },
+        "python_version": {
+          "title": "Python Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "commit",
+        "dirty",
+        "arena_version",
+        "pokerkit_version",
+        "python_version",
+        "dependency_lock_sha256"
+      ],
+      "title": "CodeInfo",
+      "type": "object"
+    },
+    "FailedTable": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "title": "Error",
+          "type": "string"
+        },
+        "table_id": {
+          "title": "Table Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "table_id",
+        "error"
+      ],
+      "title": "FailedTable",
+      "type": "object"
+    },
+    "HostInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "container": {
+          "title": "Container",
+          "type": "boolean"
+        },
+        "cpu_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cpu Count"
+        },
+        "machine": {
+          "title": "Machine",
+          "type": "string"
+        },
+        "os": {
+          "title": "Os",
+          "type": "string"
+        },
+        "processor": {
+          "title": "Processor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "os",
+        "machine",
+        "processor",
+        "cpu_count",
+        "container"
+      ],
+      "title": "HostInfo",
+      "type": "object"
+    },
+    "Participant": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_sha256": {
+          "title": "Artifact Sha256",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "in_process_baseline",
+            "agent_artifact"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "seat": {
+          "title": "Seat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seat",
+        "name",
+        "kind",
+        "artifact_sha256"
+      ],
+      "title": "Participant",
+      "type": "object"
+    },
+    "RunResults": {
+      "additionalProperties": false,
+      "properties": {
+        "completed_table_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Completed Table Ids",
+          "type": "array"
+        },
+        "failed_tables": {
+          "items": {
+            "$ref": "#/$defs/FailedTable"
+          },
+          "title": "Failed Tables",
+          "type": "array"
+        },
+        "incomplete_table_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Incomplete Table Ids",
+          "type": "array"
+        },
+        "mean_points_by_seat": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Mean Points By Seat",
+          "type": "object"
+        }
+      },
+      "required": [
+        "completed_table_ids",
+        "failed_tables",
+        "incomplete_table_ids",
+        "mean_points_by_seat"
+      ],
+      "title": "RunResults",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "budget_semantics": {
+      "title": "Budget Semantics",
+      "type": "string"
+    },
+    "code": {
+      "$ref": "#/$defs/CodeInfo"
+    },
+    "compatibility_status": {
+      "const": "practice_assumptions",
+      "default": "practice_assumptions",
+      "title": "Compatibility Status",
+      "type": "string"
+    },
+    "config": {
+      "additionalProperties": true,
+      "title": "Config",
+      "type": "object"
+    },
+    "config_hash": {
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "host": {
+      "$ref": "#/$defs/HostInfo"
+    },
+    "initial_player_count": {
+      "title": "Initial Player Count",
+      "type": "integer"
+    },
+    "manifest_schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Manifest Schema Version",
+      "type": "integer"
+    },
+    "participants": {
+      "items": {
+        "$ref": "#/$defs/Participant"
+      },
+      "title": "Participants",
+      "type": "array"
+    },
+    "results": {
+      "$ref": "#/$defs/RunResults"
+    },
+    "retry_policy": {
+      "title": "Retry Policy",
+      "type": "string"
+    },
+    "rng_implementation": {
+      "title": "Rng Implementation",
+      "type": "string"
+    },
+    "ruleset_id": {
+      "title": "Ruleset Id",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "scheduled_tables": {
+      "title": "Scheduled Tables",
+      "type": "integer"
+    },
+    "seat_allocation_policy": {
+      "title": "Seat Allocation Policy",
+      "type": "string"
+    },
+    "seed_count": {
+      "title": "Seed Count",
+      "type": "integer"
+    },
+    "seed_list_sha256": {
+      "title": "Seed List Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "created_at",
+    "code",
+    "ruleset_id",
+    "config",
+    "config_hash",
+    "initial_player_count",
+    "participants",
+    "rng_implementation",
+    "seed_count",
+    "seed_list_sha256",
+    "seat_allocation_policy",
+    "budget_semantics",
+    "host",
+    "scheduled_tables",
+    "retry_policy",
+    "results"
+  ],
+  "title": "RunManifest",
+  "type": "object"
+}

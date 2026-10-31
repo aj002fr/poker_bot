@@ -1,0 +1,40 @@
+{
+ "id": "E08a",
+ "kind": "full_trace",
+ "ruleset": "uncertainty_shortdeck",
+ "description": "Short deck: A-6-7-8-9 is a straight and beats trips (declared profile = PokerKit native order).",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "0": "As9c",
+   "1": "KhJc"
+  },
+  "board": "6c7d8hKsKd"
+ },
+ "steps": [
+  {
+   "check_down": true
+  }
+ ],
+ "expect": {
+  "pots": [
+   {
+    "amount": 40,
+    "eligible": [
+     0,
+     1
+    ],
+    "awards": {
+     "0": 40
+    }
+   }
+  ],
+  "board_cards": 5
+ }
+}

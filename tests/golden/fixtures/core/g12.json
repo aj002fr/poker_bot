@@ -1,0 +1,82 @@
+{
+ "id": "G12",
+ "kind": "full_trace",
+ "description": "BB has fewer chips than the call: call uses remaining 40 only; raiser's unmatched 140 returns; one pot for 0 and 2.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 60
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2,
+  "hole": {
+   "0": "7c2h",
+   "2": "AsAh"
+  },
+  "board": "2c3d8hJsKd"
+ },
+ "steps": [
+  {
+   "actor": 0,
+   "do": {
+    "type": "raise_to",
+    "amount": 200
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "fold"
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 40,
+    "can_raise": false
+   },
+   "do": {
+    "type": "call"
+   }
+  }
+ ],
+ "expect": {
+  "contributions": {
+   "0": 60,
+   "1": 10,
+   "2": 60
+  },
+  "pots": [
+   {
+    "amount": 30,
+    "eligible": [
+     0,
+     2
+    ],
+    "awards": {
+     "2": 30
+    }
+   },
+   {
+    "amount": 100,
+    "eligible": [
+     0,
+     2
+    ],
+    "awards": {
+     "2": 100
+    }
+   }
+  ],
+  "final_stacks": {
+   "0": 1940,
+   "1": 1990,
+   "2": 130
+  },
+  "excess_returned": {
+   "0": 140
+  }
+ }
+}

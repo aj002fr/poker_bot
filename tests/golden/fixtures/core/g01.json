@@ -1,0 +1,112 @@
+{
+ "id": "G01",
+ "kind": "full_trace",
+ "description": "Heads-up, button A=0 posts SB and acts first preflop; B acts first on every postflop street; B gets the first hole card.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 0,
+  "big_blind_seat": 1,
+  "hole": {
+   "1": "AhKh",
+   "0": "3c4d"
+  },
+  "board": "2d5s9cJhQd"
+ },
+ "steps": [
+  {
+   "state": {
+    "street_committed": {
+     "0": 10,
+     "1": 20
+    }
+   }
+  },
+  {
+   "actor": 0,
+   "legal": {
+    "call_amount": 10,
+    "check": false,
+    "fold": true,
+    "min_full_raise_to": 40
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "check": true,
+    "call_amount": null,
+    "can_raise": true,
+    "min_full_raise_to": 40
+   },
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "state": {
+    "street": "flop"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "state": {
+    "street": "turn"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "state": {
+    "street": "river"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "check"
+   }
+  }
+ ],
+ "expect": {
+  "final_stacks": {
+   "0": 1980,
+   "1": 2020
+  },
+  "first_hole_seat": 1,
+  "board_cards": 5
+ }
+}

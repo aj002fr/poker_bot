@@ -1,0 +1,94 @@
+{
+ "id": "E11",
+ "kind": "full_trace",
+ "ruleset": "uncertainty_plo4",
+ "description": "PLO 10/20, deep first actor: max raise-to 70, 71 rejected; caps recomputed after each action (SB 230, BB 280).",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 0,
+   "legal": {
+    "min_full_raise_to": 40,
+    "max_raise_to": 70,
+    "pot_raise_to": 70,
+    "all_in_raise_to": null
+   }
+  },
+  {
+   "reject": {
+    "type": "raise_to",
+    "amount": 71
+   }
+  },
+  {
+   "do": {
+    "type": "raise_to",
+    "amount": 70
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 60,
+    "min_full_raise_to": 120,
+    "max_raise_to": 230
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 50,
+    "min_full_raise_to": 120,
+    "max_raise_to": 280
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "state": {
+    "street": "flop",
+    "pot_total": 210
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "min_full_raise_to": 20,
+    "max_raise_to": 210
+   },
+   "do": {
+    "type": "raise_to",
+    "amount": 210
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 210,
+    "max_raise_to": 840
+   }
+  },
+  {
+   "reject": {
+    "type": "raise_to",
+    "amount": 841
+   }
+  },
+  {
+   "check_down": true
+  }
+ ]
+}

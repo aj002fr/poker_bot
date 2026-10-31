@@ -1,0 +1,93 @@
+{
+ "id": "G18",
+ "kind": "full_trace",
+ "description": "Five players fold to two (SB and button-adjacent seat 4): original positions and postflop order are kept.",
+ "setup": {
+  "stacks": {
+   "0": 2000,
+   "1": 2000,
+   "2": 2000,
+   "3": 2000,
+   "4": 2000
+  },
+  "button": 0,
+  "small_blind_seat": 1,
+  "big_blind_seat": 2
+ },
+ "steps": [
+  {
+   "actor": 3,
+   "do": {
+    "type": "fold"
+   }
+  },
+  {
+   "actor": 4,
+   "do": {
+    "type": "raise_to",
+    "amount": 60
+   }
+  },
+  {
+   "actor": 0,
+   "do": {
+    "type": "fold"
+   }
+  },
+  {
+   "actor": 1,
+   "legal": {
+    "call_amount": 50
+   },
+   "do": {
+    "type": "call"
+   }
+  },
+  {
+   "actor": 2,
+   "legal": {
+    "call_amount": 40
+   },
+   "do": {
+    "type": "fold"
+   }
+  },
+  {
+   "state": {
+    "street": "flop"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 4,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "state": {
+    "street": "turn"
+   }
+  },
+  {
+   "actor": 1,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "actor": 4,
+   "do": {
+    "type": "check"
+   }
+  },
+  {
+   "check_down": true
+  }
+ ]
+}

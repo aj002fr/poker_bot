@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "description": "What a bot learns when it is seated. Freshly issued for every table.\n\n``table_id`` is an anonymous per-table identifier and seats are physical seat\nnumbers, so nothing here identifies an opponent's account or artifact.",
+  "properties": {
+    "config": {
+      "additionalProperties": true,
+      "title": "Config",
+      "type": "object"
+    },
+    "config_hash": {
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "decision_budget_ns": {
+      "title": "Decision Budget Ns",
+      "type": "integer"
+    },
+    "hero_seat": {
+      "title": "Hero Seat",
+      "type": "integer"
+    },
+    "policy_seed": {
+      "title": "Policy Seed",
+      "type": "string"
+    },
+    "ruleset_id": {
+      "enum": [
+        "practice_nlhe",
+        "uncertainty_shortdeck",
+        "uncertainty_plo4"
+      ],
+      "title": "Ruleset Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "seats": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Seats",
+      "type": "array"
+    },
+    "table_id": {
+      "title": "Table Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "table_id",
+    "hero_seat",
+    "ruleset_id",
+    "config",
+    "config_hash",
+    "seats",
+    "decision_budget_ns",
+    "policy_seed"
+  ],
+  "title": "TableInfo",
+  "type": "object"
+}
