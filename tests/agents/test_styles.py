@@ -187,7 +187,10 @@ def test_seat_positions():
     ring = [0, 1, 2, 3, 4, 5]
     pos = seat_positions(ring, ring, button=3, small_blind=4, big_blind=5)
     assert {s: p["label"] for s, p in pos.items()} == {0: "UTG", 1: "MP", 2: "CO", 3: "BTN", 4: "SB", 5: "BB"}
-    assert pos[0]["group"] == "early" and pos[2]["group"] == "late" and pos[4]["group"] == "blinds"
+    assert pos[0]["group"] == "middle" and pos[2]["group"] == "late" and pos[4]["group"] == "blinds"
+    full = seat_positions(list(range(8)), range(8), button=5, small_blind=6, big_blind=7)
+    assert [full[s]["group"] for s in range(8)] == ["early", "early", "middle", "middle", "late", "late",
+                                                     "blinds", "blinds"]
     hu = seat_positions([0, 1], [0, 1], button=0, small_blind=0, big_blind=1)
     assert hu[0]["label"] == "BTN" and hu[1]["label"] == "BB"
 
@@ -234,7 +237,9 @@ def test_tracker_counts_baseline_behaviour():
     assert folder["aggression"] == {"bets_raises": 0, "calls": 0, "factor": None}
     caller = tracker.seat(seat["calling_station"])
     assert caller["pfr"]["count"] == 0 and caller["aggression"]["bets_raises"] == 0
-    assert caller["vpip"]["count"] > 0 and caller["hands"] == table.hand_number
+    dealt_in = sum(1 for e in table.log if e.type == "HandStarted" and str(seat["calling_station"]) in
+                   {str(s) for s in e.data["start_stacks"]})
+    assert caller["vpip"]["count"] > 0 and caller["hands"] == dealt_in
     shown = [i for s in table.seat_ring for i in tracker.seat(s)["showdowns"]["items"]]
     assert shown and all(len(i["cards"]) == 2 and i["hand_in_words"] for i in shown)
 
