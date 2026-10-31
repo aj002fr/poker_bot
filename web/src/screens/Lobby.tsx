@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ApiFailure, api, saveCredentials, type Credentials } from '../api'
-import { RULESETS, chips } from '../format'
+import { RULESETS, chips, seatWho } from '../format'
 import type { Snapshot } from '../types'
 import { formatFailure } from './Setup'
 
@@ -58,7 +58,7 @@ export function Lobby({
         {setup.seats.map((s) => (
           <li key={s.seat} className={s.you ? 'lobby-you' : ''}>
             <span className="mono seat-id">Seat {s.seat}</span>
-            <span>{s.kind === 'bot' ? `Bot · ${s.label}` : s.you ? 'You' : s.claimed ? 'Human · joined' : 'Human · open'}</span>
+            <span>{s.kind === 'bot' ? seatWho(s) : s.you ? 'You' : s.claimed ? 'Human · joined' : 'Human · open'}</span>
             {s.kind === 'human' && !s.claimed && creds.seat === undefined && (
               <button className="btn btn-small" disabled={busy} onClick={() => claim(s.seat)}>
                 Take this seat

@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
-import type { StreamStatus } from '../api'
+import { useAids, useStyles, type StreamStatus } from '../api'
 import { Card } from '../cards'
 import { RULESETS, chips, describeEvents } from '../format'
-import type { Snapshot, TableView } from '../types'
+import { recapLines } from '../learn/HandRecap'
+import { LearningPanel } from '../learn/LearningPanel'
+import { NotesPanel } from '../learn/NotesPanel'
+import { aidsKey, useStored } from '../learn/prefs'
+import { isHiddenLive, visibleProfile } from '../learn/styles'
+import type { Snapshot, StylesCatalog, TableView } from '../types'
 import { ActionPanel } from './ActionPanel'
 import { Felt } from './Felt'
 
@@ -34,9 +39,16 @@ function Timer({ snapshot }: { snapshot: Snapshot }) {
   )
 }
 
-function LastHand({ snapshot }: { snapshot: Snapshot }) {
+function LastHand({ snapshot, catalog, recap }: { snapshot: Snapshot; catalog: StylesCatalog | null; recap: boolean }) {
   const last = snapshot.last_hand
   if (!last) return null
+  const seats = snapshot.setup.seats
+  const story = recap
+    ? recapLines(last.events, last.hand_id, seats, snapshot.view?.hero_seat ?? null, snapshot.stats, (seat) => {
+        const info = seats.find((s) => s.seat === seat)
+        return isHiddenLive(info, snapshot) ? null : visibleProfile(info, catalog)
+      })
+    : []
   const board = last.events.filter((e) => e.type === 'BoardDealt').flatMap((e) => e.data.cards as string[])
   const lines = describeEvents(
     last.events.filter((e) => ['CardsRevealed', 'PotAwarded', 'PlayerEliminated', 'ExcessReturned'].includes(e.type)),
@@ -57,6 +69,16 @@ function LastHand({ snapshot }: { snapshot: Snapshot }) {
           <li key={l.seq}>{l.text}</li>
         ))}
       </ul>
+      {story.length > 0 && (
+        <div className="recap" data-testid="hand-recap">
+          <div className="label">What happened</div>
+          <ul>
+            {story.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
@@ -78,6 +100,12 @@ export function TableScreen({
   const log = describeEvents(view.action_history, snapshot.setup.seats).slice(-14)
   const timer = <Timer snapshot={snapshot} />
   const level = view.blinds ? Math.floor((view.hand_number - 1) / snapshot.setup.config.hands_per_level) + 1 : null
+  const [aidsChoice, setAidsChoice] = useStored<boolean | null>(aidsKey(snapshot.table_id), null)
+  const aidsOn = aidsChoice ?? snapshot.setup.styles?.learning_aids ?? true
+  const seated = view.hero_seat !== null && !!token
+  const { aids, failed } = useAids(snapshot.table_id, token, snapshot.version, aidsOn && seated)
+  const catalog = useStyles()
+  const positions = aidsOn && aids?.hand_id === view.hand_id ? aids?.positions : undefined
 
   return (
     <main className="play">
@@ -105,6 +133,10 @@ export function TableScreen({
         <span className="muted" data-testid="survivors">
           {view.surviving_player_count}/{view.initial_player_count} left · {RULESETS[view.ruleset_id]?.short}
         </span>
+        <label className="toggle strip-toggle">
+          <input type="checkbox" checked={aidsOn} onChange={(e) => setAidsChoice(e.target.checked)} />
+          <span>Learning aids</span>
+        </label>
         <a className="strip-link" href={`#/t/${snapshot.table_id}/replay`}>
           Replay so far
         </a>
@@ -114,9 +146,9 @@ export function TableScreen({
       </div>
 
       <div className="play-grid">
-        <Felt view={view} seats={snapshot.setup.seats} timer={timer} />
+        <Felt view={view} seats={snapshot.setup.seats} timer={timer} seatLabels={positions} stats={snapshot.stats?.seats} />
         <aside className="log panel" aria-label="Action log">
-          <LastHand snapshot={snapshot} />
+          <LastHand snapshot={snapshot} catalog={catalog} recap={aidsOn} />
           <div className="label">This hand</div>
           <ol className="log-lines">
             {log.map((l) => (
@@ -129,6 +161,11 @@ export function TableScreen({
       </div>
 
       <ActionPanel snapshot={snapshot} token={token} onSnapshot={onSnapshot} timer={timer} connections={connections} />
+
+      <div className="study-grid">
+        {aidsOn && seated && <LearningPanel view={view} aids={aids} failed={failed} catalog={catalog} />}
+        <NotesPanel snapshot={snapshot} catalog={catalog} />
+      </div>
     </main>
   )
 }

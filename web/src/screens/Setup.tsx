@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ApiFailure, api, saveCredentials, useOperatorToken, type CreateBody } from '../api'
+import { ApiFailure, api, createAndJoin, useOperatorToken, useStyles, type CreateBody } from '../api'
 import { RULESETS, chips } from '../format'
-import type { Policy, ResolvedConfig } from '../types'
+import { useProgress } from '../learn/progress'
+import { Term } from '../learn/Term'
+import type { Policy, ResolvedConfig, StyleMode } from '../types'
 
 type Assignment = 'human' | string
 
 const HAND_CAPS = [10, 25, 50, 100, 200]
+const RANDOM = 'style_random'
+
+const MODES: { id: StyleMode; name: string; detail: string }[] = [
+  { id: 'labelled', name: 'Labelled', detail: 'Every bot shows its style from the start.' },
+  { id: 'hidden', name: 'Hidden', detail: 'Bots show only “Player 3”. Work out their styles by watching them play.' },
+  { id: 'mixed', name: 'Mixed', detail: 'You choose which bots hide their style.' },
+  { id: 'random', name: 'Random styles', detail: 'The server secretly picks a style for every bot, so even you do not know.' },
+]
 
 function defaultAssignments(n: number, previous: Assignment[]): Assignment[] {
   return Array.from({ length: n }, (_, i) => previous[i] ?? (i < 2 ? 'human' : 'legal_random'))
@@ -14,6 +24,11 @@ function defaultAssignments(n: number, previous: Assignment[]): Assignment[] {
 export function Setup({ navigate }: { navigate: (path: string) => void }) {
   const operator = useOperatorToken()
   const [policies, setPolicies] = useState<Policy[]>([])
+  const catalog = useStyles()
+  const [progress] = useProgress()
+  const [mode, setMode] = useState<StyleMode>('labelled')
+  const [hide, setHide] = useState<boolean[]>([])
+  const [learningAids, setLearningAids] = useState(true)
   const [ruleset, setRuleset] = useState('practice_nlhe')
   const [seatCount, setSeatCount] = useState(6)
   const [assignments, setAssignments] = useState<Assignment[]>(defaultAssignments(6, []))
@@ -34,7 +49,8 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
 
   useEffect(() => {
     if (policies.length === 0) return
-    const supported = (id: string) => id === 'human' || policies.find((p) => p.id === id)?.rulesets.includes(ruleset)
+    const supported = (id: string) =>
+      id === 'human' || (id === RANDOM ? ruleset === 'practice_nlhe' : policies.find((p) => p.id === id)?.rulesets.includes(ruleset))
     setAssignments((prev) => (prev.every(supported) ? prev : prev.map((a) => (supported(a) ? a : 'legal_random'))))
   }, [ruleset, policies])
 
@@ -47,9 +63,14 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
         hand_cap: handCap,
         human_turn_ms: Math.round(turnSeconds * 1000),
       },
-      seats: assignments.map((a) => (a === 'human' ? { kind: 'human' } : { kind: 'bot', policy: a })),
+      seats: assignments.map((a, i) =>
+        a === 'human'
+          ? { kind: 'human' }
+          : { kind: 'bot', policy: mode === 'random' ? RANDOM : a, ...(mode === 'mixed' ? { reveal: !hide[i] } : {}) },
+      ),
+      styles: { mode, learning_aids: learningAids },
     }),
-    [ruleset, seatCount, stack, handCap, turnSeconds, assignments],
+    [ruleset, seatCount, stack, handCap, turnSeconds, assignments, mode, hide, learningAids],
   )
 
   useEffect(() => {
@@ -79,15 +100,7 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
     setCreating(true)
     setCreateError(null)
     try {
-      const created = await api.create(body, operator)
-      const creds: { hostToken: string; seat?: number; seatToken?: string } = { hostToken: created.host_token }
-      if (humans > 0) {
-        const joined = await api.join(created.table_id)
-        creds.seat = joined.seat
-        creds.seatToken = joined.seat_token
-      }
-      saveCredentials(created.table_id, creds)
-      navigate(`/t/${created.table_id}`)
+      navigate(`/t/${await createAndJoin(body, operator)}`)
     } catch (err) {
       setCreateError(err instanceof ApiFailure ? formatFailure(err) : 'Could not reach the server.')
       setCreating(false)
@@ -95,7 +108,14 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
   }
 
   const policyById = Object.fromEntries(policies.map((p) => [p.id, p]))
-  const usedBots = [...new Set(assignments.filter((a) => a !== 'human'))]
+  const usedBots = [...new Set(assignments.filter((a) => a !== 'human' && a !== RANDOM && mode !== 'random'))]
+  const profileOf = (policyId: string) => catalog?.styles.find((st) => st.policy_id === policyId) ?? null
+  const basics = catalog?.styles.filter((st) => !st.advanced).map((st) => st.id) ?? []
+  const unlocked = basics.length > 0 && basics.every((id) => progress.beaten.includes(id))
+  const chooseMode = (m: StyleMode) => {
+    setMode(m)
+    if (m === 'random' && ruleset !== 'practice_nlhe') setRuleset('practice_nlhe')
+  }
 
   return (
     <main className="setup">
@@ -140,17 +160,54 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
         </fieldset>
 
         <fieldset className="field">
+          <legend className="label">Opponent styles</legend>
+          <div className="mode-options" role="radiogroup" aria-label="Table mode">
+            {MODES.map((m) => (
+              <label key={m.id} className={`option${mode === m.id ? ' option-on' : ''}`}>
+                <input type="radio" name="mode" value={m.id} checked={mode === m.id} onChange={() => chooseMode(m.id)} />
+                <span className="option-name">{m.name}</span>
+                <span className="option-detail">{m.detail}</span>
+              </label>
+            ))}
+          </div>
+          <p className="hint">
+            Styles are modelled on the players described in <cite>Harrington on Hold'em, Vol. I</cite> (Part Two). No-limit Hold'em only.
+          </p>
+        </fieldset>
+
+        <fieldset className="field">
           <legend className="label">Who sits where</legend>
           <ol className="seat-assign">
-            {assignments.map((a, i) => (
+            {assignments.map((a, i) => {
+              const randomSeat = a !== 'human' && mode === 'random'
+              const value = randomSeat ? RANDOM : a
+              const profile = profileOf(value)
+              return (
               <li key={i}>
                 <span className="mono seat-id">Seat {i}</span>
                 <select
                   aria-label={`Seat ${i} player`}
-                  value={a}
+                  value={value}
                   onChange={(e) => setAssignments((prev) => prev.map((p, j) => (j === i ? e.target.value : p)))}
                 >
                   <option value="human">Human</option>
+                  {catalog && (
+                    <optgroup label="Opponent styles">
+                      {catalog.styles.map((st) => {
+                        const nlhe = st.rulesets.includes(ruleset)
+                        const locked = st.advanced && !unlocked
+                        return (
+                          <option key={st.id} value={st.policy_id} disabled={!nlhe || locked || mode === 'random'}>
+                            Style · {st.name}
+                            {!nlhe ? ' (NLHE only)' : locked ? ' (beat the other styles to unlock)' : ''}
+                          </option>
+                        )
+                      })}
+                      <option value={RANDOM} disabled={ruleset !== 'practice_nlhe'}>
+                        Style · Random (secret)
+                      </option>
+                    </optgroup>
+                  )}
                   {(['baseline', 'registered'] as const).map((source) => {
                     const group = policies.filter((p) => p.source === source)
                     if (group.length === 0) return null
@@ -159,7 +216,7 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
                         {group.map((p) => {
                           const ok = p.rulesets.includes(ruleset)
                           return (
-                            <option key={p.id} value={p.id} disabled={!ok}>
+                            <option key={p.id} value={p.id} disabled={!ok || mode === 'random'}>
                               Bot · {p.label}
                               {ok ? '' : ` (${p.rulesets.map((r) => RULESETS[r]?.short ?? r).join(', ')} only)`}
                             </option>
@@ -169,8 +226,33 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
                     )
                   })}
                 </select>
+                {a !== 'human' && (
+                  <div className="seat-style" data-testid={`seat-style-${i}`}>
+                    {mode === 'mixed' && (
+                      <label className="toggle">
+                        <input
+                          type="checkbox"
+                          checked={!!hide[i]}
+                          onChange={(e) => setHide((prev) => Object.assign([...prev], { [i]: e.target.checked }))}
+                          aria-label={`Hide seat ${i} style`}
+                        />
+                        <span>Hide style</span>
+                      </label>
+                    )}
+                    <span className="hint">
+                      {mode === 'random' || value === RANDOM
+                        ? 'Style picked in secret, shown at the end.'
+                        : mode === 'hidden' || (mode === 'mixed' && hide[i])
+                          ? 'Shown as “Player ' + i + '” until the end.'
+                          : profile
+                            ? profile.description
+                            : 'Not a book style: plays its own simple rules.'}
+                    </span>
+                  </div>
+                )}
               </li>
-            ))}
+              )
+            })}
           </ol>
           <p className="hint">
             Baselines are the milestone 4 reference bots.{' '}
@@ -218,6 +300,15 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
             </select>
           </label>
         </div>
+
+        <label className="toggle toggle-field">
+          <input type="checkbox" checked={learningAids} onChange={(e) => setLearningAids(e.target.checked)} />
+          <span>
+            <strong>Learning aids</strong>: your hand in words, <Term k="position">position</Term> tips, the opening chart,{' '}
+            <Term k="pot_odds">pot odds</Term>, <Term k="equity">equity</Term> and a recap after each hand. Built only from your own
+            cards and what everyone can see.
+          </span>
+        </label>
       </section>
 
       <aside className="panel resolved" aria-live="polite">

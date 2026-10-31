@@ -1,7 +1,9 @@
 import { useMemo, type CSSProperties, type ReactNode } from 'react'
 import { Card, CardBack, CardSlot } from '../cards'
-import { chips } from '../format'
-import type { PlayerView, SeatInfo, TableView } from '../types'
+import { chips, seatWho } from '../format'
+import { POSITION_NAMES } from '../learn/positions'
+import { badgeText, badgeTitle } from '../learn/styles'
+import type { PlayerView, PositionLabel, SeatInfo, SeatStats, TableView } from '../types'
 
 const STATUS_TEXT: Record<string, string> = { folded: 'Folded', all_in: 'All in', eliminated: 'Out' }
 
@@ -19,7 +21,7 @@ function seatCards(view: TableView, p: PlayerView, revealed: Record<string, stri
   return Array.from({ length: dealt }, (_, i) => <CardBack key={i} size="sm" />)
 }
 
-function Markers({ view, seat }: { view: TableView; seat: number }) {
+function Markers({ view, seat, position }: { view: TableView; seat: number; position?: PositionLabel }) {
   return (
     <span className="markers">
       {view.button_seat === seat && (
@@ -27,12 +29,17 @@ function Markers({ view, seat }: { view: TableView; seat: number }) {
           D
         </span>
       )}
-      {view.small_blind_seat === seat && (
+      {position && position !== 'BTN' && (
+        <span className="marker marker-pos" title={POSITION_NAMES[position]} data-testid={`seat-pos-${seat}`}>
+          {position}
+        </span>
+      )}
+      {!position && view.small_blind_seat === seat && (
         <span className="marker" title="Small blind">
           SB
         </span>
       )}
-      {view.big_blind_seat === seat && (
+      {!position && view.big_blind_seat === seat && (
         <span className="marker" title="Big blind">
           BB
         </span>
@@ -50,6 +57,8 @@ function Seat({
   timer,
   revealed,
   won,
+  position,
+  stats,
 }: {
   view: TableView
   player: PlayerView
@@ -59,6 +68,8 @@ function Seat({
   timer?: ReactNode
   revealed?: Record<string, string[]> | null
   won?: number
+  position?: PositionLabel
+  stats?: SeatStats
 }) {
   const hero = player.seat === view.hero_seat
   const cards = seatCards(view, player, revealed)
@@ -66,7 +77,7 @@ function Seat({
   const classes = ['seat', `seat-st-${player.status}`, active && 'seat-active', hero && 'seat-hero', won && 'seat-won']
     .filter(Boolean)
     .join(' ')
-  const who = hero ? 'You' : info?.kind === 'bot' ? `Bot · ${info.label}` : info?.you ? 'You' : 'Human'
+  const who = hero ? 'You' : seatWho(info)
   return (
     <div
       className={classes}
@@ -79,7 +90,7 @@ function Seat({
     >
       <div className="seat-head">
         <span className="mono seat-id">Seat {player.seat}</span>
-        <Markers view={view} seat={player.seat} />
+        <Markers view={view} seat={player.seat} position={position} />
       </div>
       <div className="seat-who" title={info?.artifact_hash ? `${who} · sha256 ${info.artifact_hash}` : who}>
         {who}
@@ -92,6 +103,11 @@ function Seat({
         {STATUS_TEXT[player.status] && <span className="seat-status">{STATUS_TEXT[player.status]}</span>}
         {player.street_committed > 0 && <span className="mono seat-bet">bet {chips(player.street_committed)}</span>}
       </div>
+      {stats && !hero && stats.hands > 0 && (
+        <div className="seat-stats mono" data-testid={`seat-stats-${player.seat}`} title={badgeTitle(stats)}>
+          {badgeText(stats)}
+        </div>
+      )}
       {active && timer && <div className="seat-timer">{timer}</div>}
     </div>
   )
@@ -121,6 +137,8 @@ export function Felt({
   revealed,
   winners,
   label = 'Table',
+  seatLabels,
+  stats,
 }: {
   view: TableView
   seats: SeatInfo[]
@@ -128,6 +146,8 @@ export function Felt({
   revealed?: Record<string, string[]> | null
   winners?: Record<number, number>
   label?: string
+  seatLabels?: Record<string, { label: PositionLabel }>
+  stats?: Record<string, SeatStats>
 }) {
   const positions = useSeatPositions(view.seats, view.hero_seat)
   const info = Object.fromEntries(seats.map((s) => [s.seat, s]))
@@ -146,6 +166,8 @@ export function Felt({
           timer={timer}
           revealed={revealed}
           won={winners?.[p.seat]}
+          position={seatLabels?.[String(p.seat)]?.label}
+          stats={stats?.[String(p.seat)]}
         />
       ))}
       {view.players

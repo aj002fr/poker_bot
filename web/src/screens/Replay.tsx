@@ -311,6 +311,11 @@ export function ReplayScreen({ tableId, navigate }: { tableId: string; navigate:
             </span>
             {view.pot_total > 0 && <span className="mono muted">pot {chips(view.pot_total)}</span>}
           </div>
+          {shown.bot_note && (
+            <p className="bot-note" data-testid="bot-note">
+              <span className="label">Seat {shown.bot_note.seat} reasoning</span> {shown.bot_note.text}
+            </p>
+          )}
           <ol className="log-lines" data-testid="replay-log">
             {lines.map((l, i) => (
               <li key={l.seq} className={`log-${l.type}${i === lines.length - 1 ? ' log-current' : ''}`}>

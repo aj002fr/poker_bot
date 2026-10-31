@@ -9,6 +9,7 @@ import {
   useTableStream,
   type Credentials,
 } from './api'
+import { LearnScreen } from './screens/Learn'
 import { Lobby } from './screens/Lobby'
 import { ReplayScreen } from './screens/Replay'
 import { Results } from './screens/Results'
@@ -133,6 +134,9 @@ function Header({ route, navigate }: { route: string; navigate: (p: string) => v
         <a href="#/" aria-current={route === '/' ? 'page' : undefined}>
           New table
         </a>
+        <a href="#/learn" aria-current={route === '/learn' ? 'page' : undefined}>
+          Learn
+        </a>
         <a href="#/runs" aria-current={route.startsWith('/runs') ? 'page' : undefined}>
           Batch runs
         </a>
@@ -241,6 +245,8 @@ export default function App() {
         <ReplayScreen key={replay[1]} tableId={replay[1]} navigate={navigate} />
       ) : run ? (
         <RunReport key={run[1]} runId={run[1]} />
+      ) : route === '/learn' ? (
+        <LearnScreen navigate={navigate} />
       ) : route === '/runs' ? (
         <RunsScreen navigate={navigate} />
       ) : (

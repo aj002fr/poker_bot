@@ -151,7 +151,8 @@ export function ActionPanel({
   useEffect(() => {
     if (disabled) return
     const onKey = (e: KeyboardEvent) => {
-      const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement
+      const typing =
+        e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement
       if (typing && e.key === 'Escape') {
         ;(e.target as HTMLElement).blur()
         return
