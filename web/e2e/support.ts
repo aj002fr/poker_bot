@@ -170,8 +170,14 @@ export async function playToResults(players: [Page, number][], { policy = 'call'
 }
 
 export async function noHorizontalOverflow(page: Page) {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-  expect(overflow).toBeLessThanOrEqual(0)
+  const { overflow, wide } = await page.evaluate(() => ({
+    overflow: document.documentElement.scrollWidth - window.innerWidth,
+    wide: [...document.querySelectorAll('body *')]
+      .filter((e) => e.getBoundingClientRect().right > window.innerWidth + 0.5)
+      .slice(0, 5)
+      .map((e) => `${e.tagName.toLowerCase()}.${[...e.classList].join('.')}`),
+  }))
+  expect(overflow, `wider than the viewport: ${wide.join(', ')}`).toBeLessThanOrEqual(0)
 }
 
 export async function tabTo(page: Page, target: ReturnType<Page['locator']>, max = 80) {

@@ -41,7 +41,7 @@ export const STEPS: Step[] = [
     id: 'spot-styles',
     title: 'Spot the styles from their play',
     goal: 'Six seats, every style labelled. Match each player’s stats badge to what their style usually does.',
-    watch: 'Compare “Plays” and “Raises” on each seat with the usual ranges in the Notes panel.',
+    watch: 'Compare “played” and “raised” on each seat with the usual ranges in the Notes panel.',
     book: 'Part Three: reading the table from betting patterns',
     mode: 'labelled',
     bots: [{ policy: 'style_rock' }, { policy: 'style_aggressive' }, { policy: 'style_super_aggressive' }, { policy: 'style_station' }, { policy: 'style_weak_tight' }],

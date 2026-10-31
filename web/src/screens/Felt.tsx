@@ -104,7 +104,7 @@ function Seat({
         {player.street_committed > 0 && <span className="mono seat-bet">bet {chips(player.street_committed)}</span>}
       </div>
       {stats && !hero && stats.hands > 0 && (
-        <div className="seat-stats mono" data-testid={`stats-badge-${player.seat}`} title={badgeTitle(stats)}>
+        <div className="seat-stats" data-testid={`stats-badge-${player.seat}`} title={badgeTitle(stats)}>
           {badgeText(stats)}
         </div>
       )}

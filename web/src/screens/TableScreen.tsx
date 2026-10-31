@@ -101,7 +101,8 @@ export function TableScreen({
   const timer = <Timer snapshot={snapshot} />
   const level = view.blinds ? Math.floor((view.hand_number - 1) / snapshot.setup.config.hands_per_level) + 1 : null
   const [aidsChoice, setAidsChoice] = useStored<boolean | null>(aidsKey(snapshot.table_id), null)
-  const aidsOn = aidsChoice ?? snapshot.setup.styles?.learning_aids ?? true
+  const aidsAllowed = snapshot.setup.styles?.learning_aids ?? true
+  const aidsOn = aidsAllowed && (aidsChoice ?? true)
   const seated = view.hero_seat !== null && !!token
   const { aids, failed } = useAids(snapshot.table_id, token, snapshot.version, aidsOn && seated)
   const catalog = useStyles()
@@ -134,8 +135,8 @@ export function TableScreen({
           {view.surviving_player_count}/{view.initial_player_count} left · {RULESETS[view.ruleset_id]?.short}
         </span>
         <label className="toggle strip-toggle">
-          <input type="checkbox" checked={aidsOn} onChange={(e) => setAidsChoice(e.target.checked)} />
-          <span>Learning aids</span>
+          <input type="checkbox" checked={aidsOn} disabled={!aidsAllowed} onChange={(e) => setAidsChoice(e.target.checked)} />
+          <span>{aidsAllowed ? 'Learning aids' : 'Learning aids off for this table'}</span>
         </label>
         <a className="strip-link" href={`#/t/${snapshot.table_id}/replay`}>
           Replay so far

@@ -8,6 +8,8 @@ test.skip(!DIR, 'set ARENA_SCREENSHOTS to a directory to capture walkthrough scr
 const shot = (name: string) => `${DIR}/${name}.png`
 
 test('learning table screenshots', async ({ page, request }) => {
+  test.setTimeout(600_000)
+  const handNumber = async () => Number(await page.getByTestId('hand-number').textContent({ timeout: 300 }).catch(() => '0'))
   await page.setViewportSize({ width: 1440, height: 1000 })
 
   const labelled = await createTable(
@@ -20,7 +22,7 @@ test('learning table screenshots', async ({ page, request }) => {
   await page.evaluate(() => localStorage.setItem('arena:learn:coach', 'true'))
   // Play a few hands so the stats badges and the recap have something to show.
   for (let hand = 0; hand < 60; hand++) {
-    const n = Number(await page.getByTestId('hand-number').textContent())
+    const n = await handNumber()
     if (n >= 4 && (await page.locator('.action-live').isVisible())) break
     await actIfMyTurn(page, 'call')
     await page.waitForTimeout(80)
@@ -38,22 +40,22 @@ test('learning table screenshots', async ({ page, request }) => {
     { seed: 'shots-hidden-2', styles: { mode: 'random', learning_aids: true } },
   )
   await openSeat(page, hidden, 0)
-  for (let i = 0; i < 400; i++) {
-    const n = Number(await page.getByTestId('hand-number').textContent().catch(() => '0'))
-    if (n >= 6 && (await page.locator('.action-live').isVisible())) break
-    await actIfMyTurn(page, 'call')
-    await page.waitForTimeout(60)
+  await expect(page.getByTestId('notes-panel')).toBeVisible()
+  const until = async (done: () => Promise<boolean>, ms: number, label: string, policy: 'call' | 'fold') => {
+    const stop = Date.now() + ms
+    while (Date.now() < stop && !(await done())) {
+      await actIfMyTurn(page, policy)
+      await page.waitForTimeout(40)
+    }
+    console.log(label, 'hand', await handNumber(), 'results', await page.getByTestId('results').isVisible())
   }
+  await until(async () => (await handNumber()) >= 6 && (await page.locator('.action-live').isVisible()), 60_000, 'hidden mid-table', 'fold')
   await page.getByLabel('Style guess for seat 1').selectOption({ index: 1 })
   await page.getByLabel('Style guess for seat 2').selectOption({ index: 4 })
   await page.getByLabel('Notes on seat 2').fill('Called every bet so far, never raised.')
-  await page.getByTestId('notes-panel').scrollIntoViewIfNeeded()
   await page.screenshot({ path: shot('hidden-table-notes-and-guess'), fullPage: true })
 
-  for (let i = 0; i < 3000 && !(await page.getByTestId('results').isVisible()); i++) {
-    await actIfMyTurn(page, 'call')
-    await page.waitForTimeout(40)
-  }
+  await until(() => page.getByTestId('results').isVisible(), 240_000, 'hidden end', 'call')
   await expect(page.getByTestId('reveal')).toBeVisible()
   await page.getByTestId('reveal').scrollIntoViewIfNeeded()
   await page.screenshot({ path: shot('reveal-and-scoring'), fullPage: true })
@@ -65,5 +67,6 @@ test('learning table screenshots', async ({ page, request }) => {
   await page.setViewportSize({ width: 360, height: 780 })
   await openSeat(page, labelled, 0)
   await expect(page.getByTestId('learning-aids')).toBeVisible()
-  await page.screenshot({ path: shot('learning-table-mobile'), fullPage: true })
+  await page.getByTestId('learning-aids').scrollIntoViewIfNeeded()
+  await page.screenshot({ path: shot('learning-table-mobile') })
 })

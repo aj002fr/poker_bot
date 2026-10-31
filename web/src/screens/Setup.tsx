@@ -66,7 +66,7 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
       seats: assignments.map((a, i) =>
         a === 'human'
           ? { kind: 'human' }
-          : { kind: 'bot', policy: mode === 'random' ? RANDOM : a, ...(mode === 'mixed' ? { reveal: !hide[i] } : {}) },
+          : { kind: 'bot', policy: mode === 'random' ? RANDOM : a, ...(mode === 'mixed' ? { reveal: a !== RANDOM && !hide[i] } : {}) },
       ),
       styles: { mode, learning_aids: learningAids },
     }),
@@ -228,7 +228,7 @@ export function Setup({ navigate }: { navigate: (path: string) => void }) {
                 </select>
                 {a !== 'human' && (
                   <div className="seat-style" data-testid={`seat-style-${i}`}>
-                    {mode === 'mixed' && (
+                    {mode === 'mixed' && value !== RANDOM && (
                       <label className="toggle">
                         <input
                           type="checkbox"

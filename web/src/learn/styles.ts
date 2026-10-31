@@ -16,7 +16,7 @@ export const range = (r: [number, number] | null | undefined, ratio = false) =>
 
 /** Compact badge text for a seat on the felt, with sample sizes in plain words. */
 export function badgeText(s: SeatStats) {
-  return `Plays ${s.vpip.count}/${s.vpip.of} · Raises ${s.pfr.count}`
+  return `Played ${s.vpip.count}/${s.vpip.of} · raised ${s.pfr.count}`
 }
 
 export function badgeTitle(s: SeatStats) {
