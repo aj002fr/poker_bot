@@ -1,6 +1,7 @@
-"""Bot seats at live tables: milestone 4 baselines and operator-registered bot files.
+"""Bot seats at live tables: milestone 4 baselines, opponent styles and operator-registered bot files.
 
-Baselines are trusted, repository-owned files and run in-process
+Baselines and opponent styles (:mod:`arena.agents.styles`) are trusted,
+repository-owned files and run in-process
 (:class:`~arena.agents.worker.InProcessSeat`). A registered file is untrusted: it
 is staged once, hashed, loaded only inside a sandboxed worker
 (:class:`~arena.agents.worker.WorkerSeat`) and runs under the table's 1 ms bot
