@@ -43,4 +43,6 @@ packages = ["arena", "strategy"]
 testpaths = ["tests"]
 markers = [
     "release: long-running release-gate tests (excluded from verify-fast)",
+    "slow: long strategy solver runs (excluded from verify-fast; make verify-solve-slow)",
+    "oracle: cross-checks against OpenSpiel (excluded from verify-fast; make verify-oracle)",
 ]

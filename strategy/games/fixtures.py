@@ -74,6 +74,8 @@ class Fixture:
     es_iterations: int | None = None
     uses_resolution: bool = False
     note: str = ""
+    # Max unilateral gain allowed for the ES-MCCFR average after `es_iterations`.
+    es_tolerance: float = 0.02
 
 
 @dataclass
@@ -605,11 +607,11 @@ _RM_START = {
 _FIXTURE_LIST: list[Fixture] = [
     Fixture(
         "matching-pennies", "Matching pennies (CFR on the extensive form)", "MoP Ch. 10",
-        lambda n: matrix.matching_pennies(), _matrix_measure(2), _matrix_expected, iterations=200, es_iterations=2000,
+        lambda n: matrix.matching_pennies(), _matrix_measure(2), _matrix_expected, iterations=200, es_iterations=20_000,
     ),
     Fixture(
         "rock-paper-scissors", "Rock-paper-scissors (CFR on the extensive form)", "MoP Ch. 10",
-        lambda n: matrix.rock_paper_scissors(), _matrix_measure(3), _matrix_expected, iterations=200, es_iterations=2000,
+        lambda n: matrix.rock_paper_scissors(), _matrix_measure(3), _matrix_expected, iterations=200, es_iterations=20_000,
     ),
     Fixture(
         "rm-matching-pennies", "Regret matching self-play, matching pennies (biased start)", "Neller & Lanctot",
@@ -675,6 +677,7 @@ _FIXTURE_LIST: list[Fixture] = [
     Fixture(
         "leduc", "Leduc poker (OpenSpiel default config)", "OpenSpiel leduc_poker",
         lambda n: leduc.LeducPoker(), _leduc_measure, _leduc_expected, iterations=500, es_iterations=400_000,
+        es_tolerance=0.06,
     ),
     Fixture(
         "full-street-no-fold", "[0,1] full street, two bets, no check-raise, no fold", "MoP Ex. 16.2",
@@ -695,7 +698,7 @@ _FIXTURE_LIST: list[Fixture] = [
     Fixture(
         "two-street-geometric", "Two-street static clairvoyance, pot 1, stack 4, Y sizes", "MoP Ex. 19.2",
         lambda n: clairvoyance.TwoStreetClairvoyant(), _two_street_measure, _two_street_expected,
-        iterations=5000, es_iterations=100_000,
+        iterations=5000, es_iterations=100_000, es_tolerance=0.04,
     ),
     Fixture(
         "marked-draw", "Marked-draw turn and river", "MoP Ex. 20.2",

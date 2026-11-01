@@ -1,7 +1,8 @@
 UV ?= uv
 
 .PHONY: setup dev dev-postgres db-up db-down verify-fast verify-postgres verify-release verify-release-status \
-	verify-release-report verify-release-smoke verify-web test cli-demo
+	verify-release-report verify-release-smoke verify-web test cli-demo \
+	verify-solve-slow verify-oracle gates-stage2 bench-solve
 
 setup:
 	$(UV) sync --frozen
@@ -20,7 +21,21 @@ dev-postgres: db-up
 	ARENA_STORE=postgres UV=$(UV) ./scripts/dev.sh
 
 verify-fast:
-	$(UV) run pytest -m "not release" -q
+	$(UV) run pytest -m "not release and not slow and not oracle" -q
+
+# Stage 2 solver gates at full resolution, long ES-MCCFR runs and sampled-vs-full agreement.
+verify-solve-slow:
+	$(UV) run pytest -m slow tests/strategy -q
+
+# Kuhn/Leduc cross-checks against OpenSpiel (dev-only dependency group).
+verify-oracle:
+	$(UV) run --group oracle pytest -m oracle tests/strategy -q
+
+gates-stage2:
+	$(UV) run python -m strategy.games.fixtures --resolution 200
+
+bench-solve:
+	$(UV) run python -m strategy.solve.bench
 
 verify-postgres: db-up
 	ARENA_REQUIRE_POSTGRES=1 $(UV) run pytest tests/persistence -q

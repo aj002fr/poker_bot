@@ -233,7 +233,8 @@ def _sample(probs, k):
     return k - 1
 
 
-@njit(cache=True)
+# Not disk-cached: numba's cache of recursive functions segfaults on reload.
+@njit
 def _es_walk(
     h,
     traverser,
@@ -342,7 +343,7 @@ def _es_walk(
     return v
 
 
-@njit(cache=True)
+@njit
 def es_iterations(
     start_iteration,
     num_iterations,
@@ -376,7 +377,7 @@ def es_iterations(
             )
 
 
-@njit(cache=True)
+@njit
 def es_regret_samples(
     num_samples,
     traverser,

@@ -40,6 +40,10 @@ arena/benchmark/   run manifests, paired seed-block benchmark runner (runner.py)
 arena/api/         FastAPI server: seat credentials, per-table command writer, deadlines, WebSocket
 arena/persistence/ memory and PostgreSQL stores, migrations, snapshot + replay recovery
 web/               React + TypeScript + Vite: setup, lobby, table, results, replay, batch runs; Playwright e2e
+strategy/solve/    offline solvers on a dense extensive-form tree: regret matching, CFR, CFR+,
+                   linear/discounted CFR, external-sampling MCCFR, best response, NashConv
+strategy/games/    Stage 2 toy games with analytic solutions (Kuhn, Leduc, AKQ, [0,1] games,
+                   clairvoyance, marked draw, dry side pot) and the fixture gate registry
 examples/          template_bot.py: copy it to start a bot
 tests/agents/      fault-injection bots, sandbox probes, fake-clock deadline tests, restore
 tests/api/         API behaviour and HTTP/WebSocket leak checks
@@ -63,7 +67,7 @@ make dev           # API on :8317, table on http://127.0.0.1:5317 (tables in mem
 make dev-postgres  # same, with tables in PostgreSQL (docker compose, port 54329)
 make verify-postgres  # persistence and API suites against PostgreSQL
 make verify-web    # web typecheck + Playwright suite (npx playwright install chromium once)
-make verify-fast   # pytest -m "not release"
+make verify-fast   # pytest -m "not release and not slow and not oracle"
 make verify-release  # every release gate as resumable shards -> artifacts/test-report.{json,md}
 make verify-release-status  # shard states per gate
 make cli-demo      # one seeded 6-player NLHE tournament
@@ -71,6 +75,18 @@ make cli-demo      # one seeded 6-player NLHE tournament
 
 Release verification (spec sections 12 and 13), its gates, checkpoints, failing-seed
 minimizer and mutation checks are described in `docs/release-verification.md`.
+
+The offline solvers (`strategy/solve`, numba in the default `train` group) have their own
+targets. OpenSpiel is a dev-only oracle in the `oracle` group; nothing outside
+`tests/strategy/oracle` and `tests/strategy/test_openspiel_oracle.py` imports it.
+
+```bash
+make gates-stage2       # every Stage 2 fixture gate at n = 200 as a Markdown table
+make verify-solve-slow  # full-resolution gates, ES-MCCFR agreement over seeds, long Leduc runs
+make verify-oracle      # live Kuhn/Leduc cross-checks against OpenSpiel 2.0.2
+make bench-solve        # NashConv vs nodes touched and wall time -> artifacts/bench-solve/
+uv run --group oracle python -m tests.strategy.oracle.openspiel_reference  # refresh the frozen file
+```
 
 The CLI plays seeded headless hands and tournaments with simple built-in policies
 (`legal_random`, `check_or_call`, `check_or_fold`, `shove`):

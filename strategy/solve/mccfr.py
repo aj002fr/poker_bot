@@ -1,11 +1,12 @@
 """External-sampling Monte Carlo CFR (Lanctot et al., 2009) on a `GameTree`.
 
-Each iteration traverses once per player that owns an information set. The
-traverser's actions are all expanded; chance and every other player's action
-are sampled from their probabilities, so the sampled counterfactual value
-needs no importance weight. The other players' current strategies are added
-to their strategy sums at each sampled visit ("simple" averaging), which is
-reach-proportional in two-player games. ``linear=True`` weights iteration t's
+Each iteration traverses once per player that owns an information set (plus
+one non-acting player when only one player acts). The traverser's actions are
+all expanded; chance and every other player's action are sampled from their
+probabilities, so the sampled counterfactual value needs no importance
+weight. The other players' current strategies are added to their strategy
+sums at each sampled visit ("simple" averaging), which is reach-proportional
+when at most two players act. ``linear=True`` weights iteration t's
 regret and strategy contributions by t (linear MCCFR, as used by Pluribus).
 
 Randomness comes from numba's generator, reseeded deterministically at the
@@ -33,9 +34,14 @@ class ExternalSamplingMCCFR:
         self.iterations = 0
         self.regret = np.zeros(tree.num_slots)
         self.strategy_sum = np.zeros(tree.num_slots)
-        self._players = np.array(
-            [p for p in range(tree.num_players) if np.any(tree.infoset_player == p)], dtype=np.int64
-        )
+        acting = [p for p in range(tree.num_players) if np.any(tree.infoset_player == p)]
+        if len(acting) == 1:
+            # A lone acting player's average is only updated during another player's traversal.
+            others = [p for p in range(tree.num_players) if p != acting[0]]
+            if not others:
+                raise ValueError("external sampling needs at least two players")
+            acting.append(others[0])
+        self._players = np.array(acting, dtype=np.int64)
         self._scratch_sigma = np.zeros((tree.max_depth + 1, max(tree.max_actions, 1)))
         self._scratch_vals = np.zeros_like(self._scratch_sigma)
         self._counter = np.zeros(1, dtype=np.int64)
