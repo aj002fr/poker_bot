@@ -124,7 +124,7 @@ def validate(template: str, candidate: Mapping[str, float], control: Mapping[str
     spec = build_spec(template, overrides=overrides)
     commit = _git_commit()
     build_bundle(REPO / spec.arms.A.policy, control, name="baseline_control", commit=commit)
-    build_bundle(REPO / spec.arms.B.policy, candidate, name="baseline_candidate", commit=commit)
+    build_bundle(REPO / spec.arms.B.policy, candidate, name="strategy_baseline", commit=commit)
     phases = PhaseCollector()
     with mock.patch.object(paired, "table_record", phases.wrap(paired.table_record)):
         run_dir, report = run_experiment(spec, jobs=jobs, keep_histories=False,

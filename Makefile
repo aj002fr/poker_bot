@@ -125,3 +125,42 @@ lab-endgame:
 	for s in endgame-points-vs-chips endgame-points-vs-chart endgame-points-vs-chips-shortdeck endgame-points-vs-none \
 		endgame-points-vs-chips-confirm; do \
 		$(UV) run python -m strategy.cli experiment $$s --jobs $(LAB_JOBS) || exit 1; done
+
+# Baseline policy search (Stage 1 B/D; docs/baseline-policy.md). Long runs: never in CI.
+# Runs land in artifacts/search/<run_id>/ and resume where they stopped.
+.PHONY: search-baseline search-status package-baseline validate-baseline validate-baseline-variants gate-baseline \
+	bench-policy
+SEARCH_CONFIG ?= strategy/search/configs/nlhe-cem.json
+SEARCH_RUN ?= artifacts/search/nlhe-cem-v1
+SEARCH_JOBS ?= $(shell n=$$(nproc 2>/dev/null || echo 4); echo $$((n > 1 ? n - 1 : 1)))
+BASELINE_CANDIDATE ?= $(SEARCH_RUN)/incumbent.json
+GATE_DECISIONS ?= 50000
+
+search-baseline:
+	$(UV) run python -m strategy.search run $(SEARCH_CONFIG) --jobs $(SEARCH_JOBS)
+
+search-status:
+	$(UV) run python -m strategy.search status $(SEARCH_RUN)
+
+package-baseline:
+	$(UV) run python -m strategy.policy.package --params $(BASELINE_CANDIDATE) --out artifacts/bots/baseline-candidate \
+		--name strategy_baseline
+
+# Paired promotion check on the validation partition (in-process; official points; phases.json added).
+validate-baseline:
+	$(UV) run python -m strategy.search.validate baseline-validation-nlhe --candidate $(BASELINE_CANDIDATE) \
+		--jobs $(LAB_JOBS)
+
+# Rehearsal: the same NLHE-searched vector on short deck and PLO4 (no claims, discovery stage).
+validate-baseline-variants:
+	$(UV) run python -m strategy.search.validate baseline-rehearsal-variants --candidate $(BASELINE_CANDIDATE) \
+		--jobs $(LAB_JOBS)
+
+# The packaged bot through the real sandbox worker, one table at a time (run on an otherwise idle machine).
+gate-baseline: package-baseline
+	$(UV) run python -m strategy.policy.gate --bundle artifacts/bots/baseline-candidate --decisions $(GATE_DECISIONS) \
+		--out artifacts/gate/baseline-candidate.json
+
+bench-policy: package-baseline
+	$(UV) run python -m strategy.policy.bench --bundle artifacts/bots/baseline-candidate --tables 60 \
+		--out artifacts/gate/baseline-bench.json

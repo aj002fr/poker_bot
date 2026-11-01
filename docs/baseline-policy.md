@@ -1,0 +1,160 @@
+# Baseline policy, parameter search and deployed-path gate
+
+Stage 1 of the self-play plan (workstreams B and D). The pieces are:
+
+- an interpretable, stochastic rule policy with 100 named parameters;
+- a cross-entropy-method search over those numbers, with a confirmed incumbent;
+- a packaged bot that runs through the real sandbox worker;
+- a promotion check on the validation partition, and a latency and legality gate.
+
+| Module | Role |
+| --- | --- |
+| `strategy/policy/params.py` | `Param`, `ParamSpace` (bounds, unit-cube map, `space_hash`), `vector_hash` |
+| `strategy/policy/baseline.py` | `PARAMS`, `SPACE`, `BaselinePolicy.decide(spot, draw) -> Intent` |
+| `strategy/policy/spot.py` | the slim decision features (`TableMemory.spot(obs) -> Spot`) |
+| `strategy/policy/runtime.py` | `RuntimeBot`, the single deployed path (an explicit-state SDK bot) |
+| `strategy/policy/fallback.py` | constant-time legal fallback; intent legalization |
+| `strategy/policy/package.py` | self-contained, sandbox-ready bundle for one vector |
+| `strategy/policy/gate.py` | deployed-path gate through `WorkerSeat` (Landlock, seccomp, 1 ms deadline) |
+| `strategy/policy/bench.py` | worker-style replay with GC attribution |
+| `strategy/search/` | CEM / CMA-ES search, CRN evaluation, run store, validation |
+
+## Policy
+
+Each decision compares one strength number with one threshold made from named
+parameters. Near the threshold the policy mixes with a logistic of width `temp_pre`
+or `temp_post`; elsewhere it plays a named frequency. The inputs are:
+
+- **Strength.** Preflop, the hand's percentile from the variant's own offline table.
+  Postflop, equity against the live opponents' random hands, minus a named range tax
+  when facing a bet.
+- **Pressure.** The ICM risk premium against the opponent who covers or is covered
+  (hand-start stacks, exact Malmuth-Harville), the hands left to the cap, and the
+  stack share.
+- **Opponents.** Integer counters per opponent (hands, VPIP, PFR, folds to bets,
+  aggression). These move thresholds and bluff frequencies by at most `exploit_cap`.
+
+The parameter groups (`SPACE.groups()`) are:
+
+| Group | Count | What it sets |
+| --- | --- | --- |
+| open | 12 | opening percentile by position group, depth adjustments, isolation, over-limp band, SB complete, BB isolation, steal |
+| size | 14 | open, 3-bet, value, c-bet and bluff sizes; all-in commit share; jam SPR; raise fraction |
+| jam | 10 | push/fold depth, shove thresholds by position, slope, re-steal and re-shove |
+| 3bet / 4bet | 11 | value and bluff 3-bet bands, 4-bet and cold-4-bet thresholds, prices |
+| call | 5 | gap penalty, call-price coefficient, BB defence, position and multiway bonuses |
+| allin | 6 | shove-width model, range tax, all-in margin, commitment |
+| icm | 4 | risk-premium weight, ICM tightening for opens and calls, big-stack pressure |
+| post | 6 | value-bet thresholds by street, multiway penalty, traps |
+| bluff | 10 | c-bet by texture and player count, barrels, river bluff ratio, semi-bluff bonus, stabs |
+| face | 12 | facing-bet range tax by street, raise thresholds, semi and bluff raises, call margins |
+| cap | 3 | cap urgency window and the open and call shifts near the cap |
+| exploit | 5 | counter prior, bluff, call and steal exploits, `exploit_cap` |
+| mix | 2 | logistic temperatures |
+
+The defaults are the **hand-written control**. The search only changes numbers.
+
+### Runtime
+
+`RuntimeBot` is the only path that plays: in search, validation, the gate and
+submission.
+
+- **Committed state** is under 300 bytes: the policy seed, the draw counter, the
+  decision count, the last counted event `seq`, the fallback count, and the
+  per-opponent counters.
+- **Restore.** A restarted worker rebuilds its memory from that state plus the hand's
+  public events and decides identically. `test_restore_from_committed_state_replays_exactly`
+  checks this.
+- **Fallbacks.** Any exception or illegal intent plays the legal fallback (check, else
+  fold) and increments `state["fb"]`, so the gate can require zero internal fallbacks
+  as well as zero arena fallbacks.
+- **Imports.** The decision path imports only `arena.agents.sdk` from the arena, plus
+  the strategy modules in `strategy.policy.package.RUNTIME_FILES`. Those are:
+  - rules: `adapter`, `canonical`, `variants`;
+  - features: `cards`, `equity`, `state`;
+  - tables: `store`, `preflop`, `postflop`;
+  - all of `strategy.policy`.
+
+  It does not use `FeatureEngine`, the belief posteriors or
+  `arena.table.player_stats`. `tests/strategy/test_policy.py` checks the static
+  imports and the import closure while playing all three variants.
+
+## Search (`python -m strategy.search`)
+
+```bash
+make search-baseline            # strategy/search/configs/nlhe-cem.json, resumable
+make search-status
+```
+
+Each generation runs these steps:
+
+1. **Fresh tasks.** Draw table seeds, candidate rotations, and train-partition lineups
+   from `strategy.population:PopulationSource`. A share of seats (`mirror_rate`) is
+   played by the current incumbent.
+2. **Common random numbers.** The incumbent, the distribution mean and `population`
+   mirrored samples all play the *same* tasks.
+3. **Update.** CEM uses the smoothed diagonal Gaussian over the elite fraction, with a
+   sigma floor. `"algorithm": "cmaes"` uses standard CMA-ES instead.
+4. **Confirm.** The generation's best vector replays against the incumbent on a
+   second, fresh task set. It replaces the incumbent only when the paired gain has
+   `t >= accept_t`. Selection and confirmation never share tables.
+
+Everything is in the unit cube of `SPACE`, and `frozen` holds parameters fixed. The
+search trains only on `train`; `SearchConfig` rejects any other partition. Every
+evaluated vector is persisted in `artifacts/search/<run_id>/` as follows:
+
+- `vectors/<vector_hash>.json`: the parameter values;
+- `tasks/<seed_set_hash>.json`: the task sets;
+- `evaluations.jsonl`: one row per vector and stage, with the seed-set hash, population
+  hash, registry hash and every per-table point result;
+- `generations.jsonl`: one row per generation, with selection and confirmation
+  statistics;
+- `state.json`, for resuming;
+- `incumbent.json`.
+
+## Validation (`python -m strategy.search.validate`)
+
+```bash
+make validate-baseline          # spec baseline-validation-nlhe, validation partition
+make validate-baseline-variants # rehearsal on short deck and PLO4 (discovery stage)
+```
+
+This packages the control (defaults) and the candidate, then runs the experiment
+harness. Each lineup is played in paired seed blocks with every seat rotation, scored
+in official terminal points, with a paired-t 95% interval. The spec declares
+`min_effect` before the run. The harness report gives the opponent-family and
+candidate-seat slices.
+
+`phases.json` adds a split by tournament phase. A seat's *points-equity* after hand
+`h` is what the table's scorer would award if the tournament stopped there:
+finished places keep their points, and survivors get the ICM share of the rest. It
+starts at `100 / players` and ends at the official points, so the changes over levels
+1–2, 3–5 and 6–8 add up exactly to the primary metric.
+
+## Deployed-path gate (`python -m strategy.policy.gate`)
+
+```bash
+make gate-baseline              # >= 50,000 decisions, one table at a time
+make bench-policy               # GC attribution by replay
+```
+
+The packaged bundle is staged and played by `arena.agents.worker.WorkerSeat`, as in a
+sandboxed tournament. Only the candidate's seat is sandboxed; opponents run
+in-process. The gate passes when all of the following hold:
+
+- at least 50,000 decisions;
+- worker wall time p99 below 500 µs;
+- zero arena fallbacks of any kind, zero restarts and zero late replies;
+- zero internal fallbacks.
+
+It reports p50, p95, p99, p99.9 and max for both worker time and end-to-end time.
+
+Run it on an otherwise idle machine. Concurrent CPU load shows up as sandbox
+timeouts while the bot's own time stays flat: on 8 CPUs with 7 search workers
+running, 60% of decisions timed out at a worker p99 of 254 µs.
+
+**GC.** The worker collects and freezes the heap after loading the bot, and packaged
+bots also freeze after loading the variant tables (`gc_mode="freeze"`). The decision
+path keeps no garbage cycles, so the bench sees no collection inside a decision. The
+~1.5 ms spikes in the full feature bench come from collections that rescan large
+recorded heaps, which this path does not create.

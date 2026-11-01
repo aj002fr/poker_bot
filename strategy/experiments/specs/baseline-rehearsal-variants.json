@@ -1,0 +1,16 @@
+{
+  "experiment_id": "baseline-rehearsal-variants",
+  "title": "Rehearsal: the NLHE-searched baseline vector vs the hand-written control on short deck and PLO4",
+  "description": "Variant rehearsal for the Stage 1 parameter search. The vector was searched on NLHE only; this checks that it does not regress elsewhere. Validation partition, discovery stage: no promotion claim.",
+  "stage": "discovery",
+  "min_effect": 1.0,
+  "arms": {"A": {"policy": "artifacts/bots/baseline-control"}, "B": {"policy": "artifacts/bots/baseline-candidate"}},
+  "variants": ["uncertainty_shortdeck", "uncertainty_plo4"],
+  "table": {"players": 8, "starting_stack": 2000, "hand_cap": 200},
+  "population": {"source": "strategy.population:PopulationSource", "partition": "validation", "lineups_per_variant": 20},
+  "blocks_per_lineup": 4,
+  "base_seed": "baseline-rehearsal-variants-v1",
+  "isolation": "in_process",
+  "interval": "paired_t",
+  "bootstrap_resamples": 2000
+}
