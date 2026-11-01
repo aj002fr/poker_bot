@@ -59,6 +59,12 @@ because the worker imports the shared engine before the sandbox hides the reposi
 A style's artifact hash covers its file and the shared engine, charts, evaluator and
 profiles, so changing the engine changes every style's hash.
 
+Every number and range in the rule tables is a *knob*: `Spot.kn(key, default)` returns
+the default unless the spot carries overrides. The six styles never set knobs, so they
+play exactly as written. The sampled opponent families in `strategy/population/` set
+them per member, and can also supply a variant card evaluator through `Spot.evaluator`
+(see [opponent-population.md](opponent-population.md)).
+
 ## Table modes (`POST /tables` → `styles`)
 
 ```json

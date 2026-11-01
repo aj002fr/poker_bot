@@ -1,12 +1,13 @@
 """The partition interface evaluation needs from the opponent population.
 
-The real registry lives in ``strategy.population`` (another workstream). Evaluation
-depends only on :class:`PartitionSource`: a registry hash, named partitions with
-member hashes and a seed namespace, and a deterministic lineup sampler. Any object
-with these methods can be named in an experiment spec as ``"module:attribute"``
-(a source, or a zero-argument factory returning one).
+The real registry is ``strategy.population:PopulationSource`` (see
+``docs/opponent-population.md``). Evaluation depends only on :class:`PartitionSource`:
+a registry hash, named partitions with member hashes and a seed namespace, and a
+deterministic lineup sampler. Any object with these methods can be named in an
+experiment spec as ``"module:attribute"`` (a source, or a zero-argument factory
+returning one).
 
-:class:`StubPartitionSource` stands in until then. It splits the arena's existing
+:class:`StubPartitionSource` is the spec default. It splits the arena's existing
 baselines and six styles by family and gives each partition its own seed namespace.
 It is clearly labelled ``stub`` in every manifest: it is not the plan's 70/15/15
 registry and must not be used for promotion claims.

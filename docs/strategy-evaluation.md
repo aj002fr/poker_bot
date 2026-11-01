@@ -152,6 +152,12 @@ class PartitionSource(Protocol):
 `StubPartitionSource` splits the arena's baselines and styles by family. Every
 manifest marks it `stub: true`, and it is not valid for promotion claims.
 
+The frozen opponent registry implements the protocol as
+`"source": "strategy.population:PopulationSource"`. It has 17 sampled families with
+train, validation and holdout partitions, plus promoted checkpoint slots; see
+[opponent-population.md](opponent-population.md). The spec default is still `stub`, and
+`specs/population-smoke.json` shows the registry in use.
+
 ## Experiments (`strategy.experiments`)
 
 A spec, in JSON under `strategy/experiments/specs/` or at any path, declares
