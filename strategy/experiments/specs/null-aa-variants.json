@@ -1,0 +1,17 @@
+{
+  "experiment_id": "null-aa-variants",
+  "title": "A/A null calibration across NLHE, short deck and PLO4 with salted legal_random",
+  "description": "The same salted A/A design on all three practice variants, stratified by variant. Checks that the variant-agnostic layers (rules adapter, scoring, pairing) introduce no bias outside Hold'em.",
+  "kind": "null_calibration",
+  "stage": "discovery",
+  "min_effect": 2.0,
+  "arms": {"A": {"policy": "baseline:legal_random", "salt": "a"}, "B": {"policy": "baseline:legal_random", "salt": "b"}},
+  "variants": ["practice_nlhe", "uncertainty_shortdeck", "uncertainty_plo4"],
+  "table": {"players": 4, "starting_stack": 1000, "hand_cap": 40},
+  "population": {"partition": "train", "lineups_per_variant": 1},
+  "blocks_per_lineup": 240,
+  "base_seed": "null-aa-variants-v1",
+  "isolation": "in_process",
+  "bootstrap_resamples": 1000,
+  "null": {"replicates": 60, "blocks_per_replicate": 4, "exact_coupling_blocks": 2}
+}

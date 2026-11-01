@@ -1,0 +1,17 @@
+{
+  "experiment_id": "null-aa-nlhe",
+  "title": "A/A null calibration: the aggressive style against itself, salted policy seeds",
+  "description": "Arms A and B are the same artifact with independently salted policy seeds, so the true difference is zero while policy noise is independent. 100 disjoint replicate experiments of 12 blocks each; the false-gain rate must be consistent with alpha/2. An extra cell with identical salts must give block differences of exactly zero.",
+  "kind": "null_calibration",
+  "stage": "discovery",
+  "min_effect": 2.0,
+  "arms": {"A": {"policy": "style:aggressive", "salt": "a"}, "B": {"policy": "style:aggressive", "salt": "b"}},
+  "variants": ["practice_nlhe"],
+  "table": {"players": 6, "starting_stack": 1000, "hand_cap": 50},
+  "population": {"partition": "train", "lineups_per_variant": 2},
+  "blocks_per_lineup": 600,
+  "base_seed": "null-aa-nlhe-v1",
+  "isolation": "in_process",
+  "bootstrap_resamples": 1000,
+  "null": {"replicates": 100, "blocks_per_replicate": 6, "exact_coupling_blocks": 4}
+}
