@@ -2,7 +2,8 @@
 
     python -m strategy.cli rules --ruleset practice_nlhe
     python -m strategy.cli conformance --hands 200
-    python -m strategy.cli experiment lab-smoke --jobs 4
+    python -m strategy.cli experiment lab-smoke            # jobs default to a safe count for the host
+    python -m strategy.cli capacity
     python -m strategy.cli experiment null-aa-nlhe --dry-run
     python -m strategy.cli report artifacts/lab/lab-smoke/<manifest_id>
     python -m strategy.cli sample-size --sigma 6.5 --delta 1.0
@@ -15,7 +16,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -64,8 +64,17 @@ def cmd_conformance(args: argparse.Namespace) -> int:
     return 0 if all(r.ok for r in reports) else 1
 
 
-def _jobs(value: int | None) -> int:
-    return value or max(1, min(4, (os.cpu_count() or 2) // 2))
+WITHHELD_EXIT = 3
+
+
+def _jobs(value: int | None, isolation: str) -> int:
+    from strategy.eval.parallel import oversubscription_warning, safe_jobs
+
+    jobs = value or safe_jobs(isolation)
+    warning = oversubscription_warning(isolation, jobs)
+    if warning:
+        print(f"WARNING: {warning}", file=sys.stderr, flush=True)
+    return jobs
 
 
 def cmd_experiment(args: argparse.Namespace) -> int:
@@ -88,19 +97,25 @@ def cmd_experiment(args: argparse.Namespace) -> int:
             print(f"   {label}: {done}/{total} tables", file=sys.stderr, flush=True)
 
     try:
-        run_dir, report = run_experiment(spec, out_dir=out, root=root, jobs=_jobs(args.jobs),
+        run_dir, report = run_experiment(spec, out_dir=out, root=root, jobs=_jobs(args.jobs, spec.isolation),
                                          keep_histories=args.keep_histories, progress=progress)
     except AlreadyRun as exc:
         print(f"{exc}; see its report.md (use --out for a fresh directory)")
         return 0
     _print_summary(run_dir, report)
-    return 0
+    return WITHHELD_EXIT if report["analysis"].get("withheld") else 0
 
 
 def _print_summary(run_dir: Path, report: dict) -> None:
     a = report["analysis"]
     p, dec = a["primary"], a["decision"]
-    print(f"{report['manifest']['experiment_id']}  manifest {report['manifest']['manifest_id']}")
+    print(f"{report['manifest']['experiment_id']}  manifest {report['manifest']['manifest_id']}  "
+          f"jobs {report.get('run', {}).get('jobs', '?')}")
+    if a.get("withheld"):
+        print(f"RUN INVALID, POINTS WITHHELD: {dec['reason']}", file=sys.stderr)
+        print(f"   {dec['note']}", file=sys.stderr)
+        print(f"   report {run_dir / 'report.md'}")
+        return
     if p.get("blocks"):
         lo, hi = p["chosen_interval"]
         print(f"   blocks {p['blocks']}  A {p['mean_points_A']:.3f}  B {p['mean_points_B']:.3f}  "
@@ -114,7 +129,8 @@ def _print_summary(run_dir: Path, report: dict) -> None:
                   f"(declared {null['declared_false_gain_rate']:.3f})  {'ok' if r['calibrated'] else 'TOO MANY'}")
         if null.get("exact_coupling"):
             c = null["exact_coupling"]
-            print(f"   exact coupling: {c['blocks']} blocks identical={c['identical']}")
+            print(f"   exact coupling: {c['blocks']} blocks identical={c['identical']} "
+                  f"(tables with a timeout, not compared: {c.get('tables_with_timeouts', 0)})")
     print(f"   report {run_dir / 'report.md'}")
 
 
@@ -167,6 +183,22 @@ def cmd_null_synthetic(args: argparse.Namespace) -> int:
     return 0 if all(r["calibrated"] for r in out["methods"].values()) else 1
 
 
+def cmd_capacity(args: argparse.Namespace) -> int:
+    from strategy.eval.parallel import CORES_PER_SANDBOX_JOB, RESERVED_CORES, capacity, safe_jobs
+
+    cap = capacity()
+    out = {**cap, "cores_per_sandbox_job": CORES_PER_SANDBOX_JOB, "reserved_cores": RESERVED_CORES,
+           "safe_jobs": {"sandbox": safe_jobs("sandbox", cap), "in_process": safe_jobs("in_process", cap)}}
+    if args.json:
+        _print_json(out)
+    else:
+        print(f"{len(cap['cpus'])} usable CPUs, {cap['physical_cores']} physical cores, cgroup limit "
+              f"{cap['cgroup_cpu_limit'] or 'none'}: safe jobs {out['safe_jobs']['sandbox']} sandboxed "
+              f"({CORES_PER_SANDBOX_JOB} cores each + {RESERVED_CORES} reserved), "
+              f"{out['safe_jobs']['in_process']} in-process")
+    return 0
+
+
 def cmd_specs(args: argparse.Namespace) -> int:
     from strategy.experiments.schema import SPEC_DIR, load_spec
 
@@ -197,7 +229,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("spec", help="spec file or id in strategy/experiments/specs/")
     p.add_argument("--out", default=None, help="run directory (default artifacts/lab/<id>/<manifest_id>)")
     p.add_argument("--root", default=None)
-    p.add_argument("--jobs", type=int, default=None)
+    p.add_argument("--jobs", type=int, default=None,
+                   help="parallel benchmark jobs (default: safe for the spec's isolation on this host; see capacity)")
     p.add_argument("--dry-run", action="store_true", help="print the manifest plan without playing")
     p.add_argument("--keep-histories", action="store_true", help="keep private table histories in the run dir")
     p.add_argument("--quiet", action="store_true")
@@ -225,6 +258,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-bootstrap", action="store_true")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_null_synthetic)
+
+    p = sub.add_parser("capacity", help="usable cores and the safe default --jobs on this host")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(fn=cmd_capacity)
 
     p = sub.add_parser("specs", help="list the experiment specs")
     p.set_defaults(fn=cmd_specs)

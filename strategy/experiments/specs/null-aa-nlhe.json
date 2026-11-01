@@ -8,7 +8,7 @@
   "arms": {"A": {"policy": "style:aggressive", "salt": "a"}, "B": {"policy": "style:aggressive", "salt": "b"}},
   "variants": ["practice_nlhe"],
   "table": {"players": 6, "starting_stack": 1000, "hand_cap": 50},
-  "population": {"partition": "train", "lineups_per_variant": 2},
+  "population": {"source": "stub", "partition": "train", "lineups_per_variant": 2},
   "blocks_per_lineup": 600,
   "base_seed": "null-aa-nlhe-v1",
   "isolation": "in_process",

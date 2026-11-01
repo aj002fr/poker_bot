@@ -124,6 +124,16 @@ never treated as independent.
 - **Execution** (per arm): latency p50, p95, p99, p99.9 and max; fallbacks,
   timeouts, illegal actions, errors and reruns; artifact bytes and state bytes;
   whether timing was competitive (sandboxed). Gates come from the spec.
+- **Timeout integrity gate**: checked before anything else, over every seat
+  (candidate and opponents) in both arms. A timed-out decision is a forced check or
+  fold, so a run whose deadline did not hold measured a different game. The gate
+  fails when an arm's pooled timeout rate exceeds `gates.max_timeout_rate` (default
+  0.5%), or when any one entrant has at least 5 timeouts and a rate above
+  `gates.max_entrant_timeout_rate` (default 2%). The run is then `invalid`: no
+  primary result, slices, robustness or block pairs; `report.md` opens with
+  **RUN INVALID: POINTS WITHHELD**; a null calibration is withheld; and
+  `strategy.cli experiment` exits 3. In-process runs enforce no deadline and record
+  no timeouts. Set either limit to `null` to switch it off.
 - **Report**: `report.md` (concise) and `report.json` (full, including every block
   pair).
 
@@ -155,8 +165,10 @@ manifest marks it `stub: true`, and it is not valid for promotion claims.
 The frozen opponent registry implements the protocol as
 `"source": "strategy.population:PopulationSource"`. It has 17 sampled families with
 train, validation and holdout partitions, plus promoted checkpoint slots; see
-[opponent-population.md](opponent-population.md). The spec default is still `stub`, and
-`specs/population-smoke.json` shows the registry in use.
+[opponent-population.md](opponent-population.md). It is the default
+`population.source`. The stub stays available as `"source": "stub"`, which the
+published null calibrations (`null-aa-nlhe`, `null-aa-variants`) set explicitly so
+their numbers reproduce.
 
 ## Experiments (`strategy.experiments`)
 
@@ -196,6 +208,39 @@ artifacts/lab/<experiment_id>/<manifest_id>/
   manifest.json  private/seeds.json  cells/<cell>/<arm>/manifest.json  report.json  report.md
 ```
 
+### Parallel jobs and the decision deadline (`strategy.eval.parallel`)
+
+The 1 ms deadline is wall clock: a reply counts only if the parent has it within the
+budget, and a late one is a forced check or fold. A sandboxed benchmark job keeps two
+to three cores busy at once: the parent busy-spins while it waits for each reply; the
+deciding worker needs its own core; and, because workers are never reused across
+tables, every table starts one fresh sandboxed Python per seat (about 130 ms each)
+during its first hands. The old default of `min(4, cpus // 2)` jobs (and `make`'s
+`--jobs $(nproc)`) oversubscribed the host. This was not a CPU-time versus wall-clock
+mix-up, and steal time was negligible.
+
+Pooled timeout rates over every seat, measured on this 8-CPU VM (6 players, 1 ms):
+
+| jobs | arena styles, 24 tables | `strategy.population` lineups, ~25k decisions |
+|---|---|---|
+| 1 | 0–0.02% | 0.02% |
+| 2 | 0.03–0.3% | 0.12–0.24% (unpinned or pinned to 3 cores each) |
+| 4 (old default) | 30–33% | — |
+| 8 (old `make`) | 66% | ~65% |
+
+One job averaged 1.8 busy cores and peaked at 2.4. Confined to 2 CPUs it timed out
+43% of the time, and under 0.1% with 3. With 2 jobs the timeouts cluster in the first
+75 decisions of each table (0.49%, against 0.08% mid-table). That is where the
+replacement start-ups compete with the deciding worker, so pinning jobs to disjoint
+cores did not help and the harness does not pin.
+
+Policy: a sandboxed job gets 4 physical cores, and 1 core is reserved for the harness
+process. That gives 1 job on 8 cores, 3 on 16 and 7 on 32. In-process runs, which
+enforce no deadline, use every core but one. The count honours CPU affinity and any
+cgroup v2 `cpu.max` quota, and counts physical cores rather than SMT threads.
+`python -m strategy.cli capacity` prints it. `--jobs` above the safe count is allowed
+with a warning; the timeout integrity gate catches the result.
+
 ### Null A/B calibration
 
 Arms A and B are the same artifact. A **salted** arm wraps the bot so that
@@ -229,8 +274,12 @@ blocks. Pairing narrows the interval: the unpaired Welch interval on tables was 
 | `make lab-experiment LAB_SPEC=<id or path>` | run any spec |
 | `make lab-null` | real A/A null calibration on NLHE (`null-aa-nlhe`) |
 | `make lab-null-variants` | the same across NLHE, short deck and PLO4 |
+| `make lab-null-sandbox` | sandboxed A/A against the registry at the safe jobs default (`null-aa-sandbox`) |
+| `make lab-capacity` | usable cores and the safe `--jobs` for this host |
 | `make lab-null-synthetic` | 4000-replicate synthetic null calibration |
 | `make verify-strategy` | `pytest tests/strategy` (also part of `make verify-fast`) |
+
+Lab targets use the safe jobs default; `LAB_JOBS=<n>` overrides it.
 
 More commands are available directly: `python -m strategy.cli rules --ruleset uncertainty_plo4`,
 `sample-size --sigma 9.2 --delta 2` (or `--pilot <run dir>`), `report <run dir>`,

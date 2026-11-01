@@ -1,11 +1,15 @@
 import json
 import os
 import stat
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
 
-from strategy.cli import main
+from strategy.cli import WITHHELD_EXIT, main
+from strategy.eval.execution import seat_timeouts
+from strategy.eval.null import exact_coupling
+from strategy.eval.outcomes import TableRecord
 from strategy.eval.policies import resolve_policy, salted_bundle
 from strategy.eval.population import Partition, StubPartitionSource, load_partition_source, sample_lineups
 from strategy.experiments import (
@@ -19,7 +23,7 @@ from strategy.experiments import (
     run_experiment,
     write_manifest,
 )
-from strategy.experiments.schema import SPEC_DIR
+from strategy.experiments.schema import DEFAULT_POPULATION_SOURCE, SPEC_DIR
 
 
 def tiny(**kw):
@@ -31,7 +35,7 @@ def tiny(**kw):
         "arms": {"A": {"policy": "baseline:check_fold"}, "B": {"policy": "baseline:calling_station"}},
         "variants": ["practice_nlhe"],
         "table": {"players": 3, "starting_stack": 300, "hand_cap": 12},
-        "population": {"partition": "train", "lineups_per_variant": 1},
+        "population": {"source": "stub", "partition": "train", "lineups_per_variant": 1},
         "blocks_per_lineup": 3,
         "base_seed": "pytest",
         "isolation": "in_process",
@@ -51,11 +55,26 @@ def tiny_run(tmp_path_factory):
 
 def test_checked_in_specs_validate():
     ids = sorted(p.stem for p in SPEC_DIR.glob("*.json"))
-    assert {"lab-smoke", "null-aa-nlhe", "null-aa-variants"} <= set(ids)
+    assert {"lab-smoke", "null-aa-nlhe", "null-aa-variants", "null-aa-sandbox", "population-smoke"} <= set(ids)
     for spec_id in ids:
         spec = load_spec(spec_id)
         assert spec.experiment_id == spec_id
         assert spec.objective == "terminal_points"
+    # the published null numbers were measured on the stub; the sandboxed null uses the registry
+    assert load_spec("null-aa-nlhe").population.source == load_spec("null-aa-variants").population.source == "stub"
+    assert load_spec("null-aa-sandbox").population.source == DEFAULT_POPULATION_SOURCE
+    assert load_spec("null-aa-sandbox").isolation == "sandbox"
+    assert load_spec("lab-smoke").population.source == DEFAULT_POPULATION_SOURCE
+
+
+def test_default_population_is_the_registry(tmp_path):
+    assert DEFAULT_POPULATION_SOURCE == "strategy.population:PopulationSource"
+    spec = tiny(population={"partition": "train", "lineups_per_variant": 1})
+    assert spec.population.source == DEFAULT_POPULATION_SOURCE
+    m = materialize(spec, tmp_path / "w").manifest
+    assert m.population.source == DEFAULT_POPULATION_SOURCE and not m.population.stub
+    assert m.population.registry_id != StubPartitionSource.registry_id
+    assert m.manifest_id != materialize(tiny(), tmp_path / "s").manifest.manifest_id
 
 
 def test_spec_rules():
@@ -83,8 +102,12 @@ def test_report_end_to_end(tiny_run):
     assert a["slices"]["opportunity_rates"]
     for pair in a["pairs"]:
         assert pair["d"] == pytest.approx(pair["u_b"] - pair["u_a"])
+    assert a["withheld"] is False and a["execution"]["timeout_integrity"]["passed"]
+    assert a["execution"]["timeout_integrity"]["arms"]["A"]["by_entrant"].keys() >= {"candidate"}
+    assert report["run"]["jobs"] == 1 and report["run"]["safe_jobs"] >= 1
     md = (run_dir / "report.md").read_text()
     assert "Primary result" in md and "chips are diagnostics only" in md
+    assert "Deadline integrity (every seat, both arms): ok" in md and "WITHHELD" not in md
     assert json.loads((run_dir / "report.json").read_text())["manifest"]["manifest_id"] == report["manifest"]["manifest_id"]
     assert not list(run_dir.rglob("tables/*.json")), "private histories must be deleted after summarizing"
 
@@ -146,9 +169,60 @@ def test_real_null_calibration_and_exact_coupling(tmp_path):
     null = report["null_calibration"]
     assert null["replicates"] == 3 and len(null["replicate_mean_differences"]) == 3
     assert set(null["methods"]) == {"paired_t", "cluster_bootstrap", "unpaired_welch_tables"}
-    assert null["exact_coupling"] == {"blocks": 2, "max_abs_difference": 0.0, "identical": True}
+    assert null["exact_coupling"] == {"blocks": 2, "tables": 6, "tables_with_timeouts": 0,
+                                      "diverged_after_timeout": 0, "max_abs_difference": 0.0, "identical": True}
     diffs = [p["d"] for p in report["analysis"]["pairs"]]
     assert any(d != 0 for d in diffs), "salted arms must have independent policy noise"
+
+
+def test_timed_out_run_withholds_points_loudly(monkeypatch, capsys, tmp_path):
+    from strategy.eval import paired
+
+    def late(attempts, labels):
+        rows = seat_timeouts(attempts, labels)
+        rows["candidate"]["timeouts"] = rows["candidate"]["decisions"] // 10
+        return rows
+
+    monkeypatch.setattr(paired, "seat_timeouts", late)
+    spec = tiny(experiment_id="pytest-late", kind="null_calibration",
+                arms={"A": {"policy": "baseline:legal_random", "salt": "a"},
+                      "B": {"policy": "baseline:legal_random", "salt": "b"}},
+                blocks_per_lineup=4, null={"replicates": 2, "blocks_per_replicate": 2})
+    path = tmp_path / "late.json"
+    path.write_text(json.dumps(spec.model_dump(mode="json")))
+    out = tmp_path / "run"
+    assert main(["experiment", str(path), "--out", str(out), "--jobs", "1", "--quiet"]) == WITHHELD_EXIT
+    assert "RUN INVALID, POINTS WITHHELD: timeout integrity gate failed" in capsys.readouterr().err
+    report = json.loads((out / "report.json").read_text())
+    a = report["analysis"]
+    assert a["withheld"] and a["decision"]["verdict"] == "invalid"
+    assert {"pairs", "slices", "robustness"}.isdisjoint(a) and "mean_difference" not in a["primary"]
+    assert not a["execution"]["timeout_integrity"]["passed"]
+    assert report["null_calibration"]["withheld"]
+    md = (out / "report.md").read_text()
+    assert "RUN INVALID: POINTS WITHHELD." in md and "Primary result" not in md
+    assert "Deadline integrity (every seat, both arms): FAILED" in md
+
+
+def test_exact_coupling_sets_aside_tables_with_timeouts():
+    def rec(rotation, points, timeouts=0):
+        return TableRecord(f"t{rotation}", 0, rotation, {0: 0, 1: 1}, True, None, 10, points, timeouts=timeouts)
+
+    config = SimpleNamespace(initial_player_count=2, resolved_seats=[0, 1])
+    cell = SimpleNamespace(cell_id="c", ruleset_id="practice_nlhe", config=config, blocks=1,
+                           lineup=SimpleNamespace(lineup_id="l", families=("f",)))
+
+    def coupling(b_rows):
+        runs = {"A": SimpleNamespace(records=[rec(0, {0: 30, 1: 0}), rec(1, {0: 0, 1: 30})]),
+                "B": SimpleNamespace(records=b_rows)}
+        return exact_coupling([SimpleNamespace(cell=cell, runs=runs)])
+
+    same = coupling([rec(0, {0: 30, 1: 0}), rec(1, {0: 0, 1: 30})])
+    assert same["identical"] and same["tables"] == 2 and same["tables_with_timeouts"] == 0
+    late = coupling([rec(0, {0: 30, 1: 0}), rec(1, {0: 30, 1: 0}, timeouts=1)])
+    assert late["identical"] and late["tables_with_timeouts"] == 1 and late["diverged_after_timeout"] == 1
+    broken = coupling([rec(0, {0: 0, 1: 30}), rec(1, {0: 0, 1: 30})])
+    assert not broken["identical"] and broken["max_abs_difference"] == 30
 
 
 def test_stub_population_and_custom_sources():
@@ -187,3 +261,6 @@ def test_cli(capsys, tmp_path):
     assert "betting.pot_limit" in capsys.readouterr().out
     assert main(["experiment", "lab-smoke", "--dry-run", "--out", str(tmp_path / "dry")]) == 0
     assert json.loads(capsys.readouterr().out)["experiment_id"] == "lab-smoke"
+    assert main(["capacity", "--json"]) == 0
+    cap = json.loads(capsys.readouterr().out)
+    assert cap["cores_per_sandbox_job"] == 4 and cap["safe_jobs"]["sandbox"] >= 1

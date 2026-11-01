@@ -73,25 +73,34 @@ cli-demo:
 	$(UV) run python -m arena.cli tournament --ruleset practice_nlhe --players 6 --seed 1
 
 # Strategy lab (docs/strategy-evaluation.md). Runs land in artifacts/lab/<experiment>/<manifest_id>/;
-# a manifest that already ran is not re-run.
-.PHONY: lab-conformance lab-report lab-experiment lab-null lab-null-variants lab-null-synthetic verify-strategy
-LAB_JOBS ?= $(JOBS)
+# a manifest that already ran is not re-run. Jobs default to a safe count for the host and isolation
+# (python -m strategy.cli capacity); set LAB_JOBS only to override it.
+.PHONY: lab-conformance lab-capacity lab-report lab-experiment lab-null lab-null-variants lab-null-sandbox \
+	lab-null-synthetic verify-strategy
+LAB_JOBS ?=
 LAB_SPEC ?= lab-smoke
+LAB_JOBS_FLAG = $(if $(LAB_JOBS),--jobs $(LAB_JOBS))
 
 lab-conformance:
 	$(UV) run python -m strategy.cli conformance
 
 lab-report:
-	$(UV) run python -m strategy.cli experiment lab-smoke --jobs $(LAB_JOBS)
+	$(UV) run python -m strategy.cli experiment lab-smoke $(LAB_JOBS_FLAG)
 
 lab-experiment:
-	$(UV) run python -m strategy.cli experiment $(LAB_SPEC) --jobs $(LAB_JOBS)
+	$(UV) run python -m strategy.cli experiment $(LAB_SPEC) $(LAB_JOBS_FLAG)
 
 lab-null:
-	$(UV) run python -m strategy.cli experiment null-aa-nlhe --jobs $(LAB_JOBS)
+	$(UV) run python -m strategy.cli experiment null-aa-nlhe $(LAB_JOBS_FLAG)
 
 lab-null-variants:
-	$(UV) run python -m strategy.cli experiment null-aa-variants --jobs $(LAB_JOBS)
+	$(UV) run python -m strategy.cli experiment null-aa-variants $(LAB_JOBS_FLAG)
+
+lab-null-sandbox:
+	$(UV) run python -m strategy.cli experiment null-aa-sandbox $(LAB_JOBS_FLAG)
+
+lab-capacity:
+	$(UV) run python -m strategy.cli capacity
 
 lab-null-synthetic:
 	$(UV) run python -m strategy.cli null-synthetic --replicates 4000 --blocks 20

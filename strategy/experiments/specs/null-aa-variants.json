@@ -8,7 +8,7 @@
   "arms": {"A": {"policy": "baseline:legal_random", "salt": "a"}, "B": {"policy": "baseline:legal_random", "salt": "b"}},
   "variants": ["practice_nlhe", "uncertainty_shortdeck", "uncertainty_plo4"],
   "table": {"players": 4, "starting_stack": 1000, "hand_cap": 40},
-  "population": {"partition": "train", "lineups_per_variant": 1},
+  "population": {"source": "stub", "partition": "train", "lineups_per_variant": 1},
   "blocks_per_lineup": 240,
   "base_seed": "null-aa-variants-v1",
   "isolation": "in_process",

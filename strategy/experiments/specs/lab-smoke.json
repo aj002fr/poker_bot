@@ -1,7 +1,7 @@
 {
   "experiment_id": "lab-smoke",
   "title": "Harness smoke test: nlhe_heuristic vs the station style",
-  "description": "A fast end-to-end A/B through manifests, paired blocks, slices and the report. Not a promotion claim: the population is the stub split of arena baselines.",
+  "description": "A fast end-to-end A/B through manifests, paired blocks, slices and the report. Not a promotion claim: discovery stage on the strategy.population train partition.",
   "stage": "discovery",
   "min_effect": 2.0,
   "arms": {"A": {"policy": "style:station"}, "B": {"policy": "baseline:nlhe_heuristic"}},

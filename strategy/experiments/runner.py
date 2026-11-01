@@ -27,6 +27,7 @@ from arena.rules.pokerkit_adapter import POKERKIT_VERSION
 from strategy.eval.analysis import Declared, analyze
 from strategy.eval.null import calibrate, exact_coupling
 from strategy.eval.paired import Arm, Cell, CellResult, run_cell
+from strategy.eval.parallel import capacity, safe_jobs
 from strategy.eval.policies import ResolvedPolicy, resolve_policy
 from strategy.eval.population import Lineup, PartitionSource, explicit_lineup, load_partition_source
 from strategy.eval.report import finite, write_report
@@ -163,10 +164,14 @@ def default_run_dir(manifest: ExperimentManifest, root: Path = DEFAULT_LAB_DIR) 
     return root / manifest.experiment_id / manifest.manifest_id
 
 
-def run_experiment(spec: ExperimentSpec, *, out_dir: Path | None = None, root: Path = DEFAULT_LAB_DIR, jobs: int = 1,
-                   source: PartitionSource | None = None, keep_histories: bool = False,
+def run_experiment(spec: ExperimentSpec, *, out_dir: Path | None = None, root: Path = DEFAULT_LAB_DIR,
+                   jobs: int | None = None, source: PartitionSource | None = None, keep_histories: bool = False,
                    progress: Callable[[str, int, int], None] | None = None) -> tuple[Path, dict[str, Any]]:
-    """Run a spec end to end. Returns the run directory and the report."""
+    """Run a spec end to end. Returns the run directory and the report.
+
+    ``jobs`` defaults to :func:`strategy.eval.parallel.safe_jobs` for the spec's isolation.
+    """
+    jobs = jobs or safe_jobs(spec.isolation)
     staging = (out_dir or root / spec.experiment_id) / "_arms"
     plan = materialize(spec, staging, source)
     run_dir = out_dir or default_run_dir(plan.manifest, root)
@@ -190,16 +195,20 @@ def run_experiment(spec: ExperimentSpec, *, out_dir: Path | None = None, root: P
     declared = Declared(min_effect=spec.min_effect, alpha=spec.alpha, power=spec.power, interval=spec.interval,
                         bootstrap_resamples=spec.bootstrap_resamples, seed=manifest.manifest_id, stage=spec.stage,
                         gates=spec.gates.model_dump())
+    analysis = analyze(results, declared)
     report: dict[str, Any] = {
         "report_kind": "strategy_experiment_report",
         "manifest": manifest.model_dump(mode="json"),
         "run": {"code": code_info().model_dump(mode="json"), "jobs": jobs,
+                "safe_jobs": safe_jobs(spec.isolation), "host": capacity(),
                 "finished_at": datetime.now(UTC).isoformat(timespec="seconds"),
                 "benchmark_manifests": {f"{r.cell.cell_id}/{k}": v.benchmark_manifest_hash
                                         for r in results for k, v in r.runs.items()}},
-        "analysis": analyze(results, declared),
+        "analysis": analysis,
     }
-    if spec.kind == "null_calibration" and spec.null is not None:
+    if spec.kind == "null_calibration" and spec.null is not None and analysis["withheld"]:
+        report["null_calibration"] = {"withheld": True, "note": analysis["decision"]["note"]}
+    elif spec.kind == "null_calibration" and spec.null is not None:
         same = (Arm("A", spec.arms.A.policy, spec.arms.A.salt), Arm("B", spec.arms.A.policy, spec.arms.A.salt))
         same_policies = {"A": policies["A"], "B": policies["A"]}
         coupling = [run_cell(c, same, same_policies, **kwargs) for c in plan.coupling_cells]

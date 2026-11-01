@@ -66,9 +66,13 @@ class TableSpec(_S):
                                 payout_points=self.payout_points)
 
 
+DEFAULT_POPULATION_SOURCE = "strategy.population:PopulationSource"
+
+
 class PopulationSpec(_S):
-    source: StrictStr = "stub"
-    """``stub`` or ``module:attribute`` naming a :class:`~strategy.eval.population.PartitionSource`."""
+    source: StrictStr = DEFAULT_POPULATION_SOURCE
+    """``module:attribute`` naming a :class:`~strategy.eval.population.PartitionSource`, or ``stub``
+    (arena baselines and styles; reproduces the published null calibrations)."""
     partition: Literal["train", "validation", "holdout"]
     lineups_per_variant: StrictInt = Field(1, ge=1)
     explicit_lineups: list[list[StrictStr]] | None = None
@@ -76,6 +80,11 @@ class PopulationSpec(_S):
 
 
 class ExecutionGates(_S):
+    max_timeout_rate: StrictFloat | None = Field(0.005, ge=0, le=1)
+    """Integrity gate, checked in both arms over every seat (candidate and opponents): a
+    timed-out decision is a forced fold, so above this rate the points are withheld."""
+    max_entrant_timeout_rate: StrictFloat | None = Field(0.02, ge=0, le=1)
+    """Integrity gate for any single entrant (with at least ``ENTRANT_TIMEOUT_MIN_COUNT`` timeouts)."""
     max_illegal_actions: StrictInt | None = 0
     max_errors: StrictInt | None = 0
     max_timeouts: StrictInt | None = None

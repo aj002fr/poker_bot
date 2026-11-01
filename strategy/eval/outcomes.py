@@ -63,6 +63,8 @@ class TableRecord:
     survivors_at_end: int = 0
     entrants: dict[int, EntrantTable] = field(default_factory=dict)
     """Focus entrants only."""
+    timeouts: int = 0
+    """Deadline timeouts at every seat in the final attempt."""
 
 
 def _level(hand_number: int, hands_per_level: int, levels: int) -> int:
@@ -132,7 +134,8 @@ def table_record(result: Any, history_path: Path | None, focus: Sequence[int] = 
                  delete: bool = True) -> TableRecord:
     """Summarize one final table attempt. ``result`` is a runner ``TableResult``."""
     rec = TableRecord(result.table_id, result.block, result.rotation, dict(result.seats), result.valid,
-                      result.error, result.hands, dict(result.points))
+                      result.error, result.hands, dict(result.points),
+                      timeouts=sum(f.get("timeout", 0) for f in getattr(result, "fallbacks", {}).values()))
     if not result.valid:
         return rec
     if history_path is None or not history_path.exists():

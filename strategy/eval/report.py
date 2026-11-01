@@ -34,17 +34,85 @@ def _slice_rows(rows: Mapping[str, Mapping[str, Any]]) -> list[list[str]]:
              _f(r.get("p_holm"))] for k, r in rows.items()]
 
 
-def render_markdown(report: Mapping[str, Any]) -> str:
-    m, a = report["manifest"], report["analysis"]
-    p, dec = a["primary"], a["decision"]
+def _integrity_lines(check: Mapping[str, Any] | None) -> list[str]:
+    if not check:
+        return []
+    rows = []
+    for arm, t in check["arms"].items():
+        worst = max(t["by_entrant"].items(), key=lambda kv: kv[1]["timeout_rate"], default=(None, None))
+        rows.append([arm, t["decisions"], t["timeouts"], f"{t['timeout_rate']:.3%}",
+                     f"{worst[0]} {worst[1]['timeout_rate']:.3%}" if worst[0] else "-"])
+    lines = ["", f"Deadline integrity (every seat, both arms): {'ok' if check['passed'] else 'FAILED'}; limits "
+             f"{_pct(check['max_timeout_rate'])} pooled, {_pct(check['max_entrant_timeout_rate'])} per entrant "
+             f"(at least {check['entrant_min_count']} timeouts).", ""]
+    lines += _table(["arm", "decisions (all seats)", "timeouts", "rate", "worst entrant"], rows)
+    return lines
+
+
+def _pct(v: Any) -> str:
+    return "-" if v is None else f"{v:.2%}"
+
+
+def _header(report: Mapping[str, Any]) -> list[str]:
+    m, dec = report["manifest"], report["analysis"]["decision"]
     spec = m["spec"]
     lines = [f"# {spec['experiment_id']}: {spec['title']}", ""]
-    lines += [f"**Verdict: {dec['verdict']}** ({dec['stage']}). {dec['reason']}."]
-    if dec.get("note"):
-        lines += ["", f"_{dec['note']}._"]
+    if report["analysis"].get("withheld"):
+        lines += ["> **RUN INVALID: POINTS WITHHELD.** " + dec["reason"] + ".", ">", f"> {dec['note']}.", ""]
+        lines += [f"**Verdict: {dec['verdict']}** ({dec['stage']})."]
+    else:
+        lines += [f"**Verdict: {dec['verdict']}** ({dec['stage']}). {dec['reason']}."]
+        if dec.get("note"):
+            lines += ["", f"_{dec['note']}._"]
+    run = report.get("run", {})
+    jobs = f" Jobs {run['jobs']} (safe default {run['safe_jobs']})." if "safe_jobs" in run else ""
     lines += ["", f"Arm A `{m['policies']['A']['spec']}` (control), arm B `{m['policies']['B']['spec']}` (candidate). "
-              f"Objective: {m['objective']['id']} (chips are diagnostics only). Manifest `{m['manifest_id'][:16]}`.",
-              ""]
+              f"Objective: {m['objective']['id']} (chips are diagnostics only). Isolation {m['isolation']}.{jobs} "
+              f"Manifest `{m['manifest_id'][:16]}`.", ""]
+    return lines
+
+
+def _provenance(m: Mapping[str, Any]) -> list[str]:
+    return ["", "## Provenance", "",
+            "- Rules: " + ", ".join(f"{r['ruleset_id']} `{r['rules_hash'][:12]}`" for r in m["rules"]),
+            f"- Population: {m['population']['source']} `{m['population']['registry_hash'][:12]}`, partition "
+            f"{m['population']['partition']['name']} `{m['population']['partition']['hash'][:12]}`"
+            + (" (STUB: not a locked registry)" if m["population"]["stub"] else ""),
+            f"- Seeds: {m['seeds']['blocks_total']} blocks, list hash `{m['seeds']['seed_list_sha256'][:12]}`",
+            f"- Code: {m['code']['commit'] or 'unknown'}{' (dirty)' if m['code']['dirty'] else ''}",
+            "", "Practice assumptions; not official Sequoia rules."]
+
+
+def _execution_lines(ex: Mapping[str, Any]) -> list[str]:
+    lines = ["", "## Execution", ""]
+    rows = []
+    for arm in ("A", "B"):
+        e = ex.get(arm) or {}
+        if not e:
+            continue
+        lat = e["latency_end_to_end_s"]
+        rows.append([arm, e["decisions"], _f(lat["p50"], 6), _f(lat["p95"], 6), _f(lat["p99"], 6),
+                     _f(lat["p99_9"], 6), _f(lat["max"], 6), e["fallback_total"], e["timeouts"], e["illegal_actions"],
+                     e["errors"], e["artifact_bytes"], e["max_state_bytes"], "yes" if e["competitive"] else "no"])
+    lines += _table(["arm", "candidate decisions", "p50 s", "p95 s", "p99 s", "p99.9 s", "max s", "fallbacks",
+                     "timeouts", "illegal", "errors", "artifact bytes", "max state bytes", "competitive timing"], rows)
+    lines += _integrity_lines(ex.get("timeout_integrity"))
+    if ex.get("gates"):
+        lines += ["", "Gates (arm B): " + ", ".join(
+            f"{g['gate']} {'ok' if g['passed'] else 'FAILED'} ({_f(g['observed'], 6)} vs {g['limit']})"
+            for g in ex["gates"])]
+    lines += ["", "Memory: not measured (the sandbox enforces a 1 GiB address-space limit)."]
+    return lines
+
+
+def render_markdown(report: Mapping[str, Any]) -> str:
+    m, a = report["manifest"], report["analysis"]
+    lines = _header(report)
+    if a.get("withheld"):
+        lines += _execution_lines(a["execution"])
+        lines += _provenance(m)
+        return "\n".join(lines) + "\n"
+    p = a["primary"]
     lines += ["## Primary result", ""]
     if p.get("blocks"):
         t, b = p["paired_t"], p["cluster_bootstrap"]
@@ -67,24 +135,7 @@ def render_markdown(report: Mapping[str, Any]) -> str:
     if p["blocks_excluded"]:
         lines += ["", f"**{len(p['blocks_excluded'])} blocks excluded** (incomplete in an arm):"]
         lines += [f"- {x['cell_id']} block {x['block']}: {'; '.join(x['reasons'][:3])}" for x in p["blocks_excluded"][:10]]
-    ex = a["execution"]
-    lines += ["", "## Execution", ""]
-    rows = []
-    for arm in ("A", "B"):
-        e = ex.get(arm) or {}
-        if not e:
-            continue
-        lat = e["latency_end_to_end_s"]
-        rows.append([arm, e["decisions"], _f(lat["p50"], 6), _f(lat["p95"], 6), _f(lat["p99"], 6),
-                     _f(lat["p99_9"], 6), _f(lat["max"], 6), e["fallback_total"], e["timeouts"], e["illegal_actions"],
-                     e["errors"], e["artifact_bytes"], e["max_state_bytes"], "yes" if e["competitive"] else "no"])
-    lines += _table(["arm", "decisions", "p50 s", "p95 s", "p99 s", "p99.9 s", "max s", "fallbacks", "timeouts",
-                     "illegal", "errors", "artifact bytes", "max state bytes", "competitive timing"], rows)
-    if ex.get("gates"):
-        lines += ["", "Gates (arm B): " + ", ".join(
-            f"{g['gate']} {'ok' if g['passed'] else 'FAILED'} ({_f(g['observed'], 6)} vs {g['limit']})"
-            for g in ex["gates"])]
-    lines += ["", "Memory: not measured (the sandbox enforces a 1 GiB address-space limit)."]
+    lines += _execution_lines(a["execution"])
     s = a["slices"]
     for name, title in (("variant", "By variant"), ("family", "By opponent family (blocks whose lineup includes it)"),
                         ("seat", "By candidate seat"), ("lineup", "By lineup")):
@@ -138,14 +189,7 @@ def render_markdown(report: Mapping[str, Any]) -> str:
               + "."]
     if "null_calibration" in report:
         lines += ["", render_null_section(report["null_calibration"])]
-    lines += ["", "## Provenance", ""]
-    lines += [f"- Rules: " + ", ".join(f"{r['ruleset_id']} `{r['rules_hash'][:12]}`" for r in m["rules"]),
-              f"- Population: {m['population']['source']} `{m['population']['registry_hash'][:12]}`, partition "
-              f"{m['population']['partition']['name']} `{m['population']['partition']['hash'][:12]}`"
-              + (" (STUB: not a locked registry)" if m["population"]["stub"] else ""),
-              f"- Seeds: {m['seeds']['blocks_total']} blocks, list hash `{m['seeds']['seed_list_sha256'][:12]}`",
-              f"- Code: {m['code']['commit'] or 'unknown'}{' (dirty)' if m['code']['dirty'] else ''}",
-              "", "Practice assumptions; not official Sequoia rules."]
+    lines += _provenance(m)
     return "\n".join(lines) + "\n"
 
 
@@ -166,8 +210,13 @@ def render_null_section(n: Mapping[str, Any]) -> str:
                      "mean interval width", "P(X >= observed)", "calibration"], rows)
     if n.get("exact_coupling") is not None:
         c = n["exact_coupling"]
-        lines += ["", f"Exact coupling (same artifact, same policy seed): {c['blocks']} blocks, max |D| "
-                  f"{_f(c['max_abs_difference'], 9)} -> {'identical' if c['identical'] else 'NOT IDENTICAL'}."]
+        timed = c.get("tables_with_timeouts", 0)
+        lines += ["", f"Exact coupling (same artifact, same policy seed): {c['blocks']} blocks, max |points "
+                  f"difference| {_f(c['max_abs_difference'], 9)} over {c.get('tables', '?')} - {timed} tables "
+                  f"without a timeout -> {'identical' if c['identical'] else 'NOT IDENTICAL'}."]
+        if timed:
+            lines += [f"{timed} tables had a timeout in either arm (a forced fold in that arm only); "
+                      f"{c['diverged_after_timeout']} of them diverged."]
     return "\n".join(lines)
 
 

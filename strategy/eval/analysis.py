@@ -15,7 +15,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from strategy.eval.execution import evaluate_gates, merge_execution
+from strategy.eval.execution import evaluate_gates, merge_execution, merge_seat_timeouts, timeout_integrity
 from strategy.eval.outcomes import ACTION_CLASSES
 from strategy.eval.paired import CANDIDATE, BlockPair, CellResult, pair_blocks
 from strategy.eval.stats import (
@@ -165,7 +165,52 @@ def opportunity_rates(opp_a: Counter, opp_b: Counter, level: float) -> list[dict
     return rows
 
 
+WITHHELD_NOTE = ("points withheld: the decision deadline did not hold, and every timed-out decision was a "
+                 "forced fold, so the tables measured a different game; rerun with fewer --jobs")
+
+
+def _executions(cells: Sequence[CellResult]) -> dict[str, dict[str, Any]]:
+    executions = {}
+    for arm in ("A", "B"):
+        parts = [c.runs[arm].execution for c in cells]
+        raw: dict[str, list[int]] = defaultdict(list)
+        for c in cells:
+            for k, v in c.runs[arm].raw_latency.items():
+                raw[k].extend(v)
+        executions[arm] = merge_execution(parts, raw)
+    return executions
+
+
+def integrity(cells: Sequence[CellResult], declared: Declared) -> dict[str, Any]:
+    per_arm = {arm: merge_seat_timeouts([c.runs[arm].seat_timeouts for c in cells]) for arm in ("A", "B")}
+    return timeout_integrity(per_arm, declared.gates or {})
+
+
+def _brief(failures: Sequence[str], keep: int = 4) -> str:
+    """Pooled failures first (they come first per arm), then the rest, capped."""
+    pooled = [f for f in failures if "over all seats" in f]
+    rest = [f for f in failures if f not in pooled]
+    shown = pooled + rest[: max(0, keep - len(pooled))]
+    more = len(failures) - len(shown)
+    return "; ".join(shown) + (f"; and {more} more (see execution.timeout_integrity)" if more else "")
+
+
+def withheld(cells: Sequence[CellResult], declared: Declared, check: dict[str, Any]) -> dict[str, Any]:
+    executions = _executions(cells)
+    return {
+        "withheld": True,
+        "primary": {"withheld": True, "note": WITHHELD_NOTE,
+                    "tables_per_arm": sum(len(c.runs["A"].records) for c in cells)},
+        "decision": {"verdict": "invalid", "reason": "timeout integrity gate failed: " + _brief(check["failures"]),
+                     "stage": declared.stage, "note": WITHHELD_NOTE},
+        "execution": {"A": executions.get("A"), "B": executions.get("B"), "gates": [], "timeout_integrity": check},
+    }
+
+
 def analyze(cells: Sequence[CellResult], declared: Declared) -> dict[str, Any]:
+    check = integrity(cells, declared)
+    if not check["passed"]:
+        return withheld(cells, declared, check)
     pairs: list[BlockPair] = []
     excluded: list[dict[str, Any]] = []
     for c in cells:
@@ -233,14 +278,7 @@ def analyze(cells: Sequence[CellResult], declared: Declared) -> dict[str, Any]:
         "lower_tail_cvar10_points": {arm: slices["descriptive_by_arm"][arm].get("lower_tail_cvar10_points")
                                      for arm in ("A", "B")},
     }
-    executions = {}
-    for arm in ("A", "B"):
-        parts = [c.runs[arm].execution for c in cells]
-        raw: dict[str, list[int]] = defaultdict(list)
-        for c in cells:
-            for k, v in c.runs[arm].raw_latency.items():
-                raw[k].extend(v)
-        executions[arm] = merge_execution(parts, raw)
+    executions = _executions(cells)
     gate_checks = evaluate_gates(executions["B"], declared.gates or {}) if executions.get("B") else []
     gates_ok = all(g["passed"] for g in gate_checks)
     lo, hi = primary.get("chosen_interval", (None, None))
@@ -251,7 +289,9 @@ def analyze(cells: Sequence[CellResult], declared: Declared) -> dict[str, Any]:
                      "discovery" else None},
         "slices": slices,
         "robustness": robustness,
-        "execution": {"A": executions.get("A"), "B": executions.get("B"), "gates": gate_checks},
+        "withheld": False,
+        "execution": {"A": executions.get("A"), "B": executions.get("B"), "gates": gate_checks,
+                      "timeout_integrity": check},
         "not_measured": {
             "approximate_response_loss": "needs response training (stage 5+)",
             "small_game_regret": "needs the toy-game solver ladder (stage 2)",

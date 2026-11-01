@@ -18,6 +18,7 @@ Exact coupling (:func:`exact_coupling`)
     The same artifact with the same policy seed in both arms must give identical
     tables, so every block difference is exactly zero. This verifies that
     environment and policy random streams are separate and shared as intended.
+    Sandboxed tables where either arm had a timeout are reported, not compared.
 
 Synthetic (:func:`synthetic_calibration`)
     The same statistics on simulated paired tournaments with shared card luck and
@@ -107,9 +108,31 @@ def calibrate(results: Sequence[CellResult], *, replicates: int, blocks_per_repl
 
 
 def exact_coupling(results: Sequence[CellResult]) -> dict[str, Any]:
-    pairs = [p for c in results for p in pair_blocks(c)[0]]
-    seat_max = max((abs(x) for p in pairs for x in p.seat_diffs.values()), default=0.0)
-    return {"blocks": len(pairs), "max_abs_difference": seat_max, "identical": bool(pairs) and seat_max == 0.0}
+    """Every entrant's points must match between arms, table for table.
+
+    A timeout at any seat forces a fold in that arm only, after which the tables
+    legitimately diverge, so sandboxed tables with a timeout in either arm are counted
+    separately and excluded from the identity check.
+    """
+    blocks: set[tuple[str, int]] = set()
+    clean, timed, diverged = [], 0, 0
+    for c in results:
+        by_b = {(r.block, r.rotation): r for r in c.runs["B"].records if r.valid}
+        for ra in c.runs["A"].records:
+            rb = by_b.get((ra.block, ra.rotation))
+            if not ra.valid or rb is None:
+                continue
+            blocks.add((c.cell.cell_id, ra.block))
+            diff = max((abs(rb.points[e] - pts) for e, pts in ra.points.items()), default=0.0)
+            if ra.timeouts or rb.timeouts:
+                timed += 1
+                diverged += diff != 0.0
+            else:
+                clean.append(diff)
+    worst = max(clean, default=0.0)
+    return {"blocks": len(blocks), "tables": len(clean) + timed, "tables_with_timeouts": timed,
+            "diverged_after_timeout": diverged, "max_abs_difference": worst,
+            "identical": bool(clean) and worst == 0.0}
 
 
 # ------------------------------------------------------------------ synthetic

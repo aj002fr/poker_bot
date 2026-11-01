@@ -1,0 +1,17 @@
+{
+  "experiment_id": "null-aa-sandbox",
+  "title": "Sandboxed A/A null calibration against the opponent registry at the default jobs",
+  "description": "The salted A/A design under competitive conditions: every bot in a sandboxed worker with the 1 ms deadline, opponents from the strategy.population train partition, jobs at the host's safe default. Checks that the deadline holds (timeout integrity gate) and that paired t keeps its declared false-gain rate when timing noise is real.",
+  "kind": "null_calibration",
+  "stage": "discovery",
+  "min_effect": 2.0,
+  "arms": {"A": {"policy": "style:aggressive", "salt": "a"}, "B": {"policy": "style:aggressive", "salt": "b"}},
+  "variants": ["practice_nlhe"],
+  "table": {"players": 6, "starting_stack": 1000, "hand_cap": 50},
+  "population": {"partition": "train", "lineups_per_variant": 2},
+  "blocks_per_lineup": 200,
+  "base_seed": "null-aa-sandbox-v1",
+  "isolation": "sandbox",
+  "bootstrap_resamples": 1000,
+  "null": {"replicates": 50, "blocks_per_replicate": 4, "exact_coupling_blocks": 2}
+}

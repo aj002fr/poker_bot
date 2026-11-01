@@ -26,7 +26,7 @@ from typing import Any
 
 from arena.benchmark.runner import BenchmarkRun, RetryPolicy, run_benchmark
 from arena.domain.models import TournamentConfig
-from strategy.eval.execution import entrant_execution
+from strategy.eval.execution import entrant_execution, seat_timeouts
 from strategy.eval.outcomes import TableRecord, table_record
 from strategy.eval.policies import ResolvedPolicy, resolve_policy, salted_bundle
 from strategy.eval.population import Lineup
@@ -63,6 +63,8 @@ class ArmRun:
     execution: dict[str, Any]
     benchmark_manifest_hash: str
     raw_latency: dict[str, list[int]] = field(default_factory=dict)
+    seat_timeouts: dict[str, dict[str, int]] = field(default_factory=dict)
+    """Decisions and timeouts of every entrant, candidate and opponents."""
 
 
 @dataclass
@@ -131,8 +133,11 @@ def run_arm(cell: Cell, arm: Arm, policy: ResolvedPolicy, *, isolation: str, out
         "latency_worker_wall_s": [x for r in run.attempts for x in array("q", r.worker_wall_ns.get(CANDIDATE, b""))],
         "latency_worker_cpu_s": [x for r in run.attempts for x in array("q", r.worker_cpu_ns.get(CANDIDATE, b""))],
     }
+    labels = {CANDIDATE: "candidate"}
+    labels |= {i: f"opponent {i} ({o.member_id})" for i, o in enumerate(cell.lineup.opponents, start=1)}
     records.sort(key=lambda r: (r.block, r.rotation))
-    return ArmRun(arm, policy, records, execution, run.manifest.content_hash(), raw)
+    return ArmRun(arm, policy, records, execution, run.manifest.content_hash(), raw,
+                  seat_timeouts(run.attempts, labels))
 
 
 def run_cell(cell: Cell, arms: Sequence[Arm], policies: Mapping[str, ResolvedPolicy], *, isolation: str,

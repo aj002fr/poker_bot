@@ -89,6 +89,58 @@ def entrant_execution(attempts: Sequence[Any], entrant: int, *, budget_ns: int, 
     }
 
 
+ENTRANT_TIMEOUT_MIN_COUNT = 5
+
+
+def seat_timeouts(attempts: Sequence[Any], labels: Mapping[int, str]) -> dict[str, Any]:
+    """Decisions and timeouts of every entrant (candidate and opponents) over every attempt."""
+    by: dict[str, dict[str, int]] = {}
+    for r in attempts:
+        for e, n in r.decisions.items():
+            row = by.setdefault(labels.get(e, str(e)), {"decisions": 0, "timeouts": 0})
+            row["decisions"] += n
+            row["timeouts"] += r.fallbacks.get(e, {}).get("timeout", 0)
+    return by
+
+
+def merge_seat_timeouts(parts: Sequence[Mapping[str, Mapping[str, int]]]) -> dict[str, Any]:
+    by: dict[str, dict[str, int]] = {}
+    for part in parts:
+        for name, row in part.items():
+            acc = by.setdefault(name, {"decisions": 0, "timeouts": 0})
+            acc["decisions"] += row["decisions"]
+            acc["timeouts"] += row["timeouts"]
+    decisions = sum(r["decisions"] for r in by.values())
+    timeouts = sum(r["timeouts"] for r in by.values())
+    return {"decisions": decisions, "timeouts": timeouts, "timeout_rate": timeouts / decisions if decisions else 0.0,
+            "by_entrant": {k: {**v, "timeout_rate": v["timeouts"] / v["decisions"] if v["decisions"] else 0.0}
+                           for k, v in sorted(by.items())}}
+
+
+def timeout_integrity(per_arm: Mapping[str, Mapping[str, Any]], gates: Mapping[str, Any]) -> dict[str, Any]:
+    """Whether the deadline held well enough for the points to mean anything.
+
+    ``per_arm`` maps an arm label to :func:`merge_seat_timeouts` output. Fails when an
+    arm's pooled timeout rate over all seats exceeds ``max_timeout_rate``, or any entrant
+    has at least ``ENTRANT_TIMEOUT_MIN_COUNT`` timeouts and a rate above
+    ``max_entrant_timeout_rate``.
+    """
+    pooled_limit, entrant_limit = gates.get("max_timeout_rate"), gates.get("max_entrant_timeout_rate")
+    failures = []
+    for arm, t in sorted(per_arm.items()):
+        if pooled_limit is not None and t["timeout_rate"] > pooled_limit:
+            failures.append(f"arm {arm}: {t['timeouts']}/{t['decisions']} decisions over all seats timed out "
+                            f"({t['timeout_rate']:.2%} > {pooled_limit:.2%})")
+        if entrant_limit is not None:
+            for name, row in t["by_entrant"].items():
+                if row["timeouts"] >= ENTRANT_TIMEOUT_MIN_COUNT and row["timeout_rate"] > entrant_limit:
+                    failures.append(f"arm {arm}: entrant {name} timed out on {row['timeouts']}/{row['decisions']} "
+                                    f"decisions ({row['timeout_rate']:.2%} > {entrant_limit:.2%})")
+    return {"passed": not failures, "failures": failures, "max_timeout_rate": pooled_limit,
+            "max_entrant_timeout_rate": entrant_limit, "entrant_min_count": ENTRANT_TIMEOUT_MIN_COUNT,
+            "arms": {arm: dict(t) for arm, t in sorted(per_arm.items())}}
+
+
 def merge_execution(parts: Sequence[Mapping[str, Any]], raw: Mapping[str, Sequence[int]]) -> dict[str, Any]:
     """Combine per-cell summaries; ``raw`` holds the pooled timing samples for exact quantiles."""
     if not parts:
