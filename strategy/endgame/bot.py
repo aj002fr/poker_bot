@@ -10,7 +10,8 @@ so a paired comparison measures the tables alone:
 
 The layer takes over preflop when the hand fits the push/fold abstraction
 (:func:`~strategy.endgame.lookup.preflop_spot`), an open has at most ``open_max_bb``
-big blinds at risk, and a call or overcall at most the tables' 30. Its action is a shove
+big blinds at risk (:data:`BLIND_OPEN_MAX_BB` from the small blind, where limping starts
+to pay), and a call or overcall at most the tables' 30. Its action is a shove
 (the all-in raise; a call when the hero cannot raise or nobody behind can act) or a
 fold. Randomisation is keyed by the table's policy seed and the decision id, so play
 replays exactly.
@@ -34,6 +35,9 @@ from strategy.tables import store
 
 MODES = ("points", "chips", "chart", "none")
 OPEN_MAX_BB = 15.0
+BLIND_OPEN_MAX_BB = 10.0
+"""Small-blind opens (only the big blind behind) use push/fold up to here: beyond it the
+measured equilibrium gain of limping exceeds 0.02 big blinds (:mod:`strategy.endgame.limp`)."""
 RULESETS = ("practice_nlhe", "uncertainty_shortdeck")
 
 
@@ -157,7 +161,10 @@ class PushFoldBot(ExplicitStateBot):
         spot = preflop_spot(obs)
         if spot is None:
             return None
-        limit = self.open_max_bb if spot.kind == "open" else MAX_DEPTH_BB
+        if spot.kind == "open":
+            limit = BLIND_OPEN_MAX_BB if spot.hero == spot.snapshot.n - 2 else self.open_max_bb
+        else:
+            limit = MAX_DEPTH_BB
         if spot.risk_bb > limit:
             return None
         table = load_table(self.mode, obs.ruleset_id)

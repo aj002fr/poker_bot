@@ -292,6 +292,40 @@ def late_values(snap, model, *, iterations: int = 300) -> np.ndarray:
     return solved.solver.values(solved.sigma)
 
 
+def cap_value_fn(snap, model, *, iterations: int = 300):
+    """Continuation value for the hand before the cap: each survivor vector's cap hand, solved.
+
+    Survivors arrive next-big-blind first; the cap hand's preflop order starts after
+    that big blind, so it is the same list rotated by one.
+    """
+    from strategy.endgame.keys import Snapshot
+
+    if snap.hand_number + 1 != snap.hand_cap:
+        raise ValueError("cap_value_fn is for the hand just before the cap")
+    sb, bb = None, None
+    cache: dict[tuple[int, ...], np.ndarray] = {}
+
+    def value_fn(survivors: np.ndarray, prizes: Sequence[float]) -> np.ndarray:
+        nonlocal sb, bb
+        out = np.zeros_like(survivors, dtype=np.float64)
+        for r, row in enumerate(np.asarray(survivors, np.int64)):
+            key = tuple(int(x) for x in row)
+            if key not in cache:
+                k = len(key)
+                order = key[1:] + key[:1]
+                blind = snap.bb
+                posts = [0] * k
+                posts[k - 1] = min(blind, order[k - 1])
+                posts[k - 2] = min(blind // 2, order[k - 2])
+                cap = Snapshot(order, tuple(posts), blind, snap.payouts, snap.hand_cap, snap.hand_cap)
+                v = late_values(cap, model, iterations=iterations)
+                cache[key] = np.concatenate([v[-1:], v[:-1]])
+            out[r] = cache[key]
+        return out
+
+    return value_fn
+
+
 # ---------------------------------------------------------------------- CLI
 
 

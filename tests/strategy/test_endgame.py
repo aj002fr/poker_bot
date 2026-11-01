@@ -521,3 +521,41 @@ def test_harvest_weights_are_reach_probabilities(nlhe, n):
     assert first and first[0].weight == pytest.approx(1.0)
     assert all(0.0 <= r.weight <= 1.0 + 1e-12 for r in recs)
     assert all(((r.row >= -1e-12) & (r.row <= 1 + 1e-12)).all() for r in recs)
+
+
+# --------------------------------------------------------------- value model
+
+
+def test_value_model_conserves_points_and_stays_within_prizes():
+    from arena.domain.models import TournamentConfig
+    from strategy.value.model import FEATURES, ValueModel
+
+    base = ValueModel.icm(TournamentConfig())
+    rng = np.random.default_rng(8)
+    wild = ValueModel({k: rng.normal(0, 2.0, len(FEATURES)) for k in range(2, 9)}, base.blind_levels,
+                      base.hands_per_level, base.hand_cap, base.payouts)
+    for _ in range(50):
+        k = int(rng.integers(2, 9))
+        stacks = rng.integers(50, 6000, (20, k)).astype(float)
+        prizes = base.payouts[:k]
+        hand = int(rng.integers(1, 200))
+        assert np.allclose(base.values(stacks, prizes, hand_number=hand), points.icm_batch(stacks, prizes))
+        v = wild.values(stacks, prizes, hand_number=hand)
+        assert np.allclose(v.sum(1), sum(prizes))
+        assert (v >= min(prizes) - 1e-9).all() and (v <= max(prizes) + 1e-9).all()
+
+
+def test_cap_continuation_reorders_survivors_consistently(nlhe):
+    """Survivors arrive next-big-blind first; the cap hand is solved in its own preflop order."""
+    from strategy.value.model import cap_value_fn, late_values
+
+    snap = Snapshot((2000, 900, 1500), (0, 50, 100), 100, PAYOUTS8, 199, 200)
+    fn = cap_value_fn(snap, nlhe, iterations=60)
+    survivors = np.array([[1100, 2000, 1300]])
+    got = fn(survivors, PAYOUTS8[:3])[0]
+    cap = Snapshot((2000, 1300, 1100), (0, 50, 100), 100, PAYOUTS8, 200, 200)
+    want = late_values(cap, nlhe, iterations=60)
+    assert np.allclose(got, [want[2], want[0], want[1]])
+    # Each player's value conditions the others on its own hand class, so the sum is
+    # conserved only up to the class model's card-removal approximation.
+    assert got.sum() == pytest.approx(100.0, abs=0.1)

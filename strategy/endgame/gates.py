@@ -10,7 +10,10 @@ default 8-player structure, 65 heads-up). Chip-EV results are also given in big 
    the averaged CFR+ profile, by iteration count. No equilibrium guarantee; reported.
 3. Pruning: the small blind's equilibrium gain from limp / min-raise branches
    (:mod:`strategy.endgame.limp`), heads-up and blind-vs-blind with bystanders.
-4. Table audit: on held-out states (a seed the generator never used), each player's
+4. Late states: one hand before the cap, solved by backward induction from the
+   official cap score (the cap hand itself solved for every survivor vector) and
+   compared with the ICM continuation.
+5. Table audit: on held-out states (a seed the generator never used), each player's
    loss when it plays the table instead of the exact solution, the others fixed.
 
     python -m strategy.endgame.gates --jobs 8      # writes artifacts/endgame/gates.json
@@ -153,6 +156,49 @@ def pruning(ruleset: str, jobs: int) -> dict:
             "max_gap_normalised": max(r["gap"] for r in rows if r["utility"] == "points")}
 
 
+def _late_state(args):
+    from strategy.endgame.harvest import solve_snapshot
+    from strategy.endgame.points import icm
+    from strategy.endgame.showdown import load_showdown
+    from strategy.value.model import cap_value_fn, late_values
+
+    ruleset, snap = args
+    model = load_showdown(ruleset)
+    scale = snap.payouts[0]
+    cap = Snapshot(snap.stacks, snap.posts, snap.bb, snap.payouts, snap.hand_cap, snap.hand_cap)
+    exact_cap = late_values(cap, model)
+    icm_now = np.array(icm(list(snap.stacks), snap.prizes))
+    t0 = time.perf_counter()
+    by_icm = solve_snapshot(snap, model, iterations=300, with_gains=False)
+    exact = solve_snapshot(snap, model, iterations=300, value_fn=cap_value_fn(snap, model), with_gains=True)
+    v_icm, v_exact = by_icm.solver.values(by_icm.sigma), exact.solver.values(exact.sigma)
+    prior = model.prior
+    shift = max(float(np.abs(by_icm.sigma[d][1] - exact.sigma[d][1]) @ prior) for d in exact.sigma)
+    return {"players": snap.n, "cap_hand_vs_icm": float(np.abs(exact_cap - icm_now).max()) / scale,
+            "value_change": float(np.abs(v_exact - v_icm).max()) / scale, "max_strategy_shift": shift,
+            "exact_deviation_gain": float(exact.gains.max()) / scale, "seconds": time.perf_counter() - t0}
+
+
+def late(ruleset: str, jobs: int, states: int = 16) -> dict:
+    """One hand before the cap, solved by backward induction from the official cap score."""
+    rng = np.random.default_rng(31)
+    tasks = []
+    payouts = (50.0, 30.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    for i in range(states):
+        n = 3 if i % 2 == 0 else 4
+        bb = 400
+        stacks = rng.dirichlet(np.full(n, 1.5)) * 16000
+        stacks = np.maximum(bb, np.floor(stacks)).astype(int)
+        posts = [0] * n
+        posts[-2], posts[-1] = bb // 2, bb
+        tasks.append((ruleset, Snapshot(tuple(int(s) for s in stacks), tuple(posts), bb, payouts, 199, 200)))
+    rows = _map(_late_state, tasks, jobs)
+    return {"states": len(rows), "rows": rows,
+            "max_cap_hand_vs_icm": max(r["cap_hand_vs_icm"] for r in rows),
+            "max_value_change": max(r["value_change"] for r in rows),
+            "max_strategy_shift": max(r["max_strategy_shift"] for r in rows)}
+
+
 def _audit_state(args):
     from strategy.endgame.harvest import decision_nodes, solve_snapshot
     from strategy.endgame.keys import keys_for
@@ -221,10 +267,10 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--rulesets", nargs="+", default=["practice_nlhe", "uncertainty_shortdeck"])
     ap.add_argument("--jobs", type=int, default=8)
-    ap.add_argument("--only", nargs="+", choices=["two_player", "multiway", "pruning", "audit"])
+    ap.add_argument("--only", nargs="+", choices=["two_player", "multiway", "pruning", "late", "audit"])
     ap.add_argument("--out", default=str(OUT / "gates.json"))
     a = ap.parse_args(argv)
-    sections = a.only or ["two_player", "multiway", "pruning", "audit"]
+    sections = a.only or ["two_player", "multiway", "pruning", "late", "audit"]
     out: dict = {}
     for ruleset in a.rulesets:
         res: dict = {}
@@ -240,6 +286,9 @@ def main(argv: list[str] | None = None) -> None:
             res["pruning"] = pruning(ruleset, a.jobs)
             print(ruleset, "pruning up to", res["pruning"]["push_fold_only_up_to_bb"], "bb; max points gap",
                   res["pruning"]["max_gap_normalised"], flush=True)
+        if "late" in sections:
+            res["late"] = late(ruleset, a.jobs)
+            print(ruleset, "late", json.dumps({k: v for k, v in res["late"].items() if k != "rows"}), flush=True)
         if "audit" in sections:
             res["audit"] = {m: audit(ruleset, m, a.jobs) for m in ("points", "chips")}
             print(ruleset, "audit", json.dumps(res["audit"]), flush=True)
