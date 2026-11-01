@@ -17,7 +17,7 @@ current one), so :meth:`ValueModel.for_snapshot` plugs into
 On the hand-cap hand the subgames use the official cap ICM, i.e. they are solved to the
 terminal score; :func:`late_values` gives those exact values of a cap-hand state.
 
-    python -m strategy.value.model rollouts --ruleset practice_nlhe --blocks 250 --jobs 8
+    python -m strategy.value.model rollouts --ruleset practice_nlhe --lineups 50 --blocks 5 --jobs 8
     python -m strategy.value.model fit --ruleset practice_nlhe
 """
 
@@ -295,12 +295,14 @@ def late_values(snap, model, *, iterations: int = 300) -> np.ndarray:
 # ---------------------------------------------------------------------- CLI
 
 
-def value_policies(ruleset_id: str) -> list[str]:
-    """Our point-aware bot in three seats and the training partition in the rest."""
-    from strategy.tables.endgame import training_policies
+POINT_BOT = "strategy/endgame/bots/points.py"
 
-    me = "strategy/endgame/bots/points.py"
-    return [me, *training_policies(ruleset_id, 5)[:3], me, *training_policies(ruleset_id, 5)[3:5], me]
+
+def value_lineups(ruleset_id: str, count: int, seed: int) -> list[list[str]]:
+    """Our point-aware bot in two seats, training-partition members of the registry in the rest."""
+    from strategy.value.rollouts import training_lineups
+
+    return training_lineups(ruleset_id, MAX_PLAYERS, count, seed, fixed=(POINT_BOT, POINT_BOT))
 
 
 def rollout_path(ruleset_id: str) -> Path:
@@ -316,14 +318,15 @@ def _split(n: int, seed: int, test_share: float) -> tuple[np.ndarray, np.ndarray
 
 def main(argv: list[str] | None = None) -> None:
     from strategy.tables.endgame import default_config
-    from strategy.value.rollouts import load, run_rollouts, save
+    from strategy.value.rollouts import load, run_lineups, save
 
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("rollouts")
     r.add_argument("--ruleset", required=True)
-    r.add_argument("--blocks", type=int, default=250)
-    r.add_argument("--seed", default="value-v1")
+    r.add_argument("--lineups", type=int, default=50)
+    r.add_argument("--blocks", type=int, default=5, help="seeded blocks per lineup (each: every seat rotation)")
+    r.add_argument("--seed", type=int, default=1)
     r.add_argument("--jobs", type=int, default=8)
     f = sub.add_parser("fit")
     f.add_argument("--ruleset", required=True)
@@ -335,7 +338,8 @@ def main(argv: list[str] | None = None) -> None:
     config = default_config(a.ruleset)
     if a.cmd == "rollouts":
         t0 = time.perf_counter()
-        ros = run_rollouts(config, value_policies(a.ruleset), blocks=a.blocks, base_seed=a.seed, jobs=a.jobs)
+        ros = run_lineups(config, value_lineups(a.ruleset, a.lineups, a.seed), blocks=a.blocks,
+                          base_seed=f"value-v1|{a.seed}", jobs=a.jobs)
         sha = save(ros, rollout_path(a.ruleset))
         print(f"wrote {rollout_path(a.ruleset)} ({len(ros)} tournaments, sha256 {sha[:12]}, "
               f"{time.perf_counter() - t0:.0f}s)")
@@ -356,7 +360,7 @@ def main(argv: list[str] | None = None) -> None:
              "hands_per_level": config.hands_per_level, "hand_cap": config.hand_cap,
              "payouts": list(icm_model.payouts), "rollouts_sha256": hashlib.sha256(body).hexdigest(),
              "rollouts": len(ros), "train_tournaments": int(len(train)), "test_tournaments": int(len(test)),
-             "policies": value_policies(a.ruleset), "heldout": report}
+             "heldout": report}
     out = store.write_arrays(table_name(a.ruleset), arrays, generator=GENERATOR, inputs=INPUTS,
                              params={"ruleset_id": a.ruleset, "test_share": a.test_share, "seed": a.seed,
                                      "ridge": a.ridge}, seconds=time.perf_counter() - t0, extra=extra,

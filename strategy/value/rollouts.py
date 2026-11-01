@@ -129,6 +129,32 @@ def run_rollouts(config: TournamentConfig, policies: Sequence[str], *, blocks: i
     return [_play(a) for a in assignments]
 
 
+def run_lineups(config: TournamentConfig, lineups: Sequence[Sequence[str]], *, blocks: int, base_seed: str,
+                jobs: int = 1) -> list[Rollout]:
+    """:func:`run_rollouts` for each lineup in turn (seeds namespaced by lineup index)."""
+    out: list[Rollout] = []
+    for i, lineup in enumerate(lineups):
+        out += run_rollouts(config, lineup, blocks=blocks, base_seed=f"{base_seed}|lineup{i}", jobs=jobs)
+    return out
+
+
+def training_lineups(ruleset_id: str, seats: int, count: int, seed: int, *, fixed: Sequence[str] = ()) -> list[list[str]]:
+    """``count`` lineups of distinct training-partition members of the opponent registry.
+
+    ``fixed`` policies take the first seats of every lineup; members fill the rest. The
+    validation and holdout partitions never shape generated tables or value fits.
+    """
+    import random
+
+    from strategy.population import PopulationSource
+
+    members = sorted(PopulationSource().partition("train").eligible(ruleset_id), key=lambda m: m.member_id)
+    if len(members) < seats - len(fixed):
+        raise ValueError(f"too few training members play {ruleset_id}")
+    rng = random.Random(f"training-lineups|{ruleset_id}|{seed}")
+    return [list(fixed) + [m.policy for m in rng.sample(members, seats - len(fixed))] for _ in range(count)]
+
+
 def save(rollouts: Sequence[Rollout], path: Path) -> str:
     """JSON lines; returns the SHA-256 of the file."""
     path.parent.mkdir(parents=True, exist_ok=True)

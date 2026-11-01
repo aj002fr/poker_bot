@@ -35,6 +35,7 @@ PAYOUTS8 = (50.0, 30.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
 @pytest.mark.parametrize("ruleset", ["practice_nlhe", "uncertainty_shortdeck"])
 def test_numba_evaluator_matches_the_feature_evaluator(ruleset):
+    pytest.importorskip("numba")
     from strategy.endgame import kernels
     from strategy.features.cards import capabilities, evaluate_any
 
@@ -45,6 +46,19 @@ def test_numba_evaluator_matches_the_feature_evaluator(ruleset):
                                 np.array(caps.strength, np.int64))
     want = [evaluate_any(h, caps) for h in hands]
     assert got.tolist() == want
+
+
+def test_runtime_and_generators_do_not_import_numba():
+    """Only the showdown generator needs numba; bots, lookup, tables, value model and gates do not."""
+    import subprocess
+    import sys
+
+    code = ("import sys\n"
+            "import strategy.endgame.bot, strategy.endgame.lookup, strategy.endgame.gates, strategy.endgame.limp\n"
+            "import strategy.tables.endgame, strategy.tables.showdown, strategy.value.model\n"
+            "import strategy.endgame.bots.points, strategy.endgame.bots.chart\n"
+            "assert 'numba' not in sys.modules, sorted(m for m in sys.modules if 'numba' in m)\n")
+    subprocess.run([sys.executable, "-c", code], check=True)
 
 
 # ------------------------------------------------------------------------ ICM
@@ -216,6 +230,7 @@ def _as_policy(gtree, solver: PushFoldSolver, sigma):
 
 @pytest.mark.parametrize("stacks", [(800, 1200), (2500, 400)])
 def test_solver_best_response_matches_strategy_solve_on_the_same_game(stacks):
+    pytest.importorskip("numba")
     from strategy.solve import CFR_PLUS, CFRSolver, compile_game, nash_conv
 
     model = synthetic_model()
@@ -370,7 +385,7 @@ def test_tables_are_per_variant_and_plo_is_rejected():
     with pytest.raises(store.TableError):
         PushFoldTable({**prov, "ruleset_id": "uncertainty_shortdeck"}, arrays)
     with pytest.raises(UnsupportedVariant):
-        build("uncertainty_plo4", "points", rollout_blocks=0, synthetic=1, max_states=1, seed=1, jobs=1)
+        build("uncertainty_plo4", "points", rollout_lineups=0, synthetic=1, max_states=1, seed=1, jobs=1)
 
 
 FIELDS_PER_LEVEL = {"open": (6, 4, 3, 2), "call": (7, 6, 5, 3), "overcall": (5, 4, 3, 2)}

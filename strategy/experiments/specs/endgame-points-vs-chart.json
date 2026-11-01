@@ -1,7 +1,7 @@
 {
   "experiment_id": "endgame-points-vs-chart",
   "title": "Point-aware push/fold tables vs a fixed chip-EV push/fold chart (NLHE, full 8-player SNGs)",
-  "description": "The chart arm uses symmetric-stack chip-EV solutions keyed only by position and depth. Same base policy and layer. Validation partition.",
+  "description": "The chart arm uses symmetric-stack chip-EV solutions keyed only by position and depth. Same base policy and layer. Validation partition of the opponent registry (strategy.population).",
   "stage": "discovery",
   "min_effect": 1.0,
   "interval": "paired_t",
@@ -22,6 +22,7 @@
     "hand_cap": 200
   },
   "population": {
+    "source": "strategy.population:PopulationSource",
     "partition": "validation",
     "lineups_per_variant": 8
   },

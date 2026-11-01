@@ -1,7 +1,7 @@
 {
   "experiment_id": "endgame-points-vs-chips",
   "title": "Point-aware push/fold tables vs chip-EV tables (NLHE, full 8-player SNGs)",
-  "description": "The two arms share the base policy and the push/fold layer; only the tables differ: ICM-continuation subgames vs chip-EV subgames over the same states and keys. Validation partition.",
+  "description": "The two arms share the base policy and the push/fold layer; only the tables differ: ICM-continuation subgames vs chip-EV subgames over the same states and keys. Validation partition of the opponent registry (strategy.population).",
   "stage": "discovery",
   "min_effect": 1.0,
   "interval": "paired_t",
@@ -22,6 +22,7 @@
     "hand_cap": 200
   },
   "population": {
+    "source": "strategy.population:PopulationSource",
     "partition": "validation",
     "lineups_per_variant": 8
   },

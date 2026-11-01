@@ -1,7 +1,8 @@
 """Point-aware push/fold tables per variant, from solved full-stack-vector subgames.
 
-States are start-of-hand stack vectors drawn from complete tournament rollouts of the
-training partition (so the validation opponents never shape the tables) plus synthetic
+States are start-of-hand stack vectors drawn from complete tournament rollouts of
+training-partition lineups of the opponent registry (``strategy.population``; the
+validation and holdout opponents never shape the tables) plus synthetic
 stack vectors that cover the rest of the key space. Each state is solved as a push/fold
 subgame (:mod:`strategy.endgame.subgame`) and every covered decision is harvested
 (:mod:`strategy.endgame.harvest`) into the key ladder of :mod:`strategy.endgame.keys`.
@@ -42,11 +43,11 @@ from strategy.endgame.table_state import SeatedSnapshot, seated_snapshot
 from strategy.tables import store
 
 GENERATOR = "strategy.tables.endgame"
-INPUTS = ["endgame/classes.py", "endgame/harvest.py", "endgame/keys.py", "endgame/points.py", "endgame/showdown.py",
-          "endgame/solver.py", "endgame/subgame.py", "endgame/table_state.py", "tables/endgame.py",
+INPUTS = ["population/registry.lock.json", "endgame/classes.py", "endgame/harvest.py", "endgame/keys.py",
+          "endgame/points.py", "endgame/showdown.py", "endgame/solver.py", "endgame/subgame.py", "endgame/table_state.py", "tables/endgame.py",
           "value/rollouts.py", "rules/variants.py"]
 MODES = ("points", "chips", "chart")
-DEFAULTS = {"rollout_blocks": 6, "synthetic": 3000, "max_states": 6000, "seed": 1}
+DEFAULTS = {"rollout_lineups": 8, "synthetic": 3000, "max_states": 6000, "seed": 1}
 COUNT_FLOOR = 1e-3
 """A state counts towards a key's support when its reach weight there is at least this."""
 CHART_DEPTHS = (1.25, 1.75, 2.25, 2.75, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5, 13.5, 14.5, 16.0,
@@ -64,16 +65,6 @@ def default_config(ruleset_id: str):
     return TournamentConfig(ruleset_id=ruleset_id)
 
 
-def training_policies(ruleset_id: str, seats: int) -> list[str]:
-    """The training partition's members that play the variant, repeated to fill the table."""
-    from strategy.eval.population import StubPartitionSource
-
-    members = sorted(StubPartitionSource().partition("train").eligible(ruleset_id), key=lambda m: m.member_id)
-    if not members:
-        raise ValueError(f"no training opponents play {ruleset_id}")
-    return [members[i % len(members)].policy for i in range(seats)]
-
-
 # ------------------------------------------------------------------- states
 
 
@@ -81,12 +72,13 @@ def in_scope(snap: Snapshot) -> bool:
     return snap.n >= 2 and min(snap.stacks) / snap.bb <= MAX_DEPTH_BB
 
 
-def rollout_states(ruleset_id: str, *, blocks: int, seed: int, jobs: int) -> list[SeatedSnapshot]:
-    from strategy.value.rollouts import run_rollouts
+def rollout_states(ruleset_id: str, *, lineups: int, seed: int, jobs: int) -> list[SeatedSnapshot]:
+    """In-scope start-of-hand states of ``lineups`` training lineups, each in every seat rotation."""
+    from strategy.value.rollouts import run_lineups, training_lineups
 
     config = default_config(ruleset_id)
-    policies = training_policies(ruleset_id, config.initial_player_count)
-    rollouts = run_rollouts(config, policies, blocks=blocks, base_seed=f"endgame-states-{seed}", jobs=jobs)
+    teams = training_lineups(ruleset_id, config.initial_player_count, lineups, seed)
+    rollouts = run_lineups(config, teams, blocks=1, base_seed=f"endgame-states-{seed}", jobs=jobs)
     out = []
     for ro in rollouts:
         for h in ro.hands:
@@ -161,12 +153,12 @@ def chart_states(config, *, bb: int = 100) -> list[SeatedSnapshot]:
     return out
 
 
-def sample_states(ruleset_id: str, mode: str, *, rollout_blocks: int, synthetic: int, max_states: int, seed: int,
+def sample_states(ruleset_id: str, mode: str, *, rollout_lineups: int, synthetic: int, max_states: int, seed: int,
                   jobs: int) -> list[SeatedSnapshot]:
     config = default_config(ruleset_id)
     if mode == "chart":
         return chart_states(config)
-    states = rollout_states(ruleset_id, blocks=rollout_blocks, seed=seed, jobs=jobs) if rollout_blocks else []
+    states = rollout_states(ruleset_id, lineups=rollout_lineups, seed=seed, jobs=jobs) if rollout_lineups else []
     rng = np.random.default_rng(seed)
     if len(states) > max_states - synthetic:
         keep = rng.choice(len(states), max_states - synthetic, replace=False)
@@ -289,7 +281,7 @@ def to_arrays(acc: dict, class_keys: np.ndarray, diags: Sequence[tuple[int, floa
     return out
 
 
-def build(ruleset_id: str, mode: str, *, rollout_blocks: int, synthetic: int, max_states: int, seed: int, jobs: int,
+def build(ruleset_id: str, mode: str, *, rollout_lineups: int, synthetic: int, max_states: int, seed: int, jobs: int,
           value_name: str | None = None) -> tuple[dict[str, np.ndarray], dict]:
     from strategy.endgame.classes import PUSH_FOLD_CAPABILITIES, hand_classes
     from strategy.endgame.showdown import load_showdown
@@ -301,7 +293,7 @@ def build(ruleset_id: str, mode: str, *, rollout_blocks: int, synthetic: int, ma
     hc = hand_classes(ruleset_id)
     model = load_showdown(ruleset_id)
     started = time.perf_counter()
-    states = sample_states(ruleset_id, mode, rollout_blocks=rollout_blocks, synthetic=synthetic,
+    states = sample_states(ruleset_id, mode, rollout_lineups=rollout_lineups, synthetic=synthetic,
                            max_states=max_states, seed=seed, jobs=jobs)
     sampled = time.perf_counter() - started
     acc, diags = solve_states(ruleset_id, mode, states, jobs=jobs, value_name=value_name)
