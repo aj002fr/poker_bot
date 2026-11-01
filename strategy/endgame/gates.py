@@ -14,7 +14,9 @@ default 8-player structure, 65 heads-up). Chip-EV results are also given in big 
    official cap score (the cap hand itself solved for every survivor vector) and
    compared with the ICM continuation.
 5. Table audit: on held-out states (a seed the generator never used), each player's
-   loss when it plays the table instead of the exact solution, the others fixed.
+   loss when it plays the table instead of the exact solution, the others fixed. The
+   chip-EV and chart tables are also played in the point game: the price of ignoring
+   points when everyone else plays the point equilibrium.
 
     python -m strategy.endgame.gates --jobs 8      # writes artifacts/endgame/gates.json
 """
@@ -205,11 +207,11 @@ def _audit_state(args):
     from strategy.endgame.lookup import load_table
     from strategy.endgame.showdown import load_showdown
 
-    ruleset, mode, snap, odd = args
+    ruleset, mode, snap, odd, table_mode = args
     model = load_showdown(ruleset)
     utility = "points" if mode == "points" else "chips"
     solved = solve_snapshot(snap, model, utility=utility, odd_order=odd, with_gains=False)
-    table = load_table(mode, ruleset)
+    table = load_table(table_mode, ruleset)
     solver, sigma = solved.solver, solved.sigma
     base = solver.values(sigma)
     swapped: dict[int, dict[int, np.ndarray]] = {}
@@ -233,7 +235,8 @@ def _audit_state(args):
     return snap.n, covered, total, loss
 
 
-def audit(ruleset: str, mode: str, jobs: int, states: int = 160) -> dict:
+def audit(ruleset: str, mode: str, jobs: int, states: int = 160, table_mode: str | None = None) -> dict:
+    """Loss of playing the ``table_mode`` table (default: ``mode``'s own) in the ``mode`` game."""
     from strategy.tables.endgame import default_config, synthetic_state
 
     config = default_config(ruleset)
@@ -242,7 +245,7 @@ def audit(ruleset: str, mode: str, jobs: int, states: int = 160) -> dict:
     while len(tasks) < states:
         s = synthetic_state(rng, config)
         if s is not None:
-            tasks.append((ruleset, mode, s.snapshot, s.odd_order))
+            tasks.append((ruleset, mode, s.snapshot, s.odd_order, table_mode or mode))
     rows = _map(_audit_state, tasks, jobs)
     losses = [x for r in rows for x in r[3]]
     by_n = {}
@@ -291,6 +294,8 @@ def main(argv: list[str] | None = None) -> None:
             print(ruleset, "late", json.dumps({k: v for k, v in res["late"].items() if k != "rows"}), flush=True)
         if "audit" in sections:
             res["audit"] = {m: audit(ruleset, m, a.jobs) for m in ("points", "chips")}
+            res["audit"].update({f"{m}_table_in_points": audit(ruleset, "points", a.jobs, table_mode=m)
+                                 for m in ("chips", "chart")})
             print(ruleset, "audit", json.dumps(res["audit"]), flush=True)
         res["seconds"] = round(time.perf_counter() - t0, 1)
         out[ruleset] = res
