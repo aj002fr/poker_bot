@@ -11,9 +11,9 @@ from strategy.features.state import NUMERIC_FIELDS
 from tests.strategy.feature_support import RULESETS, recorded
 
 STRATEGY = Path(__file__).resolve().parents[2] / "strategy"
-# Hidden-state modules: the decision path must work from public observations only.
-FORBIDDEN = ("arena.table.service", "arena.table.projections", "arena.domain.events", "arena.rules.pokerkit_adapter",
-             "arena.persistence", "arena.api", "pokerkit")
+# The decision path works from public observations only: the bot SDK and observation
+# contracts, plus the public-event table-reading stats it reuses.
+ALLOWED_ARENA = {"arena.agents.sdk", "arena.domain.observations", "arena.table.player_stats"}
 OFFLINE = {"bench.py"}
 """Harness modules that run tables offline and are never imported by the decision path."""
 
@@ -92,7 +92,9 @@ def test_decision_path_imports_only_public_modules() -> None:
     assert len(files) >= 8
     for path in files:
         for name in _imports(path):
-            assert not any(name == f or name.startswith(f + ".") for f in FORBIDDEN), (path.name, name)
+            assert name.split(".")[0] != "pokerkit", (path.name, name)
+            if name.split(".")[0] == "arena":
+                assert name in ALLOWED_ARENA, (path.name, name)
 
 
 def test_microbenchmark_smoke() -> None:

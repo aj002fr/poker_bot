@@ -34,6 +34,16 @@ def test_evaluator_matches_pokerkit(ruleset_id: str) -> None:
         assert (ha > hb) - (ha < hb) == (va > vb) - (va < vb), (s(a), s(b), s(board))
 
 
+@pytest.mark.parametrize("ruleset_id", RULESETS)
+def test_capabilities_agree_with_the_arena_profiles(ruleset_id: str) -> None:
+    from arena.rules.profiles import get_profile
+
+    p, caps = get_profile(ruleset_id), capabilities(ruleset_id)
+    assert (caps.ranks, caps.hole_count) == (p.ranks, p.hole_card_count)
+    assert (caps.hole_cards_used == 2) == (p.hand_selection == "two_hole_three_board")
+    assert (caps.category_order != NL.category_order) == (p.short_deck_ranking == "pokerkit_native")
+
+
 def test_capabilities_are_metadata() -> None:
     assert (NL.hole_count, NL.hole_cards_used, NL.deck_size) == (2, None, 52)
     assert (SD.hole_count, SD.deck_size) == (2, 36)

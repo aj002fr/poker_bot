@@ -108,13 +108,18 @@ class CardCapabilities:
 
 @lru_cache(maxsize=None)
 def capabilities(ruleset_id: str) -> CardCapabilities:
-    """Capabilities for an arena ruleset, derived from its rule profile."""
-    from arena.rules.profiles import get_profile
+    """Capabilities for a ruleset, derived from its :class:`~strategy.rules.variants.VariantSpec`."""
+    from strategy.rules.variants import SHORT_DECK_CATEGORY_ORDER, STANDARD_CATEGORY_ORDER, get_variant
 
-    p = get_profile(ruleset_id)
-    order = SHORT_DECK_ORDER if p.short_deck_ranking == "pokerkit_native" else STANDARD_ORDER
-    used = 2 if p.hand_selection == "two_hole_three_board" else None
-    return CardCapabilities(ruleset_id, p.ranks, p.hole_card_count, used, order)
+    v = get_variant(ruleset_id)
+    if v.category_order == SHORT_DECK_CATEGORY_ORDER:
+        order = SHORT_DECK_ORDER
+    elif v.category_order == STANDARD_CATEGORY_ORDER:
+        order = STANDARD_ORDER
+    else:
+        raise ValueError(f"{ruleset_id}: unsupported category order {v.category_order}")
+    used = 2 if v.hand_selection == "two_hole_three_board" else None
+    return CardCapabilities(ruleset_id, v.ranks, v.hole_cards, used, order, v.board_cards)
 
 
 # --------------------------------------------------------------------- evaluator
