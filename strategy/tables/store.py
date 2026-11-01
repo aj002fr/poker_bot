@@ -105,7 +105,94 @@ def load(name: str, directory: str | None = None) -> tuple[dict[str, Any], dict[
 
 def stale(name: str) -> bool | None:
     """True when the inputs changed since the table was built; None when it is missing."""
+    if array_path(name).exists() and not table_path(name).exists():
+        return stale_arrays(name)
     loaded = load(name)
+    if loaded is None:
+        return None
+    prov, _ = loaded
+    return sources_sha256(prov["inputs"]) != prov["inputs_sha256"]
+
+
+# ------------------------------------------------------------------ numpy tables
+#
+# Larger numeric tables are ``<name>.npz``: the arrays plus a ``__provenance__`` entry
+# holding the same provenance JSON as above. ``data_sha256`` hashes every array's name,
+# dtype, shape and bytes in name order.
+
+
+def array_path(name: str, directory: Path | None = None) -> Path:
+    return (directory or table_dir()) / f"{name}.npz"
+
+
+def arrays_sha256(arrays: dict[str, Any]) -> str:
+    import numpy as np
+
+    h = hashlib.sha256()
+    for key in sorted(arrays):
+        a = np.ascontiguousarray(arrays[key])
+        h.update(key.encode())
+        h.update(str(a.dtype).encode())
+        h.update(repr(a.shape).encode())
+        h.update(a.tobytes())
+    return h.hexdigest()
+
+
+def write_arrays(name: str, arrays: dict[str, Any], *, generator: str, inputs: list[str], params: dict[str, Any],
+                 seconds: float, extra: dict[str, Any] | None = None, directory: Path | None = None) -> Path:
+    import numpy as np
+
+    arrays = {k: np.ascontiguousarray(v) for k, v in arrays.items()}
+    if any(k.startswith("__") for k in arrays):
+        raise ValueError("array names starting with '__' are reserved")
+    provenance = {
+        "format_version": FORMAT_VERSION,
+        "name": name,
+        "generator": generator,
+        "params": params,
+        "inputs": sorted(inputs),
+        "inputs_sha256": sources_sha256(inputs),
+        "data_sha256": arrays_sha256(arrays),
+        "git_commit": _git_commit(),
+        "created_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "python": platform.python_version(),
+        "numpy": np.__version__,
+        "wall_seconds": round(seconds, 1),
+        "command": " ".join([os.path.basename(sys.executable), "-m", generator, *sys.argv[1:]]),
+        **(extra or {}),
+    }
+    path = array_path(name, directory)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp.npz")
+    meta = np.frombuffer(canonical(provenance), dtype=np.uint8)
+    np.savez_compressed(tmp, __provenance__=meta, **arrays)
+    tmp.replace(path)
+    load_arrays.cache_clear()
+    return path
+
+
+@lru_cache(maxsize=None)
+def load_arrays(name: str, directory: str | None = None) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """``(provenance, arrays)`` or None when the table has not been generated. Arrays are read-only."""
+    import numpy as np
+
+    path = array_path(name, Path(directory) if directory else None)
+    if not path.exists():
+        return None
+    with np.load(path, allow_pickle=False) as z:
+        prov = json.loads(bytes(z["__provenance__"]).decode())
+        arrays = {k: z[k] for k in z.files if k != "__provenance__"}
+    if prov.get("format_version") != FORMAT_VERSION:
+        raise TableError(f"{path}: unsupported table format {prov.get('format_version')!r}")
+    if arrays_sha256(arrays) != prov["data_sha256"]:
+        raise TableError(f"{path}: data hash mismatch")
+    for a in arrays.values():
+        a.setflags(write=False)
+    return prov, arrays
+
+
+def stale_arrays(name: str) -> bool | None:
+    loaded = load_arrays(name)
     if loaded is None:
         return None
     prov, _ = loaded
