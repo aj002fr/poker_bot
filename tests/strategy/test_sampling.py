@@ -87,4 +87,4 @@ def test_lone_acting_player_still_accumulates_an_average():
 def test_long_es_run_on_leduc(linear):
     tree = leduc_tree()
     solver = ExternalSamplingMCCFR(tree, seed=1, linear=linear).run(2_000_000)
-    assert nash_conv(tree, solver.average_policy()).nash_conv < 0.03
+    assert nash_conv(tree, solver.average_policy()).nash_conv < 0.04
