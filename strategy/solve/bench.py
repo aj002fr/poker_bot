@@ -4,8 +4,10 @@ Every method gets the same budget of node visits. NashConv of the average
 policy is measured at geometric checkpoints; evaluation time and numba JIT
 warmup are excluded from the reported solve seconds.
 
-    uv run python -m strategy.solve.bench            # full run, writes artifacts/bench-solve/
-    uv run python -m strategy.solve.bench --quick    # small budgets (smoke test)
+    make bench-solve                                               # full run, writes artifacts/bench-solve/
+    uv run --group train python -m strategy.solve.bench --quick    # small budgets (smoke test)
+
+numba is in the opt-in `train` dependency group, so run it with `--group train`.
 """
 
 from __future__ import annotations

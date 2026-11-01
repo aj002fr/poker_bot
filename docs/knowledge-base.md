@@ -69,7 +69,7 @@ uv run python -m strategy.knowledge.lint            # exit 1 with one line per e
 uv run python -m strategy.knowledge.triage          # print the top 15
 uv run python -m strategy.knowledge.triage --write  # regenerate index.md and index.yaml
 uv run python -m strategy.knowledge.triage --check  # fail if the index is stale
-uv run pytest tests/strategy -q
+make verify-strategy                                # all fast strategy tests, solver tests included
 ```
 
 `make verify-fast` runs the knowledge tests. A record or spec edit that leaves the index
