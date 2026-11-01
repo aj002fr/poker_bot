@@ -55,6 +55,9 @@ class ParamSpace:
     def __len__(self) -> int:
         return len(self.params)
 
+    def __getitem__(self, name: str) -> Param:
+        return self.params[self.index[name]]
+
     @property
     def names(self) -> tuple[str, ...]:
         return tuple(p.name for p in self.params)

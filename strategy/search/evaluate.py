@@ -99,15 +99,18 @@ def _opponent(spec: str) -> Any:
     return mod.make_bot()
 
 
-def play(task: Task, params: Mapping[str, float], incumbent: Mapping[str, float] | None) -> dict[str, Any]:
-    """One table; returns the candidate's points and execution counters."""
-    from arena.agents.sdk import bot_info, decode_state
-    from arena.agents.worker import InProcessSeat, play_table
+def seat_agents(config: Any, task: Task, candidate: Callable[[int, Any], Any],
+                incumbent: Mapping[str, float] | None = None) -> tuple[dict[int, Any], int, Any]:
+    """Started agents for ``task``: ``candidate(seat, table_info)`` builds entrant 0's agent.
+
+    Returns ``(agents, candidate seat, seeded table)``.
+    """
+    from arena.agents.sdk import bot_info
+    from arena.agents.worker import InProcessSeat
     from arena.benchmark.runner import Assignment, table_info
     from arena.table.service import seeded_table
     from strategy.policy.runtime import RuntimeBot
 
-    config = _W["config"]
     seats = config.resolved_seats
     n = len(seats)
     mapping = {seats[(i + task.rotation) % n]: i for i in range(n)}
@@ -115,17 +118,30 @@ def play(task: Task, params: Mapping[str, float], incumbent: Mapping[str, float]
     agents = {}
     cand_seat = -1
     for seat, entrant in a.seats.items():
+        info = table_info(config, a, seat, config.bot_budget_ns)
         if entrant == 0:
-            bot = RuntimeBot(params)
+            agent = candidate(seat, info)
             cand_seat = seat
         else:
             spec = task.opponents[entrant - 1]
             bot = RuntimeBot(incumbent, name="mirror") if spec == MIRROR else _opponent(spec)
-        info = bot_info(bot)
-        agent = InProcessSeat(seat, bot, info, table_info(config, a, seat, config.bot_budget_ns), "search")
+            agent = InProcessSeat(seat, bot, bot_info(bot), info, "search")
         agent.start()
         agents[seat] = agent
-    table = seeded_table(config, task.seed, table_id=a.table_id)
+    return agents, cand_seat, seeded_table(config, task.seed, table_id=a.table_id)
+
+
+def play(task: Task, params: Mapping[str, float], incumbent: Mapping[str, float] | None) -> dict[str, Any]:
+    """One table; returns the candidate's points and execution counters."""
+    from arena.agents.sdk import bot_info, decode_state
+    from arena.agents.worker import InProcessSeat, play_table
+    from strategy.policy.runtime import RuntimeBot
+
+    def candidate(seat: int, info: Any) -> Any:
+        bot = RuntimeBot(params)
+        return InProcessSeat(seat, bot, bot_info(bot), info, "search")
+
+    agents, cand_seat, table = seat_agents(_W["config"], task, candidate, incumbent)
     play_table(table, agents)
     cand = agents[cand_seat]
     state = decode_state(cand.committed)

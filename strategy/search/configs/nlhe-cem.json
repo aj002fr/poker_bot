@@ -1,0 +1,17 @@
+{
+ "run_id": "nlhe-cem-v1",
+ "algorithm": "cem",
+ "generations": 20,
+ "population": 16,
+ "elite_frac": 0.25,
+ "tables_per_gen": 96,
+ "confirm_tables": 192,
+ "init_sigma": 0.15,
+ "sigma_floor": 0.03,
+ "smoothing": 0.6,
+ "accept_t": 1.28,
+ "mirror_rate": 0.1,
+ "partition": "train",
+ "ruleset_id": "practice_nlhe",
+ "seed": "baseline-search-nlhe-v1"
+}

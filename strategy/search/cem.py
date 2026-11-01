@@ -35,7 +35,7 @@ from strategy.policy.baseline import SPACE
 from strategy.policy.params import vector_hash
 from strategy.rules.canonical import canonical_hash
 from strategy.search.evaluate import Evaluator, Task, make_tasks, paired, seed_set_hash, summarize
-from strategy.search.population import load_population, population_digest
+from strategy.search.population import DEFAULT_SOURCE, SEARCH_PARTITIONS, load_population, population_digest
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RUN_ROOT = ROOT / "artifacts" / "search"
@@ -55,7 +55,7 @@ class SearchConfig:
     smoothing: float = 0.6
     accept_t: float = 1.28
     mirror_rate: float = 0.15
-    source: str = "auto"
+    source: str = DEFAULT_SOURCE
     partition: str = "train"
     ruleset_id: str = "practice_nlhe"
     players: int = 8
@@ -72,6 +72,8 @@ class SearchConfig:
             raise ValueError("algorithm must be cem or cmaes")
         if self.population < 4 or self.population % 2:
             raise ValueError("population must be an even number >= 4 (mirrored sampling)")
+        if self.partition not in SEARCH_PARTITIONS:
+            raise ValueError(f"the search trains only on {SEARCH_PARTITIONS}; validation is for promotion")
         unknown = set(self.frozen) - set(SPACE.names)
         if unknown:
             raise ValueError(f"unknown frozen parameters {sorted(unknown)}")
@@ -265,7 +267,9 @@ def run_search(cfg: SearchConfig, *, root: Path = DEFAULT_RUN_ROOT, jobs: int | 
     cfg_path = run_dir / "config.json"
     if cfg_path.exists():
         prev = json.loads(cfg_path.read_text(encoding="ascii"))
-        if prev["config"] != header["config"] or prev["space_hash"] != header["space_hash"]:
+        same = {k: v for k, v in prev["config"].items() if k != "generations"} == \
+            {k: v for k, v in header["config"].items() if k != "generations"}
+        if not same or prev["space_hash"] != header["space_hash"]:
             raise RuntimeError(f"{run_dir} holds a different search; choose a new run_id")
     else:
         cfg_path.write_text(json.dumps(header, sort_keys=True, indent=1) + "\n", encoding="ascii")

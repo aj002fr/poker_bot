@@ -1,0 +1,17 @@
+{
+  "experiment_id": "baseline-validation-nlhe",
+  "title": "Searched baseline vector vs the hand-written control, NLHE, validation partition",
+  "hypothesis_id": null,
+  "description": "Stage 1 promotion check for the parameter search (strategy.search). Arm A is the baseline policy at its hand-written defaults, arm B the search's final incumbent; both are packaged bundles built by strategy.search.validate. Official format: 8 seats, 2,000 chips, 200-hand cap. Promotion needs the paired 95% interval's lower bound above min_effect (1.0 point per tournament, declared before the run).",
+  "stage": "confirmation",
+  "min_effect": 1.0,
+  "arms": {"A": {"policy": "artifacts/bots/baseline-control"}, "B": {"policy": "artifacts/bots/baseline-candidate"}},
+  "variants": ["practice_nlhe"],
+  "table": {"players": 8, "starting_stack": 2000, "hand_cap": 200},
+  "population": {"source": "strategy.population:PopulationSource", "partition": "validation", "lineups_per_variant": 40},
+  "blocks_per_lineup": 6,
+  "base_seed": "baseline-validation-nlhe-v1",
+  "isolation": "in_process",
+  "interval": "paired_t",
+  "bootstrap_resamples": 2000
+}
