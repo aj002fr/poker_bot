@@ -1,0 +1,36 @@
+schema: knowledge.invariant-test/v1
+id: T022
+title: Paired RNG coupling and null A/B
+kind: invariant_test
+records: [I022]
+owner_workstream: M1-C
+target: arena benchmark runner seeding and strategy evaluation statistics
+test_location: tests/strategy/evaluation/test_pairing.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: deal independence
+  given:
+    policy_a: consumes no randomness
+    policy_b: consumes extra randomness
+    seed: fixed
+  expect:
+    deals: identical
+- name: null A/B
+  given:
+    runs: 1000
+    policies: identical
+  expect:
+    interval_covers_zero_rate: 0.95 within Wilson interval
+properties:
+- environment and per-seat policy streams are derived independently from the block seed
+mutations:
+- a shared stream must fail deal independence

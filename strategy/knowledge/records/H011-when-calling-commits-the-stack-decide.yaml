@@ -1,0 +1,103 @@
+id: H011
+title: When calling commits the stack, decide between fold and jam directly
+kind: strategy
+status: proposed
+cluster: preflop_tree
+sources:
+- source: mop
+  location: ch. 28, pp. 345-348
+  digest_records: [mop/H06]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: harrington-v1
+  location: Part Four pp. 64-66; Part Seven pp. 160-161
+  digest_records: [harrington/H10]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+- source: mpt-extract
+  location: Modern Poker Theory ch. 7, commitment rule
+  digest_sections:
+  - gtowizard-mpt.md Modern Poker Theory notes
+  transfer_caveat: >-
+    Nine-handed NLHE with a 12.5% ante and chip EV; charts must be regenerated, never transcribed.
+situation: Calling or raising small would leave a tiny stack relative to the resulting pot.
+eligible_opportunity: Decision where the post-action SPR of the non-all-in option is below the
+  swept transition.
+observable_inputs:
+- post_action_spr
+- spr
+- effective_stack_by_opponent
+- amount_to_call
+- pot
+- legal_size_bounds
+- opponent_posterior
+training_signals: []
+intervention: >-
+  Evaluate fold and all-in as the primary options when the non-all-in option leaves no meaningful
+  future decision; learn the transition depth instead of fixing it.
+baseline: Treat a call or small raise as preserving a real future option at every depth.
+mechanism: >-
+  A nominal future decision can be illusory once the pot dwarfs the remaining stack, and jamming
+  adds fold equity now.
+exceptions:
+- The next card has high information value and can still produce a rational fold.
+- Variants with different equity realisation or raise rules.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: >-
+    Commitment arithmetic transfers to big-bet variants; transition depth is variant- and ICM-specific.
+source_numbers:
+- value: 6
+  context: MoP prior for the raise-versus-jam transition in preflop pots
+  use: initialization_candidate
+- value: 4 to 8
+  context: MoP digest sweep range for that transition
+  use: sweep_bound
+- value: one third of the stack
+  context: MPT commitment rule of thumb
+  use: initialization_candidate
+parameters:
+- name: jam_transition_preflop_pots
+  basis: sweep_only
+  default: null
+  sweep:
+    values: [4, 5, 6, 7, 8]
+    also: continuous learned gate
+experiment:
+  id: E006
+  primary_metric: mean_point_difference
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 2
+  effect: 2
+  transfer: 2
+  readiness: 1
+  power: 2
+  risk: 1
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 0
+  rationale: Needs the push/fold solver; partly the inverse of H012.
+owner: M4
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H012, H010]

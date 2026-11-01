@@ -1,0 +1,117 @@
+schema: knowledge.experiment/v1
+id: E035
+title: 'Turn play: texture deltas, probes, barrel suppression, draw pricing, two-street value'
+kind: factorial
+mode: discovery
+records: [H064, H065, H066, H067, H068]
+question: >-
+  Do turn-delta features, probe logic after an omitted bet, posterior-driven barrel suppression,
+  draw-pricing sizes and joint two-street value sizing improve turn and river points?
+arms:
+- name: independent_streets
+  role: control
+  description: Turn policy without deltas or cross-street posteriors.
+  toggles:
+    turn_deltas: 'off'
+    probe_logic: 'off'
+    barrel_posterior: 'off'
+    draw_pricing: 'off'
+    joint_value_sizing: 'off'
+- name: deltas_probe
+  role: treatment
+  description: Adds turn deltas and probe logic.
+  toggles:
+    turn_deltas: 'on'
+    probe_logic: 'on'
+    barrel_posterior: 'off'
+    draw_pricing: 'off'
+    joint_value_sizing: 'off'
+- name: all
+  role: treatment
+  description: All five components.
+  toggles:
+    turn_deltas: 'on'
+    probe_logic: 'on'
+    barrel_posterior: 'on'
+    draw_pricing: 'on'
+    joint_value_sizing: 'on'
+factors:
+- name: turn deltas
+  toggle: turn_deltas
+  records_tested: [H064]
+- name: probe logic
+  toggle: probe_logic
+  records_tested: [H065]
+- name: barrel posterior
+  toggle: barrel_posterior
+  records_tested: [H066]
+- name: draw pricing
+  toggle: draw_pricing
+  records_tested: [H067]
+- name: joint value sizing
+  toggle: joint_value_sizing
+  records_tested: [H068]
+toggles:
+  turn_deltas: ['off', 'on']
+  probe_logic: ['off', 'on']
+  barrel_posterior: ['off', 'on']
+  draw_pricing: ['off', 'on']
+  joint_value_sizing: ['off', 'on']
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: []
+seeds:
+  namespace: knowledge/E035
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: paired seed/lineup/rotation block
+  interval: paired t 95%; cluster bootstrap over blocks when skewed
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
+  multiplicity: Holm across the M1-M3 discovery screen
+  note: >-
+    fractional factorial (resolution IV) over five two-level factors; full arms listed are anchors
+primary_metric: slice_point_delta
+minimum_effect:
+  value: 0.004
+  unit: pool_fraction_per_sng
+  basis: provisional
+metrics: [mean_point_difference]
+slices: [turn card class, checked-through flops, draw present]
+guardrails:
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 300
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+run_specs: []
+blocked_by: [M5 blueprint]
+status: blocked
+result_artifact: null

@@ -1,0 +1,66 @@
+id: H052
+title: Condition on own-range rank and opponent range summaries
+kind: strategy
+status: proposed
+cluster: range_construction
+sources:
+- source: mit-15s50
+  location: Lecture 8 ~27:56-38:08, 42:22-46:05; Lecture 8
+  digest_records: [mit15s50/H21, mit-l78/H6]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: Postflop decisions after public cards and actions have filtered reachable hands.
+eligible_opportunity: Postflop decisions.
+observable_inputs:
+- own_range_rank
+- own_range_summary
+- opponent_range_summary
+- board_cards
+- action_history
+training_signals: []
+intervention: Add own-range rank and removal-aware cross-street range summaries as features.
+baseline: Current-hand strength only.
+mechanism: Value, bluff-catch and bluff regions are coupled across the reachable range.
+exceptions: [Terminal or dominant-action states.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Range summaries are generic given the adapter.
+source_numbers: []
+parameters: []
+experiment:
+  id: E025
+  primary_metric: approximate_response_loss
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 1
+  transfer: 3
+  readiness: 1
+  power: 2
+  risk: 2
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Needs range tracking machinery.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H051, H072]

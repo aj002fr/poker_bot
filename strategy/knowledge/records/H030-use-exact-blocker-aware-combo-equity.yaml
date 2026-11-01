@@ -1,0 +1,84 @@
+id: H030
+title: Use exact blocker-aware combo equity instead of outs or fitted formulas
+kind: method
+status: proposed
+cluster: equity
+sources:
+- source: harrington-v1
+  location: Part Four, pp. 58-60
+  digest_records: [harrington/H08]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+- source: mit-15s50
+  location: Lecture 4 ~24:01-30:06; slides pp. 40-57; Lecture 4 range-equity fit
+  digest_records: [mit15s50/H09, mit-l34/H2]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: >-
+  Near-boundary decisions, draws whose nominal outs can lose or split, and tight opponent ranges.
+eligible_opportunity: Any decision whose equity estimate is within a small margin of the action
+  threshold.
+observable_inputs:
+- hole_cards
+- board_cards
+- blocker_mask
+- opponent_range_summary
+- live_opponents
+- equity_vs_range
+training_signals: [exact_oracle_value]
+intervention: >-
+  Compute range-weighted exact equity from precomputed win/tie/loss tensors rather than outs counts
+  or a fitted range-equity formula.
+baseline: Outs-based equity, and separately the lecture's logarithmic fit.
+mechanism: >-
+  Tight ranges are discrete, blockers change combo weights, and dirty outs do not always win;
+  fits err most where decisions are sensitive.
+exceptions:
+- A compressed approximation is acceptable if held-out regret is negligible.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Exact equity is generic given the adapter's evaluator; tensors are per variant.
+source_numbers:
+- value: 0.5 + 0.085 ln(C) - 0.085 ln(H)
+  context: Lecture range-equity regression
+  used only as the control arm: null
+  use: illustration
+parameters: []
+experiment:
+  id: E026
+  primary_metric: exact_state_point_regret
+  minimum_effect:
+    value: 0.01
+    unit: pool_fraction
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 1
+  transfer: 2
+  readiness: 2
+  power: 3
+  risk: 2
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Cheap exact oracle comparison with good transfer through the adapter.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 3 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H031, H032, H029]

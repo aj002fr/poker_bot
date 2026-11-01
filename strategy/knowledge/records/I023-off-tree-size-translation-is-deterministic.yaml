@@ -1,0 +1,52 @@
+id: I023
+title: Off-tree size translation is deterministic and boundary-safe
+kind: invariant
+status: proposed
+cluster: invariant_runtime
+sources:
+- source: pluribus-2019
+  location: cfr digest section 2.4 (action abstraction and off-tree handling)
+  digest_sections: [cfr-pluribus-papers.md §2.4]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+situation: An opponent bet size not on the action menu.
+eligible_opportunity: Every off-tree opponent action.
+observable_inputs: [bet_size_pot_fraction, legal_size_bounds, pot]
+training_signals: []
+intervention: >-
+  Translation is deterministic given the seed, maps menu sizes to themselves, is monotone between
+  neighbours, and handles minimum raises, all-ins and sizes just above and below every boundary.
+baseline: Nearest-size rounding without tests.
+mechanism: Boundary errors are a known source of large exploitable leaks.
+exceptions: [None.]
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Big-bet games.
+source_numbers: []
+parameters: []
+experiment:
+  id: T023
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Guards H049.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H049, I018]

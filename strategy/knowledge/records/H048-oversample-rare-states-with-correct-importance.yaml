@@ -1,0 +1,64 @@
+id: H048
+title: Oversample rare states with correct importance weights
+kind: method
+status: proposed
+cluster: training
+sources:
+- source: pluribus-2019
+  location: cfr digest section 2.5 (offline training)
+  digest_sections: [cfr-pluribus-papers.md §2.5]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+situation: >-
+  Rare but high-stakes states (multiway all-ins, near-cap stacks) get too few training visits.
+eligible_opportunity: Training state sampling.
+observable_inputs: [stack_vector, players_remaining, hands_to_cap]
+training_signals: [reach_probabilities]
+intervention: >-
+  Oversample declared rare-state slices and correct with importance weights so averages stay unbiased.
+baseline: Natural state frequencies.
+mechanism: More visits reduce variance where it matters; weights preserve the target distribution.
+exceptions:
+- Large weights inflate variance; cap and report effective sample size.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Trainer-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: E019
+  primary_metric: nash_conv
+  minimum_effect:
+    value: 0.01
+    unit: game_value_units
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 2
+  effect: 1
+  transfer: 3
+  readiness: 1
+  power: 2
+  risk: 2
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Useful efficiency lever once training runs exist.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H043]

@@ -1,0 +1,87 @@
+id: H009
+title: Act before projected forced costs remove fold equity
+kind: strategy
+status: proposed
+cluster: stack_pressure
+sources:
+- source: mit-15s50
+  location: Lecture 5 ~08:11-11:12; slides pp. 10-11; Lecture 5 stack zones
+  digest_records: [mit15s50/H13, mit-l56/H3]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: A short stack will soon post blinds or cross the depth where opens stop inducing folds.
+eligible_opportunity: >-
+  First-in decision when projected forced costs before the next favourable position would leave
+  hero below the urgency depth.
+observable_inputs:
+- hero_stack
+- stack_bb
+- projected_forced_cost
+- hands_to_blind_change
+- position
+- opponent_posterior
+- point_vector
+training_signals: []
+intervention: >-
+  Increase first-in aggression in proportion to how much projected forced costs will erode fold
+  equity before the next good opportunity.
+baseline: Aggression conditioned on current depth only.
+mechanism: Waiting converts a shove that sometimes wins uncontested into a near-forced showdown.
+exceptions:
+- A shorter stack is likely to bust first.
+- Cap survival dominates, or better positions are imminent.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Format-level; hand choice comes from the adapter.
+source_numbers:
+- value: 3-5 BB
+  context: Lecture dead-zone depth
+  use: sweep_bound
+- value: 3-8 BB
+  context: Digest evaluation slice
+  use: illustration
+parameters:
+- name: urgency_depth_bb
+  basis: sweep_only
+  default: null
+  sweep:
+    values: [2, 3, 4, 5, 6, 8]
+    note: bounds from the lecture's dead zone
+    widened: null
+experiment:
+  id: E005
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 1
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 0
+  rationale: Short-stack states are common in turbo SNGs.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H008, H007]

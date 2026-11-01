@@ -1,0 +1,69 @@
+id: H037
+title: Line inconsistency is evidence, gated by opponent skill
+kind: strategy
+status: proposed
+cluster: beliefs
+sources:
+- source: harrington-v1
+  location: Part Six pp. 129-130; Part Seven pp. 163-171
+  digest_records: [harrington/H27]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: A late large bet follows a passive line that skipped earlier value opportunities.
+eligible_opportunity: River bluff-catch decision after a passive-then-aggressive line.
+observable_inputs:
+- action_history
+- line_consistency_score
+- archetype_posterior
+- bet_size_pot_fraction
+training_signals: []
+intervention: >-
+  Bluff-catch wider against unsophisticated inconsistent opponents and less against capable reverse-exploiters.
+baseline: No line-consistency feature.
+mechanism: >-
+  Many value hands would have built the pot earlier, but capable players use that inference against
+  you.
+exceptions:
+- Deliberate traps or unusual board transitions.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Generic
+source_numbers: []
+parameters: []
+experiment:
+  id: E037
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 1
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 0
+  rule_uncertainty: 0
+  leakage: 1
+  complexity: 2
+  rationale: Rare node with a skill posterior that is hard to calibrate.
+owner: M7
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H071]

@@ -1,0 +1,92 @@
+id: H063
+title: Multiway bluffs need joint all-fold probability above break-even
+kind: strategy
+status: proposed
+cluster: postflop_multiway
+sources:
+- source: gtow-multiway
+  location: Multiway pots, shared defence burden
+  digest_records: [gtow/H16]
+  transfer_caveat: >-
+    Multiway equilibrium has no security guarantee; the all-fold product assumes independent folds.
+- source: harrington-v1
+  location: Part Seven, pp. 159, 171-172
+  digest_records: [harrington/H26]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: >-
+  A pure bluff into two or more opponents, or facing a bet on a completing river into several
+  players.
+eligible_opportunity: Bluff or bluff-catch decision with at least two live opponents.
+observable_inputs:
+- all_fold_probability
+- live_opponents
+- bet_size_pot_fraction
+- pot_odds
+- opponent_posterior
+- blocker_mask
+training_signals: []
+intervention: >-
+  Bluff only when the estimated joint probability that every opponent folds exceeds bet/(pot+bet)
+  plus a margin; fold bluff-catchers more against multiway aggression.
+baseline: Heads-up thresholds, or an independent product of per-opponent fold rates.
+mechanism: >-
+  Every live opponent must fold; a bluffer into several ranges is less likely, so multiway aggression
+  is stronger evidence.
+exceptions:
+- Called branches that keep enough equity.
+- Opponents known to overbluff multiway, or decisive blockers.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Break-even arithmetic is generic; folds may be correlated.
+source_numbers:
+- value: B/(P+B)
+  context: Pure bluff break-even fold probability
+  use: analytic
+parameters:
+- name: bluff_break_even
+  basis: analytic
+  default: strategy.math.bluff_break_even(bet, pot)
+  derivation: Indifference of a pure bluff between folding and calling outcomes
+- name: all_fold_margin
+  basis: sweep_only
+  default: null
+  sweep:
+    values: [0.0, 0.02, 0.05, 0.1]
+experiment:
+  id: E034
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 2
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Generic, analytic core with direct point consequences.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H061, I002]

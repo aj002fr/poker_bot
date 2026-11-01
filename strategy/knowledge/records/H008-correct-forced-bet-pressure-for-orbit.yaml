@@ -1,0 +1,82 @@
+id: H008
+title: Correct forced-bet pressure for orbit length and table size
+kind: strategy
+status: proposed
+cluster: stack_pressure
+sources:
+- source: mit-15s50
+  location: Lectures 5-6; Lecture 1 ~25:31-28:56; slide p. 48; Lectures 1-2
+  digest_records: [mit-l56/H7, mit15s50/H01, mit-l12/H1]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: Unopened pots as forced bets grow relative to stacks, especially three- to five-handed.
+eligible_opportunity: First-in decision in an unopened pot.
+observable_inputs:
+- m_ratio
+- stack_bb
+- effective_stack_by_opponent
+- players_remaining
+- forced_bets
+- projected_forced_cost
+- position
+- hands_to_blind_change
+- hands_to_cap
+training_signals: []
+intervention: >-
+  Let first-in aggression depend on forced cost per orbit computed from the live player count,
+  so aggression rises as the table shrinks even at the same nominal level.
+baseline: Hero-stack M computed for a full table.
+mechanism: >-
+  With fewer players the blinds come round faster, so the effective cost of waiting rises and
+  steals gain value.
+exceptions:
+- Cap-time survival value, calling-heavy opponents or side-pot exposure.
+- Variants where the candidate hand buckets have poor multiway equity.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Forced-cost arithmetic transfers; hand buckets are supplied by the variant adapter.
+source_numbers:
+- value: M = stack / (SB + BB + antes per orbit)
+  context: Definition of M
+  use: analytic
+- value: 2-8 M shove or fold
+  context: Lecture steal-zone prescription
+  use: rejected
+parameters: []
+experiment:
+  id: E005
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 1
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 0
+  rationale: High reach in a fast-blind SNG and cheap to build.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 3 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H009, H010]

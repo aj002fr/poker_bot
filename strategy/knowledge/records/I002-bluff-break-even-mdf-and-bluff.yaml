@@ -1,0 +1,60 @@
+id: I002
+title: Bluff break-even, MDF and bluff ratio identities
+kind: invariant
+status: proposed
+cluster: invariant_math
+sources:
+- source: mop
+  location: ch. 11, pp. 110-120, and toy-game fixtures
+  digest_sections:
+  - mathematics-of-poker.md toy-game fixtures
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: mit-15s50
+  location: Lecture 8 notes, terminal heads-up formulas
+  digest_sections:
+  - mit-notes/mit-lectures-7-8-self-play-research.md caveat 3
+  transfer_caveat: Heads-up terminal identities only; multiway and side pots need a fuller model.
+situation: Heads-up terminal bet of B into pot P.
+eligible_opportunity: Every use of break-even, MDF or bluff-ratio formulas.
+observable_inputs: [pot, bet_size_pot_fraction]
+training_signals: []
+intervention: >-
+  Break-even fold rate equals B/(P+B); MDF equals P/(P+B) = 1 - break-even; bluffs per value bet
+  equal B/(P+B); bluff share of the betting range equals B/(P+2B); semi-bluff value equals f*P
+  + (1-f)*(e*(P+2B) - B).
+baseline: Ad hoc formulas.
+mechanism: Indifference algebra of a single terminal bet.
+exceptions:
+- Only valid heads-up on the last street with no raises.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Betting arithmetic.
+source_numbers: []
+parameters: []
+experiment:
+  id: T002
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Formula correctness used by features and fixtures.
+owner: M2-C
+implementation:
+  module: strategy.math.odds
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H072, H063, H032]

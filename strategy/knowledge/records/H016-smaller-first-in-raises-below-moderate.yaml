@@ -1,0 +1,78 @@
+id: H016
+title: Smaller first-in raises below moderate depth
+kind: strategy
+status: proposed
+cluster: preflop_nlhe
+sources:
+- source: mpt-extract
+  location: Modern Poker Theory ch. 7, RFI sizing
+  digest_records: [gtow/H26]
+  transfer_caveat: >-
+    Nine-handed NLHE with a 12.5% ante and chip EV; charts must be regenerated, never transcribed.
+situation: First-in open in NLHE below roughly 25 big blinds.
+eligible_opportunity: Unopened preflop raise decision with effective stack below the depth bound.
+observable_inputs:
+- stack_bb
+- effective_stack_by_opponent
+- position
+- icm_risk_premium
+- legal_size_bounds
+training_signals: []
+intervention: Sweep smaller open sizes by position and depth instead of a fixed larger open.
+baseline: One open size at all depths.
+mechanism: A smaller open risks less against re-jams and keeps raise-fold viable.
+exceptions:
+- Opponents who overcall and rarely re-jam.
+variant_scope:
+  transfer: variant_specific
+  variants: [nlhe]
+  notes: Size grid is NLHE-specific; the sweep method transfers.
+source_numbers:
+- value: 2bb rather than 2.3-3bb
+  context: MPT chip-EV nine-handed recommendation
+  use: initialization_candidate
+- value: 25bb
+  context: MPT depth bound
+  use: sweep_bound
+parameters:
+- name: open_size_bb
+  basis: sweep_only
+  default: null
+  sweep:
+    values: [2.0, 2.2, 2.5, 3.0]
+    by: [position, depth_bucket]
+experiment:
+  id: E038
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 1
+  transfer: 1
+  readiness: 2
+  power: 2
+  risk: 0
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 1
+  rationale: Variant-specific sizing tweak with small expected effect.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H012, H017]

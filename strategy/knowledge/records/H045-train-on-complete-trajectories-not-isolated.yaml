@@ -1,0 +1,68 @@
+id: H045
+title: Train on complete trajectories, not isolated streets
+kind: method
+status: proposed
+cluster: training
+sources:
+- source: mop
+  location: chs. 19-20, pp. 228-258
+  digest_records: [mop/H16]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Any node with future betting.
+eligible_opportunity: Every multi-street training trajectory.
+observable_inputs:
+- action_history
+- own_range_summary
+- opponent_range_summary
+- streets_remaining
+training_signals: [reach_probabilities, terminal_points]
+intervention: >-
+  Propagate terminal value through the whole trajectory and preserve range reach across streets.
+baseline: Independent street policies with per-street targets.
+mechanism: >-
+  Earlier costs and range selection change later bluff and defence frequencies; chaining street
+  solutions gives wrong answers.
+exceptions: [Genuinely terminal subgames.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Trainer-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: E016
+  primary_metric: mean_point_difference
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 1
+  power: 3
+  risk: 3
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: The marked-draw fixture gives a sharp cheap check; plan rank 14.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H046, I010]

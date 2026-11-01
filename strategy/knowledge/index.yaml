@@ -1,0 +1,1874 @@
+# Generated file; do not edit. Regenerate with:
+#   uv run python -m strategy.knowledge.triage --write
+generated_by: python -m strategy.knowledge.triage --write
+top15:
+- E010
+- E001
+- E003
+- E009
+- E007
+- E008
+- E013
+- E016
+- E004
+- E012
+- E011
+- E002
+- E020
+- E017
+- E005
+plan_top15:
+- E001
+- E004
+- E003
+- E009
+- E010
+- E006
+- E007
+- E008
+- E011
+- E012
+- E013
+- E014
+- E015
+- E016
+- E017
+confirmed:
+- E001
+- E004
+- E003
+- E009
+- E010
+- E007
+- E008
+- E011
+- E012
+- E013
+- E016
+- E017
+added:
+- E002
+- E020
+- E005
+dropped:
+- E006
+- E014
+- E015
+experiments:
+- rank: 1
+  id: E010
+  title: Paired-block promotion vs unpaired and hand-level promotion
+  kind: null_simulation
+  priority: 20
+  mean_score: 20.0
+  records:
+  - id: H056
+    score: 20
+  plan_rank: 5
+  top15: confirmed
+- rank: 2
+  id: E001
+  title: Terminal points vs chip-EV training
+  kind: ab_test
+  priority: 17
+  mean_score: 17.0
+  records:
+  - id: H001
+    score: 17
+  plan_rank: 1
+  top15: confirmed
+- rank: 3
+  id: E003
+  title: Point-aware all-in calls and bystander utility
+  kind: factorial
+  priority: 17
+  mean_score: 15.0
+  records:
+  - id: H003
+    score: 17
+  - id: H004
+    score: 13
+  plan_rank: 3
+  top15: confirmed
+- rank: 4
+  id: E009
+  title: Opponent-specific effective stacks and side-pot features
+  kind: ablation
+  priority: 16
+  mean_score: 16.0
+  records:
+  - id: H021
+    score: 16
+  plan_rank: 4
+  top15: confirmed
+- rank: 5
+  id: E007
+  title: Point-aware push and call tables vs fixed charts
+  kind: oracle_comparison
+  priority: 15
+  mean_score: 15.0
+  records:
+  - id: H014
+    score: 15
+  plan_rank: 7
+  top15: confirmed
+- rank: 6
+  id: E008
+  title: Joint multiway caller subsets vs heads-up multipliers
+  kind: oracle_comparison
+  priority: 15
+  mean_score: 15.0
+  records:
+  - id: H015
+    score: 15
+  plan_rank: 8
+  top15: confirmed
+- rank: 7
+  id: E013
+  title: Frozen-checkpoint league vs latest-only mirror self-play
+  kind: ab_test
+  priority: 15
+  mean_score: 15.0
+  records:
+  - id: H041
+    score: 15
+  plan_rank: 11
+  top15: confirmed
+- rank: 8
+  id: E016
+  title: Trajectory and counterfactual labels vs isolated-street and raw-result labels
+  kind: factorial
+  priority: 15
+  mean_score: 14.0
+  records:
+  - id: H045
+    score: 15
+  - id: H046
+    score: 13
+  plan_rank: 14
+  top15: confirmed
+- rank: 9
+  id: E004
+  title: 'Tournament clock: cap horizon and blind transitions'
+  kind: factorial
+  priority: 15
+  mean_score: 13.5
+  records:
+  - id: H006
+    score: 15
+  - id: H007
+    score: 12
+  plan_rank: 2
+  top15: confirmed
+- rank: 10
+  id: E012
+  title: Robust baseline vs raw exploit vs confidence-capped exploit vs restricted response
+  kind: ab_test
+  priority: 15
+  mean_score: 12.0
+  records:
+  - id: H039
+    score: 15
+  - id: H040
+    score: 9
+  plan_rank: 10
+  top15: confirmed
+- rank: 11
+  id: E011
+  title: Contextual Bayesian beliefs and likelihood floors vs raw counters
+  kind: factorial
+  priority: 14
+  mean_score: 14.0
+  records:
+  - id: H034
+    score: 14
+  - id: H035
+    score: 14
+  plan_rank: 9
+  top15: confirmed
+- rank: 12
+  id: E002
+  title: Learned continuation value vs ICM-delta shaping
+  kind: ab_test
+  priority: 14
+  mean_score: 14.0
+  records:
+  - id: H002
+    score: 14
+  plan_rank: null
+  top15: added
+- rank: 13
+  id: E020
+  title: 'Gap: separate first-in and calling thresholds'
+  kind: ab_test
+  priority: 14
+  mean_score: 14.0
+  records:
+  - id: H013
+    score: 14
+  plan_rank: null
+  top15: added
+- rank: 14
+  id: E017
+  title: Distilled, byte-quantized student vs float teacher
+  kind: factorial
+  priority: 14
+  mean_score: 13.5
+  records:
+  - id: H054
+    score: 14
+  - id: H053
+    score: 13
+  plan_rank: 15
+  top15: confirmed
+- rank: 15
+  id: E005
+  title: 'Short-stack urgency: forced-bet pressure, fold-equity preservation, soft gates'
+  kind: factorial
+  priority: 14
+  mean_score: 13.33
+  records:
+  - id: H008
+    score: 14
+  - id: H009
+    score: 13
+  - id: H010
+    score: 13
+  plan_rank: null
+  top15: added
+- rank: 16
+  id: E023
+  title: Full-state feature groups and scale-normalised features
+  kind: ablation
+  priority: 14
+  mean_score: 12.5
+  records:
+  - id: H023
+    score: 14
+  - id: H022
+    score: 11
+  plan_rank: null
+  top15: null
+- rank: 17
+  id: E026
+  title: Exact equity, payment-model implied odds and joint branch evaluation
+  kind: factorial
+  priority: 14
+  mean_score: 11.33
+  records:
+  - id: H030
+    score: 14
+  - id: H032
+    score: 14
+  - id: H031
+    score: 6
+  plan_rank: null
+  top15: null
+- rank: 18
+  id: E018
+  title: Averaged CFR+ policy vs latest-policy self-play baseline
+  kind: ab_test
+  priority: 13
+  mean_score: 13.0
+  records:
+  - id: H042
+    score: 13
+  plan_rank: null
+  top15: null
+- rank: 19
+  id: E019
+  title: MCCFR traversal, iteration weighting and state-sampling weights
+  kind: factorial
+  priority: 13
+  mean_score: 11.67
+  records:
+  - id: H043
+    score: 13
+  - id: H044
+    score: 12
+  - id: H048
+    score: 10
+  plan_rank: null
+  top15: null
+- rank: 20
+  id: E027
+  title: 'Surprise-variant rehearsal: generic-layer transfer and staged reveal-day pipeline'
+  kind: rehearsal
+  priority: 13
+  mean_score: 11.5
+  records:
+  - id: H055
+    score: 13
+  - id: H027
+    score: 10
+  plan_rank: null
+  top15: null
+- rank: 21
+  id: E025
+  title: Mixed sampling, balanced range construction and own-range features
+  kind: factorial
+  priority: 13
+  mean_score: 10.67
+  records:
+  - id: H050
+    score: 13
+  - id: H052
+    score: 12
+  - id: H051
+    score: 7
+  plan_rank: null
+  top15: null
+- rank: 22
+  id: E034
+  title: 'Multiway postflop: field-conditioned c-bets, nut-potential draws, joint all-fold'
+  kind: factorial
+  priority: 13
+  mean_score: 10.33
+  records:
+  - id: H063
+    score: 13
+  - id: H061
+    score: 11
+  - id: H062
+    score: 7
+  plan_rank: null
+  top15: null
+- rank: 23
+  id: E006
+  title: 'Preflop menu at medium-short depth: fold/jam vs compact full menu'
+  kind: ab_test
+  priority: 12
+  mean_score: 12.0
+  records:
+  - id: H011
+    score: 12
+  - id: H012
+    score: 12
+  plan_rank: 6
+  top15: dropped
+- rank: 24
+  id: E014
+  title: Blocker-aware distributional buckets vs equity-only buckets
+  kind: ab_test
+  priority: 12
+  mean_score: 12.0
+  records:
+  - id: H029
+    score: 12
+  plan_rank: 12
+  top15: dropped
+- rank: 25
+  id: E015
+  title: Small adaptive action menu with off-tree translation vs dense grid
+  kind: ab_test
+  priority: 12
+  mean_score: 12.0
+  records:
+  - id: H049
+    score: 12
+  plan_rank: 13
+  top15: dropped
+- rank: 26
+  id: E021
+  title: 'Players-behind action order: squeeze risk and closing position'
+  kind: ablation
+  priority: 12
+  mean_score: 12.0
+  records:
+  - id: H025
+    score: 12
+  plan_rank: null
+  top15: null
+- rank: 27
+  id: E036
+  title: Whole-line bluff planning and selective river bluffs after check-downs
+  kind: factorial
+  priority: 12
+  mean_score: 9.5
+  records:
+  - id: H069
+    score: 12
+  - id: H070
+    score: 7
+  plan_rank: null
+  top15: null
+- rank: 28
+  id: E038
+  title: 'NLHE preflop sizing: open size, small-blind limps, speculative depth, deep premiums'
+  kind: factorial
+  priority: 11
+  mean_score: 8.5
+  records:
+  - id: H019
+    score: 11
+  - id: H016
+    score: 8
+  - id: H018
+    score: 8
+  - id: H017
+    score: 7
+  plan_rank: null
+  top15: null
+- rank: 29
+  id: E022
+  title: Shared policy conditioned on seat, position and players behind
+  kind: ablation
+  priority: 10
+  mean_score: 10.0
+  records:
+  - id: H024
+    score: 10
+  plan_rank: null
+  top15: null
+- rank: 30
+  id: E037
+  title: 'River decisions: worse-call mass, bluff-ratio features, line consistency'
+  kind: factorial
+  priority: 10
+  mean_score: 7.67
+  records:
+  - id: H071
+    score: 10
+  - id: H072
+    score: 9
+  - id: H037
+    score: 4
+  plan_rank: null
+  top15: null
+- rank: 31
+  id: E024
+  title: Decomposed showdown, fold and continuation value heads
+  kind: oracle_comparison
+  priority: 9
+  mean_score: 9.0
+  records:
+  - id: H028
+    score: 9
+  plan_rank: null
+  top15: null
+- rank: 32
+  id: E028
+  title: Leader pressure on covered medium stacks
+  kind: ab_test
+  priority: 9
+  mean_score: 9.0
+  records:
+  - id: H005
+    score: 9
+  plan_rank: null
+  top15: null
+- rank: 33
+  id: E029
+  title: Squeeze frequency and size against capped opener and caller
+  kind: sweep
+  priority: 9
+  mean_score: 9.0
+  records:
+  - id: H020
+    score: 9
+  plan_rank: null
+  top15: null
+- rank: 34
+  id: E035
+  title: 'Turn play: texture deltas, probes, barrel suppression, draw pricing, two-street value'
+  kind: factorial
+  priority: 9
+  mean_score: 7.6
+  records:
+  - id: H066
+    score: 9
+  - id: H065
+    score: 8
+  - id: H067
+    score: 8
+  - id: H068
+    score: 8
+  - id: H064
+    score: 5
+  plan_rank: null
+  top15: null
+- rank: 35
+  id: E031
+  title: Size selection from opponent response curves
+  kind: ab_test
+  priority: 8
+  mean_score: 8.0
+  records:
+  - id: H036
+    score: 8
+  plan_rank: null
+  top15: null
+- rank: 36
+  id: E033
+  title: Flop c-bet size from range/nut advantage, texture and weighted denial
+  kind: factorial
+  priority: 8
+  mean_score: 6.0
+  records:
+  - id: H060
+    score: 8
+  - id: H057
+    score: 6
+  - id: H059
+    score: 6
+  - id: H058
+    score: 4
+  plan_rank: null
+  top15: null
+- rank: 37
+  id: E030
+  title: Self-image state against image-responsive opponents
+  kind: ablation
+  priority: 5
+  mean_score: 5.0
+  records:
+  - id: H026
+    score: 5
+  plan_rank: null
+  top15: null
+- rank: 38
+  id: E039
+  title: Visible vs concealed draws in synthetic variant pairs
+  kind: ablation
+  priority: 4
+  mean_score: 4.0
+  records:
+  - id: H033
+    score: 4
+  plan_rank: null
+  top15: null
+- rank: 39
+  id: E032
+  title: PHH Pluribus action priors and optional behaviour-cloning prior
+  kind: factorial
+  priority: 4
+  mean_score: 3.5
+  records:
+  - id: H038
+    score: 4
+  - id: H047
+    score: 3
+  plan_rank: null
+  top15: null
+records:
+- id: H056
+  title: Promote on paired-block intervals, not raw means or hand-level tests
+  cluster: evaluation
+  score: 20
+  triage:
+    objective: 3
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 3
+    power: 3
+    risk: 3
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 0
+  experiment: E010
+  status: proposed
+- id: H001
+  title: Train and promote on terminal official points, not chips
+  cluster: objective
+  score: 17
+  triage:
+    objective: 3
+    reach: 3
+    effect: 3
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 3
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 1
+  experiment: E001
+  status: proposed
+- id: H003
+  title: Call all-ins against the point threshold, not chip pot odds
+  cluster: points
+  score: 17
+  triage:
+    objective: 3
+    reach: 2
+    effect: 3
+    transfer: 3
+    readiness: 3
+    power: 3
+    risk: 2
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 1
+  experiment: E003
+  status: proposed
+- id: H021
+  title: Use opponent-specific effective stacks and side-pot eligibility
+  cluster: state_features
+  score: 16
+  triage:
+    objective: 3
+    reach: 2
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 3
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E009
+  status: proposed
+- id: H006
+  title: Condition risk on the hands remaining to the cap
+  cluster: tournament_clock
+  score: 15
+  triage:
+    objective: 3
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 2
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 1
+  experiment: E004
+  status: proposed
+- id: H014
+  title: Solve push and call tables under the real point vector
+  cluster: preflop_tree
+  score: 15
+  triage:
+    objective: 3
+    reach: 3
+    effect: 3
+    transfer: 2
+    readiness: 2
+    power: 3
+    risk: 2
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 2
+  experiment: E007
+  status: proposed
+- id: H015
+  title: Evaluate multiway caller subsets jointly
+  cluster: preflop_tree
+  score: 15
+  triage:
+    objective: 3
+    reach: 2
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 3
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E008
+  status: proposed
+- id: H039
+  title: Exploit only within confidence-scaled caps
+  cluster: exploitation
+  score: 15
+  triage:
+    objective: 3
+    reach: 2
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 3
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E012
+  status: proposed
+- id: H041
+  title: Train in a league of frozen checkpoints, styles and exploiters
+  cluster: training
+  score: 15
+  triage:
+    objective: 3
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 1
+    power: 2
+    risk: 3
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E013
+  status: proposed
+- id: H045
+  title: Train on complete trajectories, not isolated streets
+  cluster: training
+  score: 15
+  triage:
+    objective: 2
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 1
+    power: 3
+    risk: 3
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E016
+  status: proposed
+- id: H002
+  title: Fit a learned point continuation value with ICM as the prior
+  cluster: objective
+  score: 14
+  triage:
+    objective: 3
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 1
+    power: 2
+    risk: 3
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 2
+  experiment: E002
+  status: proposed
+- id: H008
+  title: Correct forced-bet pressure for orbit length and table size
+  cluster: stack_pressure
+  score: 14
+  triage:
+    objective: 2
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 1
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 0
+  experiment: E005
+  status: proposed
+- id: H013
+  title: Separate first-in thresholds from facing-a-raise thresholds (the gap)
+  cluster: preflop_tree
+  score: 14
+  triage:
+    objective: 2
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 0
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 0
+  experiment: E020
+  status: proposed
+- id: H023
+  title: Use scale-normalised features (SPR, streets remaining, bet-to-pot)
+  cluster: state_features
+  score: 14
+  triage:
+    objective: 1
+    reach: 3
+    effect: 1
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 0
+  experiment: E023
+  status: proposed
+- id: H030
+  title: Use exact blocker-aware combo equity instead of outs or fitted formulas
+  cluster: equity
+  score: 14
+  triage:
+    objective: 2
+    reach: 3
+    effect: 1
+    transfer: 2
+    readiness: 2
+    power: 3
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E026
+  status: proposed
+- id: H032
+  title: Evaluate fold and called branches jointly for bets and shoves
+  cluster: equity
+  score: 14
+  triage:
+    objective: 2
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E026
+  status: proposed
+- id: H034
+  title: Contextual hierarchical Bayesian opponent beliefs
+  cluster: beliefs
+  score: 14
+  triage:
+    objective: 2
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 1
+    complexity: 1
+  experiment: E011
+  status: proposed
+- id: H035
+  title: Reserve an off-model likelihood floor
+  cluster: beliefs
+  score: 14
+  triage:
+    objective: 1
+    reach: 2
+    effect: 1
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 3
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 0
+  experiment: E011
+  status: proposed
+- id: H054
+  title: Store policies as byte-quantized probabilities
+  cluster: deployment
+  score: 14
+  triage:
+    objective: 2
+    reach: 3
+    effect: 1
+    transfer: 3
+    readiness: 1
+    power: 3
+    risk: 3
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 1
+  experiment: E017
+  status: proposed
+- id: H004
+  title: Value folding through collisions between other players
+  cluster: points
+  score: 13
+  triage:
+    objective: 3
+    reach: 2
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 2
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 2
+  experiment: E003
+  status: proposed
+- id: H009
+  title: Act before projected forced costs remove fold equity
+  cluster: stack_pressure
+  score: 13
+  triage:
+    objective: 2
+    reach: 2
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 1
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 0
+  experiment: E005
+  status: proposed
+- id: H010
+  title: Learn smooth stack-depth regime gates instead of fixed thresholds
+  cluster: stack_pressure
+  score: 13
+  triage:
+    objective: 2
+    reach: 2
+    effect: 1
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 0
+  experiment: E005
+  status: proposed
+- id: H042
+  title: Compare averaged CFR+ policies with latest-policy self-play
+  cluster: training
+  score: 13
+  triage:
+    objective: 2
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 1
+    power: 2
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E018
+  status: proposed
+- id: H043
+  title: Use external-sampling MCCFR as the primary traversal
+  cluster: training
+  score: 13
+  triage:
+    objective: 1
+    reach: 3
+    effect: 1
+    transfer: 3
+    readiness: 2
+    power: 3
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E019
+  status: proposed
+- id: H046
+  title: Label decisions by counterfactual value, not realised results
+  cluster: training
+  score: 13
+  triage:
+    objective: 2
+    reach: 3
+    effect: 2
+    transfer: 3
+    readiness: 1
+    power: 2
+    risk: 3
+    rule_uncertainty: 0
+    leakage: 1
+    complexity: 2
+  experiment: E016
+  status: proposed
+- id: H050
+  title: Sample from mixed policies instead of taking the argmax
+  cluster: range_construction
+  score: 13
+  triage:
+    objective: 2
+    reach: 3
+    effect: 1
+    transfer: 3
+    readiness: 2
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 0
+  experiment: E025
+  status: proposed
+- id: H053
+  title: Distil the teacher into a bounded lookup or shallow student
+  cluster: deployment
+  score: 13
+  triage:
+    objective: 3
+    reach: 3
+    effect: 1
+    transfer: 3
+    readiness: 1
+    power: 2
+    risk: 3
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 2
+  experiment: E017
+  status: proposed
+- id: H055
+  title: Stage the reveal-day pipeline from a generic policy upward
+  cluster: variant_transfer
+  score: 13
+  triage:
+    objective: 2
+    reach: 1
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 3
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 1
+  experiment: E027
+  status: proposed
+- id: H063
+  title: Multiway bluffs need joint all-fold probability above break-even
+  cluster: postflop_multiway
+  score: 13
+  triage:
+    objective: 2
+    reach: 2
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E034
+  status: proposed
+- id: H007
+  title: Anticipate the next blind level, not just the current one
+  cluster: tournament_clock
+  score: 12
+  triage:
+    objective: 2
+    reach: 2
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 1
+    rule_uncertainty: 2
+    leakage: 0
+    complexity: 0
+  experiment: E004
+  status: proposed
+- id: H011
+  title: When calling commits the stack, decide between fold and jam directly
+  cluster: preflop_tree
+  score: 12
+  triage:
+    objective: 3
+    reach: 2
+    effect: 2
+    transfer: 2
+    readiness: 1
+    power: 2
+    risk: 1
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 0
+  experiment: E006
+  status: proposed
+- id: H012
+  title: Keep non-all-in preflop options at medium-short depth
+  cluster: preflop_tree
+  score: 12
+  triage:
+    objective: 3
+    reach: 2
+    effect: 2
+    transfer: 2
+    readiness: 2
+    power: 2
+    risk: 1
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 1
+  experiment: E006
+  status: proposed
+- id: H025
+  title: Account for players behind (squeeze risk, closure, escape options)
+  cluster: state_features
+  score: 12
+  triage:
+    objective: 2
+    reach: 2
+    effect: 1
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E021
+  status: proposed
+- id: H029
+  title: Bucket hands by future-equity distribution and blockers
+  cluster: card_abstraction
+  score: 12
+  triage:
+    objective: 2
+    reach: 2
+    effect: 2
+    transfer: 2
+    readiness: 1
+    power: 2
+    risk: 2
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 0
+  experiment: E014
+  status: proposed
+- id: H044
+  title: Weight early CFR iterations linearly
+  cluster: training
+  score: 12
+  triage:
+    objective: 1
+    reach: 3
+    effect: 1
+    transfer: 3
+    readiness: 2
+    power: 3
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E019
+  status: proposed
+- id: H049
+  title: Small state-dependent action menu with explicit off-tree translation
+  cluster: action_abstraction
+  score: 12
+  triage:
+    objective: 2
+    reach: 3
+    effect: 2
+    transfer: 2
+    readiness: 1
+    power: 2
+    risk: 2
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 1
+  experiment: E015
+  status: proposed
+- id: H052
+  title: Condition on own-range rank and opponent range summaries
+  cluster: range_construction
+  score: 12
+  triage:
+    objective: 2
+    reach: 3
+    effect: 1
+    transfer: 3
+    readiness: 1
+    power: 2
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E025
+  status: proposed
+- id: H069
+  title: Plan bluffs by whole-line EV with shrunk fold estimates
+  cluster: postflop_bluffing
+  score: 12
+  triage:
+    objective: 2
+    reach: 2
+    effect: 2
+    transfer: 3
+    readiness: 1
+    power: 1
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E036
+  status: proposed
+- id: H019
+  title: Deep premiums prefer a small raise over an open jam
+  cluster: preflop_nlhe
+  score: 11
+  triage:
+    objective: 2
+    reach: 1
+    effect: 2
+    transfer: 2
+    readiness: 2
+    power: 2
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E038
+  status: proposed
+- id: H022
+  title: Condition on the full state, not only cards and seat
+  cluster: state_features
+  score: 11
+  triage:
+    objective: 2
+    reach: 3
+    effect: 1
+    transfer: 3
+    readiness: 2
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E023
+  status: proposed
+- id: H061
+  title: Condition c-bets on field size and texture; shrink multiway
+  cluster: postflop_multiway
+  score: 11
+  triage:
+    objective: 2
+    reach: 2
+    effect: 2
+    transfer: 2
+    readiness: 1
+    power: 2
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E034
+  status: proposed
+- id: H024
+  title: Share one policy conditioned on seat, position and players behind
+  cluster: state_features
+  score: 10
+  triage:
+    objective: 1
+    reach: 3
+    effect: 1
+    transfer: 3
+    readiness: 2
+    power: 2
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 3
+  experiment: E022
+  status: proposed
+- id: H027
+  title: Reuse generic decision layers across variants and swap card tables
+  cluster: variant_transfer
+  score: 10
+  triage:
+    objective: 2
+    reach: 2
+    effect: 2
+    transfer: 3
+    readiness: 1
+    power: 1
+    risk: 2
+    rule_uncertainty: 2
+    leakage: 0
+    complexity: 1
+  experiment: E027
+  status: proposed
+- id: H048
+  title: Oversample rare states with correct importance weights
+  cluster: training
+  score: 10
+  triage:
+    objective: 1
+    reach: 2
+    effect: 1
+    transfer: 3
+    readiness: 1
+    power: 2
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E019
+  status: proposed
+- id: H071
+  title: Bet the river for value only with enough worse-call mass
+  cluster: postflop_river
+  score: 10
+  triage:
+    objective: 2
+    reach: 2
+    effect: 1
+    transfer: 3
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E037
+  status: proposed
+- id: H005
+  title: As leader, pressure covered medium stacks rather than the shortest stack
+  cluster: points
+  score: 9
+  triage:
+    objective: 2
+    reach: 1
+    effect: 2
+    transfer: 3
+    readiness: 2
+    power: 1
+    risk: 0
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 1
+  experiment: E028
+  status: proposed
+- id: H020
+  title: Squeeze more when the opener and caller are capped
+  cluster: preflop_nlhe
+  score: 9
+  triage:
+    objective: 2
+    reach: 1
+    effect: 2
+    transfer: 2
+    readiness: 2
+    power: 1
+    risk: 0
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E029
+  status: proposed
+- id: H028
+  title: Separate showdown equity, fold equity and continuation value
+  cluster: value_model
+  score: 9
+  triage:
+    objective: 2
+    reach: 2
+    effect: 1
+    transfer: 3
+    readiness: 1
+    power: 2
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 3
+  experiment: E024
+  status: proposed
+- id: H040
+  title: Use restricted Nash response experts for archetype exploitation
+  cluster: exploitation
+  score: 9
+  triage:
+    objective: 2
+    reach: 1
+    effect: 2
+    transfer: 3
+    readiness: 1
+    power: 2
+    risk: 2
+    rule_uncertainty: 0
+    leakage: 1
+    complexity: 3
+  experiment: E012
+  status: proposed
+- id: H066
+  title: A called flop c-bet should suppress automatic turn barrels
+  cluster: postflop_turn
+  score: 9
+  triage:
+    objective: 2
+    reach: 2
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E035
+  status: proposed
+- id: H072
+  title: Give the river policy bluff-ratio features
+  cluster: postflop_river
+  score: 9
+  triage:
+    objective: 2
+    reach: 2
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E037
+  status: proposed
+- id: H016
+  title: Smaller first-in raises below moderate depth
+  cluster: preflop_nlhe
+  score: 8
+  triage:
+    objective: 2
+    reach: 2
+    effect: 1
+    transfer: 1
+    readiness: 2
+    power: 2
+    risk: 0
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 1
+  experiment: E038
+  status: proposed
+- id: H018
+  title: Speculative hands need effective depth
+  cluster: preflop_nlhe
+  score: 8
+  triage:
+    objective: 1
+    reach: 2
+    effect: 1
+    transfer: 1
+    readiness: 2
+    power: 1
+    risk: 0
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 0
+  experiment: E038
+  status: proposed
+- id: H036
+  title: Choose sizes from opponent response curves
+  cluster: beliefs
+  score: 8
+  triage:
+    objective: 2
+    reach: 2
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E031
+  status: proposed
+- id: H060
+  title: Geometric sizing prior only on static boards
+  cluster: postflop_flop
+  score: 8
+  triage:
+    objective: 2
+    reach: 1
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E033
+  status: proposed
+- id: H065
+  title: Probe after an omitted expected bet, but model traps
+  cluster: postflop_turn
+  score: 8
+  triage:
+    objective: 2
+    reach: 1
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E035
+  status: proposed
+- id: H067
+  title: Price likely turn draws out
+  cluster: postflop_turn
+  score: 8
+  triage:
+    objective: 2
+    reach: 1
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E035
+  status: proposed
+- id: H068
+  title: Two small value bets can beat one large bet
+  cluster: postflop_turn
+  score: 8
+  triage:
+    objective: 2
+    reach: 1
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E035
+  status: proposed
+- id: H017
+  title: Small-blind limping rises with depth
+  cluster: preflop_nlhe
+  score: 7
+  triage:
+    objective: 2
+    reach: 1
+    effect: 1
+    transfer: 1
+    readiness: 2
+    power: 1
+    risk: 0
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 0
+  experiment: E038
+  status: proposed
+- id: H051
+  title: Route different hand classes through shared sizes and lines
+  cluster: range_construction
+  score: 7
+  triage:
+    objective: 1
+    reach: 2
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E025
+  status: proposed
+- id: H062
+  title: Prefer draws with high nut potential in multiway pots
+  cluster: postflop_multiway
+  score: 7
+  triage:
+    objective: 1
+    reach: 1
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E034
+  status: proposed
+- id: H070
+  title: Add selective river bluffs after check-downs
+  cluster: postflop_bluffing
+  score: 7
+  triage:
+    objective: 1
+    reach: 1
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E036
+  status: proposed
+- id: H031
+  title: Model implied odds with a payment curve
+  cluster: equity
+  score: 6
+  triage:
+    objective: 1
+    reach: 1
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E026
+  status: proposed
+- id: H057
+  title: Range advantage sets c-bet frequency, nut advantage sets size
+  cluster: postflop_flop
+  score: 6
+  triage:
+    objective: 2
+    reach: 1
+    effect: 1
+    transfer: 1
+    readiness: 1
+    power: 1
+    risk: 1
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E033
+  status: proposed
+- id: H059
+  title: Weight folds by the equity they give up
+  cluster: postflop_flop
+  score: 6
+  triage:
+    objective: 2
+    reach: 1
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 0
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E033
+  status: proposed
+- id: H026
+  title: Track self-image against image-responsive opponents
+  cluster: opponent_model
+  score: 5
+  triage:
+    objective: 1
+    reach: 1
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 0
+    rule_uncertainty: 0
+    leakage: 1
+    complexity: 1
+  experiment: E030
+  status: proposed
+- id: H064
+  title: Turn play follows changes in nut and equity advantage
+  cluster: postflop_turn
+  score: 5
+  triage:
+    objective: 1
+    reach: 1
+    effect: 1
+    transfer: 1
+    readiness: 1
+    power: 1
+    risk: 0
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 1
+  experiment: E035
+  status: proposed
+- id: H033
+  title: Distinguish visible from concealed draws
+  cluster: equity
+  score: 4
+  triage:
+    objective: 1
+    reach: 1
+    effect: 1
+    transfer: 1
+    readiness: 1
+    power: 1
+    risk: 0
+    rule_uncertainty: 1
+    leakage: 0
+    complexity: 1
+  experiment: E039
+  status: proposed
+- id: H037
+  title: Line inconsistency is evidence, gated by opponent skill
+  cluster: beliefs
+  score: 4
+  triage:
+    objective: 1
+    reach: 1
+    effect: 1
+    transfer: 2
+    readiness: 1
+    power: 1
+    risk: 0
+    rule_uncertainty: 0
+    leakage: 1
+    complexity: 2
+  experiment: E037
+  status: proposed
+- id: H038
+  title: Use PHH Pluribus action frequencies as belief priors
+  cluster: beliefs
+  score: 4
+  triage:
+    objective: 1
+    reach: 2
+    effect: 1
+    transfer: 1
+    readiness: 1
+    power: 2
+    risk: 1
+    rule_uncertainty: 2
+    leakage: 2
+    complexity: 1
+  experiment: E032
+  status: proposed
+- id: H058
+  title: Flop c-bet size follows a texture curve
+  cluster: postflop_flop
+  score: 4
+  triage:
+    objective: 1
+    reach: 1
+    effect: 1
+    transfer: 1
+    readiness: 1
+    power: 1
+    risk: 0
+    rule_uncertainty: 0
+    leakage: 0
+    complexity: 2
+  experiment: E033
+  status: proposed
+- id: H047
+  title: Optional behaviour-cloning prior from Pluribus hands
+  cluster: training
+  score: 3
+  triage:
+    objective: 1
+    reach: 2
+    effect: 1
+    transfer: 0
+    readiness: 1
+    power: 1
+    risk: 0
+    rule_uncertainty: 1
+    leakage: 1
+    complexity: 1
+  experiment: E032
+  status: proposed
+mandatory_tests:
+- id: I001
+  title: Pot odds use only contestable chips
+  test_spec: T001
+  test_status: implemented
+- id: I002
+  title: Bluff break-even, MDF and bluff ratio identities
+  test_spec: T002
+  test_status: implemented
+- id: I003
+  title: Multi-street bluff EV accounting
+  test_spec: T003
+  test_status: implemented
+- id: I004
+  title: Point call threshold and ICM risk premium
+  test_spec: T004
+  test_status: implemented
+- id: I005
+  title: ICM scorer and cap allocation invariants
+  test_spec: T005
+  test_status: implemented
+- id: I006
+  title: Point conservation and symmetric copies
+  test_spec: T006
+  test_status: specified
+- id: I007
+  title: Half-street toy games reproduce known solutions
+  test_spec: T007
+  test_status: implemented
+- id: I008
+  title: Jam-or-fold toy games reproduce known solutions
+  test_spec: T008
+  test_status: implemented
+- id: I009
+  title: AKQ games reproduce known solutions
+  test_spec: T009
+  test_status: implemented
+- id: I010
+  title: Full-street and multistreet toy games reproduce known solutions
+  test_spec: T010
+  test_status: implemented
+- id: I011
+  title: Three-player dry side-pot game reproduces known thresholds
+  test_spec: T011
+  test_status: implemented
+- id: I012
+  title: CFR implementations match OpenSpiel oracles
+  test_spec: T012
+  test_status: implemented
+- id: I013
+  title: Reach weighting and policy averaging are correct
+  test_spec: T013
+  test_status: implemented
+- id: I014
+  title: Sampled and full traversal agree on tiny games
+  test_spec: T014
+  test_status: implemented
+- id: I015
+  title: Decision-time rows contain only information-set data
+  test_spec: T015
+  test_status: specified
+- id: I016
+  title: PHH Pluribus import reproduces published counts
+  test_spec: T016
+  test_status: specified
+- id: I017
+  title: Mixed sampling and byte tables are exact
+  test_spec: T017
+  test_status: specified
+- id: I018
+  title: Runtime always returns a legal action in constant time
+  test_spec: T018
+  test_status: specified
+- id: I019
+  title: Variant-specific tables are gated by the rules hash
+  test_spec: T019
+  test_status: specified
+- id: I020
+  title: Strategically equivalent rescaled states map to the same features
+  test_spec: T020
+  test_status: specified
+- id: I021
+  title: Opponent rates use exact opportunity denominators
+  test_spec: T021
+  test_status: specified
+- id: I022
+  title: Paired evaluation keeps random streams coupled and null A/B honest
+  test_spec: T022
+  test_status: specified
+- id: I023
+  title: Off-tree size translation is deterministic and boundary-safe
+  test_spec: T023
+  test_status: specified
+- id: I024
+  title: Side-pot and effective-stack features match the engine
+  test_spec: T024
+  test_status: specified

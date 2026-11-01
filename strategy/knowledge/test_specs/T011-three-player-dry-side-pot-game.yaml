@@ -1,0 +1,32 @@
+schema: knowledge.invariant-test/v1
+id: T011
+title: Three-player dry side-pot game
+kind: invariant_test
+records: [I011]
+owner_workstream: M2-A
+target: strategy.games fixture registry (three-player dry side pot), solved by strategy.solve
+test_location: tests/strategy/test_fixture_gates.py, tests/strategy/test_mutations.py
+status: implemented
+implemented_by:
+- tests/strategy/test_fixture_gates.py::test_fixture_gates
+- tests/strategy/test_mutations.py::test_broken_variant_is_caught
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: dry side pot
+  given:
+    game: fixture 14
+  expect:
+    x_call: 0.2848
+    y1_value_bet: 0.1424
+    tolerance: 0.0005
+properties:
+- y1 == x/2 within tolerance
+- the pairwise heads-up approximation gives a different threshold (detects non-additivity)
+mutations: [summing heads-up values must fail]

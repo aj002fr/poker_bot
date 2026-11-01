@@ -1,0 +1,107 @@
+id: H003
+title: Call all-ins against the point threshold, not chip pot odds
+kind: strategy
+status: proposed
+cluster: points
+sources:
+- source: mop
+  location: ch. 28, pp. 338-342
+  digest_records: [mop/H04]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: mit-15s50
+  location: Lecture 2 ~03:09-07:02; slides pp. 4-6; Lecture 5; Lecture 2 bubble example
+  digest_records: [mit15s50/H05, mit-l56/H2, mit-l12/H2]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: gtow-preflop-icm
+  location: Preflop ICM solving article, risk-premium discussion
+  digest_sections: [gtowizard-mpt.md §2 preflop ICM]
+  transfer_caveat: >-
+    Partly a product announcement; ordinary payout ICM is not the competition's hand-200 allocation.
+situation: >-
+  Hero faces an all-in (or a call that puts hero all-in) that risks a material share of hero's
+  points.
+eligible_opportunity: >-
+  A call/fold decision where at least one live player is all-in and calling creates a showdown
+  with no further betting.
+observable_inputs:
+- stack_vector
+- point_vector
+- side_pot_eligibility
+- amount_to_call
+- pot
+- equity_vs_range
+- point_call_threshold
+- icm_risk_premium
+- players_remaining
+- hands_to_cap
+training_signals: [exact_oracle_value]
+intervention: >-
+  Call when estimated showdown equity exceeds q*_point = (U_fold - U_lose)/(U_win - U_lose) computed
+  by the exact scorer over the three resulting stack vectors.
+baseline: Call when equity exceeds chip pot odds on matched chips.
+mechanism: >-
+  Losing removes more point value than winning adds when finish points are concave in chips, so
+  the required equity rises by the risk premium q*_point - q*_chip.
+exceptions:
+- >-
+  Near-linear point states (heads-up, winner-take-all, two survivors under ICM) make the premium
+  zero.
+- >-
+  Calls for a negligible fraction of hero's stack, or when blinds will force a worse spot imminently.
+- Equity against an assumed range is the dominant error; pair with belief calibration.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: The threshold uses only the scorer and an equity estimate from the variant adapter.
+source_numbers:
+- value: q* = (U_fold - U_lose)/(U_win - U_lose)
+  context: Indifference between folding and a terminal call
+  use: analytic
+parameters:
+- name: call_threshold
+  basis: analytic
+  default: strategy.math.point_call_threshold(u_fold, u_win, u_lose)
+  derivation: >-
+    Expected points of calling equal folding at equity q*; implemented and property-tested in
+    strategy.math.points
+experiment:
+  id: E003
+  primary_metric: exact_state_point_regret
+  minimum_effect:
+    value: 0.01
+    unit: pool_fraction
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 2
+  effect: 3
+  transfer: 3
+  readiness: 3
+  power: 3
+  risk: 2
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 1
+  rationale: >-
+    Exact scorer already exists and labels states exactly; cheap and high value. Rule uncertainty
+    is the payout vector.
+owner: M4
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 4 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H004, H001, I004]

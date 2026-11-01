@@ -1,0 +1,59 @@
+id: I010
+title: Full-street and multistreet toy games reproduce known solutions
+kind: invariant
+status: proposed
+cluster: invariant_toy_games
+sources:
+- source: mop
+  location: toy-game fixtures 9-13
+  digest_sections:
+  - mathematics-of-poker.md toy-game fixtures 9-13
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Solver output on full-street, finite-pot and multistreet toy games.
+eligible_opportunity: Every solver release.
+observable_inputs: [pot, streets_remaining]
+training_signals: [exact_oracle_value]
+intervention: >-
+  No-check-raise game value 1/8 (x1=1/2, y2=1/4, y1=3/4); check-raise game x2=1/9, y2=1/3, x1=5/9,
+  y1=2/3, value 1/9; finite pot P=2 value 1/18; two-street geometric with S=4 gives g=3 and pot-sized
+  bets; marked-draw game calls 1/70 of dead hands and X calls 1/7 where an isolated river solve
+  says 6/7.
+baseline: Untested solver.
+mechanism: Closed-form equilibria; the marked-draw game separates trajectory from per-street solving.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Abstract games.
+source_numbers: []
+parameters: []
+experiment:
+  id: T010
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Catches reach-propagation bugs (H045).
+owner: M2-A
+implementation:
+  module: strategy.games.fixtures
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: T010 is covered by the Stage 2 fixture, oracle and mutation tests in strategy.games.fixtures.
+related: [H045, H060]

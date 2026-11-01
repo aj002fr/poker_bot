@@ -1,0 +1,53 @@
+id: I019
+title: Variant-specific tables are gated by the rules hash
+kind: invariant
+status: proposed
+cluster: invariant_runtime
+sources:
+- source: mit-15s50
+  location: Lectures 1-2
+  digest_records: [mit-l12/H8]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: Loading card-specific tables or ranges for a ruleset.
+eligible_opportunity: Policy load and first decisions of every table.
+observable_inputs: [rules_hash, variant_capabilities, legal_actions]
+training_signals: []
+intervention: >-
+  A table is used only when its rules hash matches the active ruleset; otherwise the legality-safe
+  generic policy runs; no Hold'em table is silently reused.
+baseline: Load by file name.
+mechanism: Hold'em ranges applied to another variant are systematically wrong.
+exceptions:
+- Authoritatively supplied rules still go through the hash check.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Applies to every variant.
+source_numbers: []
+parameters: []
+experiment:
+  id: T019
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Prevents the worst surprise-variant failure.
+owner: M9
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H027, H055]

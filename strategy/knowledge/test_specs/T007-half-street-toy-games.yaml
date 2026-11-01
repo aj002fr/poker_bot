@@ -1,0 +1,62 @@
+schema: knowledge.invariant-test/v1
+id: T007
+title: Half-street toy games
+kind: invariant_test
+records: [I007]
+owner_workstream: M2-A
+target: strategy.games fixture registry, solved by strategy.solve (CFR family and ES-MCCFR)
+test_location: tests/strategy/test_fixture_gates.py, tests/strategy/test_mutations.py
+status: implemented
+implemented_by:
+- tests/strategy/test_fixture_gates.py::test_fixture_gates
+- tests/strategy/test_mutations.py::test_broken_variant_is_caught
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: matching pennies
+  given:
+    game: odds-evens
+  expect:
+    mix: 1/2 each
+    value: 0
+- name: rock paper scissors
+  given:
+    game: rps
+  expect:
+    mix: 1/3 each
+    value: 0
+- name: clairvoyance
+  given:
+    pot: 2
+    bet: 1
+  expect:
+    bluff_fraction_of_dead_hands: 1/3
+    call: 2/3
+    value: 1/3
+- name: '[0,1] no fold'
+  given:
+    pot: 1
+    bet: 1
+  expect:
+    bet_region: '[0, 1/2]'
+    value: 1/4
+- name: '[0,1] with folding'
+  given:
+    pot: 2
+    bet: 1
+  expect:
+    y1: 3/10
+    x1_star: 3/5
+    y0: 9/10
+    value: 1/10
+properties:
+- unilateral deviation gain at every threshold is at most 1e-9
+- solver output matches the closed form for alpha = 1/(P+1) across P in {1, 2, 3, 5}
+mutations:
+- a solver that ignores the folding option must fail the folding case

@@ -1,0 +1,37 @@
+schema: knowledge.invariant-test/v1
+id: T017
+title: Byte tables and seeded mixed sampling
+kind: invariant_test
+records: [I017]
+owner_workstream: M8
+target: policy packing and runtime sampler (proposed strategy/runtime)
+test_location: tests/strategy/runtime/test_byte_tables.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: row total
+  given:
+    distribution: any float distribution
+  expect:
+    byte_sum: 255
+- name: sampling frequency
+  given:
+    row: [128, 127]
+    draws: 100000
+    seed: fixed
+  expect:
+    frequency: within binomial 99.9% interval
+properties:
+- per-action absolute error at most 1/255 before masking
+- masking illegal actions renormalises over legal actions
+- the same seed reproduces the same action sequence
+mutations:
+- rounding each entry independently (sum not 255) must fail

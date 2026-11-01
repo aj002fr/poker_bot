@@ -1,0 +1,95 @@
+schema: knowledge.experiment/v1
+id: E036
+title: Whole-line bluff planning and selective river bluffs after check-downs
+kind: factorial
+mode: discovery
+records: [H069, H070]
+question: >-
+  Does planning bluffs by full-line EV (with shrunk fold posteriors) and adding selective river
+  bluffs after check-downs improve multi-street points?
+arms:
+- name: greedy
+  role: control
+  description: Each street maximises its immediate EV.
+  toggles:
+    line_planning: greedy
+    checkdown_bluffs: 'off'
+- name: line
+  role: treatment
+  description: Full-line EV plans for two- and three-barrel bluffs.
+  toggles:
+    line_planning: full_line
+    checkdown_bluffs: 'off'
+- name: line_checkdown
+  role: treatment
+  description: Adds river bluffs after check-downs when all-fold clears break-even plus margin.
+  toggles:
+    line_planning: full_line
+    checkdown_bluffs: 'on'
+factors:
+- name: line planning
+  toggle: line_planning
+  records_tested: [H069]
+- name: check-down bluffs
+  toggle: checkdown_bluffs
+  records_tested: [H070]
+toggles:
+  line_planning: [greedy, full_line]
+  checkdown_bluffs: ['off', 'on']
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: []
+seeds:
+  namespace: knowledge/E036
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: paired seed/lineup/rotation block
+  interval: paired t 95%; cluster bootstrap over blocks when skewed
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: slice_point_delta
+minimum_effect:
+  value: 0.004
+  unit: pool_fraction_per_sng
+  basis: provisional
+metrics: [mean_point_difference]
+slices: [multi-street bluff lines, trap-heavy families, multiway check-downs]
+guardrails:
+- multi-street EV accounting tests (T003) pass
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 150
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+run_specs: []
+blocked_by: [M5 blueprint, E011 beliefs]
+status: blocked
+result_artifact: null

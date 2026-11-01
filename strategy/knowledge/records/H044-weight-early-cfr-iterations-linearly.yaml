@@ -1,0 +1,63 @@
+id: H044
+title: Weight early CFR iterations linearly
+kind: method
+status: proposed
+cluster: training
+sources:
+- source: pluribus-2019
+  location: Pluribus; Neller and Lanctot tutorial
+  digest_records: [cfr/H2]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+situation: Short training runs where the initial random policy contributes too much.
+eligible_opportunity: Trainer configuration.
+observable_inputs: [policy_table_key]
+training_signals: [regret_estimates]
+intervention: >-
+  Weight each iteration's regret and average contribution by a linear schedule early in training.
+baseline: Uniform weighting.
+mechanism: Later, better iterates displace poor initial ones faster.
+exceptions:
+- The effect can vanish in long runs; implementation errors bias the average.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Trainer-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: E019
+  primary_metric: nash_conv
+  minimum_effect:
+    value: 0.01
+    unit: game_value_units
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 3
+  effect: 1
+  transfer: 3
+  readiness: 2
+  power: 3
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Cheap on exact games; small strategic effect.
+owner: M2-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H043]

@@ -1,0 +1,57 @@
+id: I022
+title: Paired evaluation keeps random streams coupled and null A/B honest
+kind: invariant
+status: proposed
+cluster: invariant_evaluation
+sources:
+- source: plan
+  location: plan section 5 (paired design and seats)
+  digest_sections: [self-play-learning-plan.md §5]
+  transfer_caveat: Project synthesis, not independent evidence.
+- source: mop
+  location: ch. 2, pp. 24-33
+  digest_sections: [mathematics-of-poker.md §4 H21]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Every A/B run.
+eligible_opportunity: Every paired block.
+observable_inputs: [rules_hash]
+training_signals: [terminal_points]
+intervention: >-
+  Environment and per-seat policy RNG streams are separate, so a policy that consumes more randomness
+  does not change the deal; an identical-policy A/B gives intervals covering zero at the nominal
+  rate.
+baseline: Shared RNG stream.
+mechanism: Common random numbers only remove luck if the deal is unchanged by policy actions.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Evaluation.
+source_numbers: []
+parameters: []
+experiment:
+  id: T022
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Precondition for H056.
+owner: M1-C
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H056, I006]

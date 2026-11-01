@@ -1,0 +1,15 @@
+{
+  "experiment_id": "population-smoke",
+  "title": "Smoke test against the opponent registry: legal_random vs calling_station on validation lineups",
+  "description": "End-to-end check of the strategy.population registry through the harness on all three variants. Validation partition, discovery stage: not a promotion claim.",
+  "stage": "discovery",
+  "min_effect": 2.0,
+  "arms": {"A": {"policy": "baseline:calling_station"}, "B": {"policy": "baseline:legal_random"}},
+  "variants": ["practice_nlhe", "uncertainty_shortdeck", "uncertainty_plo4"],
+  "table": {"players": 6, "starting_stack": 1000, "hand_cap": 60},
+  "population": {"source": "strategy.population:PopulationSource", "partition": "validation", "lineups_per_variant": 3},
+  "blocks_per_lineup": 2,
+  "base_seed": "population-smoke-v1",
+  "isolation": "in_process",
+  "bootstrap_resamples": 500
+}

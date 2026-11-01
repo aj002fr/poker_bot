@@ -1,0 +1,85 @@
+id: H004
+title: Value folding through collisions between other players
+kind: strategy
+status: proposed
+cluster: points
+sources:
+- source: mit-15s50
+  location: Lecture 5 ~22:27-27:34; slides pp. 71-77; Lecture 5
+  digest_records: [mit15s50/H15, mit-l56/H5]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: gtow-preflop-icm
+  location: Preflop ICM solving, multiway fold utility; Preflop ICM solving, micro-stack
+  digest_records: [gtow/H25, gtow/H23]
+  transfer_caveat: >-
+    Partly a product announcement; ordinary payout ICM is not the competition's hand-200 allocation.
+situation: >-
+  One or more opponents are already all-in or likely to collide, and hero has a marginal call
+  or overcall.
+eligible_opportunity: >-
+  Hero can fold, call or overcall while at least two other live players can still contest the
+  pot, or a much shorter stack sits outside the pot.
+observable_inputs:
+- stack_vector
+- cover_relationships
+- side_pot_eligibility
+- shortest_stack
+- stack_rank
+- point_vector
+- equity_vs_range
+- players_to_act
+- hands_to_cap
+training_signals: [exact_oracle_value]
+intervention: >-
+  Value the fold as the expected points after the remaining players resolve the pot, including
+  the chance another player busts, and tighten marginal entries accordingly.
+baseline: Fold is worth hero's current point share; calls judged against that.
+mechanism: >-
+  Another player's elimination moves hero up the finish ladder without hero risking chips, so
+  folding carries positive utility the chip view ignores.
+exceptions:
+- Winner-take-all or hero is the shortest stack.
+- Opponents who recognise and punish systematic overfolding with repeated shoves.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Depends only on the stack vector
+source_numbers: []
+parameters: []
+experiment:
+  id: E003
+  primary_metric: exact_state_point_regret
+  minimum_effect:
+    value: 0.01
+    unit: pool_fraction
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 2
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 2
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 2
+  rationale: Same exact-scorer harness as H003; joint opponent range modelling adds complexity.
+owner: M4
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 4 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H003, H015]

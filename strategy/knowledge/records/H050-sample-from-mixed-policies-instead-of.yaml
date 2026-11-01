@@ -1,0 +1,65 @@
+id: H050
+title: Sample from mixed policies instead of taking the argmax
+kind: strategy
+status: proposed
+cluster: range_construction
+sources:
+- source: harrington-v1
+  location: Part Two pp. 23-24; Part Five pp. 82-87, 112-114
+  digest_records: [harrington/H31]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Several actions have similar value and reveal different ranges.
+eligible_opportunity: Any decision where the policy assigns positive probability to two or more
+  actions.
+observable_inputs: [policy_distribution, policy_table_key]
+training_signals: []
+intervention: >-
+  Sample actions from seeded mixtures and tune the probabilities rather than playing the most
+  likely action.
+baseline: Deterministic argmax.
+mechanism: Repeated deterministic mappings are easy for adaptive opponents to read.
+exceptions:
+- One action clearly dominates or opponents cannot observe enough repetitions.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Generic.
+source_numbers: []
+parameters: []
+experiment:
+  id: E025
+  primary_metric: approximate_response_loss
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 1
+  transfer: 3
+  readiness: 2
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 0
+  rationale: Trivial to implement; effect depends on adaptive opponents.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [I017, H051]

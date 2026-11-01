@@ -1,0 +1,195 @@
+"""``report.json`` and a concise ``report.md`` for one experiment run."""
+
+from __future__ import annotations
+
+import json
+import math
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+from typing import Any
+
+from strategy.rules.canonical import canonical_json
+
+
+def _f(v: Any, digits: int = 3) -> str:
+    if v is None:
+        return "-"
+    if isinstance(v, float):
+        return f"{v:.{digits}f}"
+    return str(v)
+
+
+def _ci(lo: Any, hi: Any, digits: int = 3) -> str:
+    return "-" if lo is None or hi is None else f"[{lo:.{digits}f}, {hi:.{digits}f}]"
+
+
+def _table(header: Sequence[str], rows: Sequence[Sequence[Any]]) -> list[str]:
+    out = ["| " + " | ".join(header) + " |", "|" + "|".join("---" for _ in header) + "|"]
+    out += ["| " + " | ".join(str(c) for c in row) + " |" for row in rows]
+    return out
+
+
+def _slice_rows(rows: Mapping[str, Mapping[str, Any]]) -> list[list[str]]:
+    return [[k, r.get("n", 0), _f(r.get("mean_difference")), _ci(r.get("lo"), r.get("hi")),
+             _f(r.get("p_holm"))] for k, r in rows.items()]
+
+
+def render_markdown(report: Mapping[str, Any]) -> str:
+    m, a = report["manifest"], report["analysis"]
+    p, dec = a["primary"], a["decision"]
+    spec = m["spec"]
+    lines = [f"# {spec['experiment_id']}: {spec['title']}", ""]
+    lines += [f"**Verdict: {dec['verdict']}** ({dec['stage']}). {dec['reason']}."]
+    if dec.get("note"):
+        lines += ["", f"_{dec['note']}._"]
+    lines += ["", f"Arm A `{m['policies']['A']['spec']}` (control), arm B `{m['policies']['B']['spec']}` (candidate). "
+              f"Objective: {m['objective']['id']} (chips are diagnostics only). Manifest `{m['manifest_id'][:16]}`.",
+              ""]
+    lines += ["## Primary result", ""]
+    if p.get("blocks"):
+        t, b = p["paired_t"], p["cluster_bootstrap"]
+        lines += _table(["metric", "value"], [
+            ["blocks (independent units)", p["blocks"]],
+            ["tables per arm", p["tables_per_arm"]],
+            ["mean points A", _f(p["mean_points_A"])],
+            ["mean points B", _f(p["mean_points_B"])],
+            ["mean difference B - A", _f(p["mean_difference"])],
+            ["SD of block differences", _f(p["sd_difference"])],
+            [f"{int(p['level'] * 100)}% paired t interval", _ci(t["lo"], t["hi"])],
+            [f"{int(p['level'] * 100)}% cluster bootstrap interval", _ci(b["lo"], b["hi"])],
+            ["decision interval", p["interval_method"]],
+            ["declared minimum effect", _f(p["min_effect"])],
+            ["minimum detectable effect (80% power)", _f(p["minimum_detectable_effect"])],
+            ["blocks B better / tied / A better", f"{p['blocks_B_better']} / {p['blocks_tied']} / {p['blocks_A_better']}"],
+        ])
+    else:
+        lines += ["No complete blocks."]
+    if p["blocks_excluded"]:
+        lines += ["", f"**{len(p['blocks_excluded'])} blocks excluded** (incomplete in an arm):"]
+        lines += [f"- {x['cell_id']} block {x['block']}: {'; '.join(x['reasons'][:3])}" for x in p["blocks_excluded"][:10]]
+    ex = a["execution"]
+    lines += ["", "## Execution", ""]
+    rows = []
+    for arm in ("A", "B"):
+        e = ex.get(arm) or {}
+        if not e:
+            continue
+        lat = e["latency_end_to_end_s"]
+        rows.append([arm, e["decisions"], _f(lat["p50"], 6), _f(lat["p95"], 6), _f(lat["p99"], 6),
+                     _f(lat["p99_9"], 6), _f(lat["max"], 6), e["fallback_total"], e["timeouts"], e["illegal_actions"],
+                     e["errors"], e["artifact_bytes"], e["max_state_bytes"], "yes" if e["competitive"] else "no"])
+    lines += _table(["arm", "decisions", "p50 s", "p95 s", "p99 s", "p99.9 s", "max s", "fallbacks", "timeouts",
+                     "illegal", "errors", "artifact bytes", "max state bytes", "competitive timing"], rows)
+    if ex.get("gates"):
+        lines += ["", "Gates (arm B): " + ", ".join(
+            f"{g['gate']} {'ok' if g['passed'] else 'FAILED'} ({_f(g['observed'], 6)} vs {g['limit']})"
+            for g in ex["gates"])]
+    lines += ["", "Memory: not measured (the sandbox enforces a 1 GiB address-space limit)."]
+    s = a["slices"]
+    for name, title in (("variant", "By variant"), ("family", "By opponent family (blocks whose lineup includes it)"),
+                        ("seat", "By candidate seat"), ("lineup", "By lineup")):
+        if s[name]:
+            lines += ["", f"## {title}", ""]
+            lines += _table(["slice", "blocks", "mean B - A", "interval", "Holm p"], _slice_rows(s[name]))
+    lines += ["", "## Finishes and the cap (descriptive, per arm)", ""]
+    da, db = s["descriptive_by_arm"]["A"], s["descriptive_by_arm"]["B"]
+    if da.get("tables") and db.get("tables"):
+        lines += _table(["", "A", "B"], [
+            ["tables", da["tables"], db["tables"]],
+            ["tables ended at the cap", _f(da["tables_ended_at_cap"]), _f(db["tables_ended_at_cap"])],
+            ["candidate survived to cap (ICM)", _f(da["finish_method"].get("icm", 0.0)),
+             _f(db["finish_method"].get("icm", 0.0))],
+            ["candidate won outright", _f(da["finish_method"].get("winner", 0.0)),
+             _f(db["finish_method"].get("winner", 0.0))],
+            ["candidate eliminated", _f(da["finish_method"].get("elimination", 0.0)),
+             _f(db["finish_method"].get("elimination", 0.0))],
+            ["cap ICM points per table", _f(da["cap_icm_points_mean"]), _f(db["cap_icm_points_mean"])],
+            ["lower-tail CVaR10 points", _f(da["lower_tail_cvar10_points"]), _f(db["lower_tail_cvar10_points"])],
+            ["mean final chips (diagnostic)", _f(da["chips_diagnostic"]["mean_final_chips"], 1),
+             _f(db["chips_diagnostic"]["mean_final_chips"], 1)],
+        ])
+        keys = sorted(set(da["finish_position_distribution"]) | set(db["finish_position_distribution"]),
+                      key=lambda k: (k == "survived_icm", int(k) if k.isdigit() else 0))
+        lines += ["", "Finish position distribution:", ""]
+        lines += _table(["position", "A", "B"], [[k, _f(da["finish_position_distribution"].get(k, 0.0)),
+                                                  _f(db["finish_position_distribution"].get(k, 0.0))] for k in keys])
+    opp = [r for r in s["opportunity_rates"] if r["opportunities_A"] >= 30 and r["opportunities_B"] >= 30]
+    if opp:
+        lines += ["", "## Changed action rates (nominal Wilson/Newcombe; decisions are clustered)", ""]
+        rows = []
+        for r in opp[:40]:
+            for cls in ("raise", "fold"):
+                x = r["rates"][cls]
+                if x["A"]["k"] or x["B"]["k"]:
+                    rows.append([r["slice"], cls, f"{x['A']['k']}/{x['A']['n']}", f"{x['B']['k']}/{x['B']['n']}",
+                                 _f(x["difference"]), _ci(*(x["newcombe"] or (None, None)))])
+        lines += _table(["opportunity", "action", "A", "B", "B - A", "interval"], rows)
+    rb = a["robustness"]
+    lines += ["", "## Robustness", ""]
+    wf = rb["worst_family"]
+    lines += [f"- Worst family: {wf['family']} mean {_f(wf.get('mean_difference'))} "
+              f"{_ci(wf.get('lo'), wf.get('hi'))}" if wf else "- Worst family: -",
+              f"- 5th-percentile lineup mean difference: {_f(rb['lineup_p5_mean_difference'])} "
+              f"over {rb['lineups']} lineups",
+              f"- 5th-percentile block difference: {_f(rb['block_difference_p5'])}",
+              f"- Lower-tail CVaR10 points: A {_f(rb['lower_tail_cvar10_points']['A'])}, "
+              f"B {_f(rb['lower_tail_cvar10_points']['B'])}"]
+    lines += ["", "Not measured: " + "; ".join(f"{k.replace('_', ' ')} ({v})" for k, v in a["not_measured"].items())
+              + "."]
+    if "null_calibration" in report:
+        lines += ["", render_null_section(report["null_calibration"])]
+    lines += ["", "## Provenance", ""]
+    lines += [f"- Rules: " + ", ".join(f"{r['ruleset_id']} `{r['rules_hash'][:12]}`" for r in m["rules"]),
+              f"- Population: {m['population']['source']} `{m['population']['registry_hash'][:12]}`, partition "
+              f"{m['population']['partition']['name']} `{m['population']['partition']['hash'][:12]}`"
+              + (" (STUB: not a locked registry)" if m["population"]["stub"] else ""),
+              f"- Seeds: {m['seeds']['blocks_total']} blocks, list hash `{m['seeds']['seed_list_sha256'][:12]}`",
+              f"- Code: {m['code']['commit'] or 'unknown'}{' (dirty)' if m['code']['dirty'] else ''}",
+              "", "Practice assumptions; not official Sequoia rules."]
+    return "\n".join(lines) + "\n"
+
+
+def render_null_section(n: Mapping[str, Any]) -> str:
+    lines = ["## Null calibration (identical policies)", ""]
+    cells = n.get("cells")
+    size = (f"{n['blocks_per_replicate']} blocks per cell x {cells} cells" if cells
+            else f"{n['blocks_per_replicate']} blocks")
+    lines += [f"{n['replicates']} disjoint replicate experiments of {size}. "
+              f"Declared one-sided false-gain rate {n['declared_false_gain_rate']:.3f} "
+              f"(alpha {n['alpha']:g}, two-sided interval).", ""]
+    rows = []
+    for name, r in n["methods"].items():
+        rows.append([name, f"{r['false_gains']}/{n['replicates']}", _f(r["false_gain_rate"]),
+                     _ci(*r["false_gain_rate_ci"]), f"{r['false_promotions']}", _f(r["mean_interval_width"]),
+                     _f(r["binomial_p_vs_declared"]), "ok" if r["calibrated"] else "TOO MANY"])
+    lines += _table(["method", "false gains", "rate", "exact 95% CI", f"false promotions (> {n['min_effect']:g})",
+                     "mean interval width", "P(X >= observed)", "calibration"], rows)
+    if n.get("exact_coupling") is not None:
+        c = n["exact_coupling"]
+        lines += ["", f"Exact coupling (same artifact, same policy seed): {c['blocks']} blocks, max |D| "
+                  f"{_f(c['max_abs_difference'], 9)} -> {'identical' if c['identical'] else 'NOT IDENTICAL'}."]
+    return "\n".join(lines)
+
+
+def finite(obj: Any) -> Any:
+    """JSON-safe copy: non-finite floats become null, tuples become lists."""
+    if isinstance(obj, Mapping):
+        return {str(k): finite(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [finite(v) for v in obj]
+    if isinstance(obj, float) and not math.isfinite(obj):
+        return None
+    return obj
+
+
+def write_report(out_dir: Path, report: Mapping[str, Any]) -> tuple[Path, Path]:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    report = finite(report)
+    jpath, mpath = out_dir / "report.json", out_dir / "report.md"
+    jpath.write_text(canonical_json(report) + "\n", encoding="ascii")
+    mpath.write_text(render_markdown(report), encoding="utf-8")
+    return jpath, mpath
+
+
+def load_report(out_dir: Path) -> dict[str, Any]:
+    return json.loads((out_dir / "report.json").read_text(encoding="ascii"))

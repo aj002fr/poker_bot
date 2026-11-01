@@ -1,0 +1,83 @@
+id: H013
+title: Separate first-in thresholds from facing-a-raise thresholds (the gap)
+kind: strategy
+status: proposed
+cluster: preflop_tree
+sources:
+- source: mop
+  location: ch. 12 pp. 121-137; ch. 28 pp. 338-342
+  digest_records: [mop/H05]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: harrington-v1
+  location: Part Five, pp. 87-88
+  digest_records: [harrington/H05]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Hero faces an open or a jam rather than acting first.
+eligible_opportunity: >-
+  Preflop decision facing exactly one raise, compared with first-in decisions at the same depth
+  and seat.
+observable_inputs:
+- action_history
+- position
+- raise_count
+- effective_stack_by_opponent
+- players_to_act
+- opponent_posterior
+- stack_vector
+- point_vector
+training_signals: []
+intervention: >-
+  Learn independent first-in and calling/reraising thresholds, conditioned on the opener's estimated
+  range and size.
+baseline: One aggression threshold shared between opening and responding.
+mechanism: >-
+  An opener can win without showdown; a caller faces a selected range and bears the confrontation
+  risk, so calling needs a stronger hand.
+exceptions:
+- Demonstrably super-wide openers, or pot odds with the action closed.
+- Traps or compulsory calls can reverse local ordering.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Structural for any game with blinds and raises.
+source_numbers: []
+parameters: []
+experiment:
+  id: E020
+  primary_metric: mean_point_difference
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 0
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 0
+  rationale: Very common situation and cheap to parameterise.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H025, H034]

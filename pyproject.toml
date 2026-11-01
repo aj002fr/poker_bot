@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi==0.120.1",
+    "numpy==2.5.4",
     "pokerkit==0.7.7",
     "psycopg-pool==3.2.7",
     "psycopg[binary]==3.2.12",
@@ -19,16 +20,29 @@ dev = [
     "hypothesis==6.142.4",
     "httpx==0.28.1",
 ]
+# Offline reference solver for Kuhn/Leduc checks only; never imported by `strategy/` or `arena/`.
+oracle = [
+    "open-spiel==2.0.2",
+]
+# Offline training kernels (strategy/solve); not needed to run bots.
+train = [
+    "numba==0.68.1",
+]
+
+[tool.uv]
+default-groups = ["dev", "train"]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["arena"]
+packages = ["arena", "strategy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
     "release: long-running release-gate tests (excluded from verify-fast)",
+    "slow: long strategy solver runs (excluded from verify-fast; make verify-solve-slow)",
+    "oracle: cross-checks against OpenSpiel (excluded from verify-fast; make verify-oracle)",
 ]

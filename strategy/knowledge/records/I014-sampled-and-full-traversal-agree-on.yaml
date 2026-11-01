@@ -1,0 +1,56 @@
+id: I014
+title: Sampled and full traversal agree on tiny games
+kind: invariant
+status: proposed
+cluster: invariant_learning
+sources:
+- source: lanctot-mccfr-2009
+  location: cfr digest section 3, additional invariants; MCCFR sampling schemes
+  digest_sections:
+  - cfr-pluribus-papers.md §3 additional invariants
+  - cfr-pluribus-papers.md §1 Lanctot et al.
+  transfer_caveat: Bounds assume two-player zero-sum perfect recall.
+situation: MCCFR traversal.
+eligible_opportunity: Every sampler release.
+observable_inputs: [policy_distribution]
+training_signals: [regret_estimates, reach_probabilities]
+intervention: >-
+  Every information set is visited with positive probability; sampled counterfactual values are
+  unbiased and agree with full traversal within confidence bounds on Kuhn.
+baseline: Untested sampler.
+mechanism: Importance-weighted unbiasedness of sampling schemes.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Trainer-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: T014
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Guards H043 and H048.
+owner: M2-B
+implementation:
+  module: strategy.solve.mccfr
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: T014 is covered by the Stage 2 fixture, oracle and mutation tests in strategy.solve.mccfr.
+related: [I012, H043]

@@ -1,0 +1,67 @@
+id: H026
+title: Track self-image against image-responsive opponents
+kind: strategy
+status: proposed
+cluster: opponent_model
+sources:
+- source: harrington-v1
+  location: Part Three, pp. 45-47; Part Three, pp. 45-46
+  digest_records: [harrington/H15, harrington/H16]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: >-
+  Hero has recently won pots without showdown, folded to reraises, or holds a premium where a
+  passive line would be out of character.
+eligible_opportunity: First-in or premium-hand decision after a visible streak.
+observable_inputs: [hero_visible_history, revealed_showdowns, opponent_posterior]
+training_signals: []
+intervention: >-
+  Reduce marginal steals and widen value when opponents are likely to adjust to hero's visible
+  looseness; prefer in-character lines with premiums.
+baseline: No self-image state.
+mechanism: >-
+  Opponents respond to perceived image, not to hero's hidden cards, and anomalous lines leak information.
+exceptions:
+- Memoryless or non-adaptive opponents, which most bots may be.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Image is public history; magnitudes depend on the field.
+source_numbers: []
+parameters: []
+experiment:
+  id: E030
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 1
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 0
+  rule_uncertainty: 0
+  leakage: 1
+  complexity: 1
+  rationale: Unclear whether any bot opponents model image.
+owner: M7
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H050]

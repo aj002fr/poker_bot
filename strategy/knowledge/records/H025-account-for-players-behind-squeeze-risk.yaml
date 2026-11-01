@@ -1,0 +1,80 @@
+id: H025
+title: Account for players behind (squeeze risk, closure, escape options)
+kind: strategy
+status: proposed
+cluster: state_features
+sources:
+- source: harrington-v1
+  location: >-
+    Part Five pp. 87-95; Hand 5-23 p. 122; Part Six Hand 6-18 pp. 154-155; Part Seven pp. 161-172
+  digest_records: [harrington/H06, harrington/H24]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+- source: gtow-multiway
+  location: Multiway pots, position
+  digest_records: [gtow/H20]
+  transfer_caveat: >-
+    Multiway equilibrium has no security guarantee; the all-fold product assumes independent folds.
+situation: >-
+  A price looks attractive but live players remain behind, or hero holds a strong non-nut hand
+  with unchecked players behind.
+eligible_opportunity: Call, raise or jam decision with at least one live player yet to act.
+observable_inputs:
+- players_to_act
+- action_closes
+- opponent_posterior
+- effective_stack_by_opponent
+- pot_odds
+- amount_to_call
+training_signals: []
+intervention: >-
+  Discount marginal calls for reopen risk and lost realisation, and prefer calls over jams when
+  later action carries useful information.
+baseline: Immediate pot odds only.
+mechanism: >-
+  Immediate odds omit the probability and cost of reopened action, and a jam discards the option
+  to escape against revealed strength.
+exceptions:
+- A lock hand, negligible squeeze probability, tiny price or a passive player behind.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Action-order logic is structural.
+source_numbers: []
+parameters: []
+experiment:
+  id: E021
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 1
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Common situation; modest per-decision effect.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 3 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H024, H013]

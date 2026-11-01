@@ -1,0 +1,34 @@
+schema: knowledge.invariant-test/v1
+id: T016
+title: PHH Pluribus import counts
+kind: invariant_test
+records: [I016]
+owner_workstream: M7
+target: PHH importer (proposed strategy/data)
+test_location: tests/strategy/data/test_phh_import.py (proposed, release marker)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: full corpus
+  given:
+    corpus: phh-dataset data/pluribus at the pinned commit
+  expect:
+    files_loaded: 10000
+    files_replayed: 10000
+    source_actions: 166698
+    pluribus_decisions: 15169
+    integer_final_stack_matches: 9992
+    half_chip_files: 8
+    rational_matches: 10000
+properties:
+- divmod of stacks uses exact rational arithmetic
+mutations:
+- integer truncation must fail the rational-match count

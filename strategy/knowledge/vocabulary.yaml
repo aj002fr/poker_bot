@@ -1,0 +1,130 @@
+# Controlled vocabulary for hypothesis records.
+#
+# `observable_inputs` may only name features marked `observable: true`: quantities the
+# acting bot can compute from its own seat view (own cards, public state, public
+# history and its own table-local state) at decision time. Anything that needs sealed
+# cards, future outcomes, rollouts or labels is `observable: false` and may appear only
+# under `training_signals`, used offline after the acting row has been frozen.
+#
+# This list doubles as the draft feature contract for strategy/features/ (workstream
+# M3-A). Groups are documentation only.
+
+features:
+  # tournament clock and scoring
+  hand_number: {group: tournament, observable: true}
+  hands_to_cap: {group: tournament, observable: true}
+  hands_to_blind_change: {group: tournament, observable: true}
+  blind_level: {group: tournament, observable: true}
+  forced_bets: {group: tournament, observable: true, note: blinds and antes now}
+  next_forced_bets: {group: tournament, observable: true, note: requires the official schedule}
+  players_remaining: {group: tournament, observable: true}
+  point_vector: {group: tournament, observable: true, note: remaining finish points, best first}
+  icm_equity_vector: {group: tournament, observable: true, note: computed from public stacks and point_vector}
+  marginal_point_value: {group: tournament, observable: true, note: points per chip won or lost, per seat}
+  point_call_threshold: {group: tournament, observable: true}
+  icm_risk_premium: {group: tournament, observable: true}
+  # stacks
+  hero_stack: {group: stack, observable: true}
+  stack_vector: {group: stack, observable: true}
+  stack_bb: {group: stack, observable: true}
+  m_ratio: {group: stack, observable: true, note: stack over one orbit of forced bets}
+  effective_stack_by_opponent: {group: stack, observable: true}
+  cover_relationships: {group: stack, observable: true}
+  stack_rank: {group: stack, observable: true}
+  shortest_stack: {group: stack, observable: true}
+  side_pot_eligibility: {group: stack, observable: true}
+  spr: {group: stack, observable: true}
+  post_action_spr: {group: stack, observable: true}
+  projected_forced_cost: {group: stack, observable: true, note: forced bets due before the next level and before the cap}
+  # betting state
+  pot: {group: action, observable: true}
+  side_pots: {group: action, observable: true}
+  amount_to_call: {group: action, observable: true}
+  legal_actions: {group: action, observable: true}
+  legal_size_bounds: {group: action, observable: true}
+  action_history: {group: action, observable: true}
+  street: {group: action, observable: true}
+  streets_remaining: {group: action, observable: true}
+  raise_count: {group: action, observable: true}
+  limper_count: {group: action, observable: true}
+  caller_count: {group: action, observable: true}
+  current_aggressor: {group: action, observable: true}
+  players_to_act: {group: action, observable: true}
+  action_closes: {group: action, observable: true}
+  live_opponents: {group: action, observable: true}
+  bet_size_pot_fraction: {group: action, observable: true}
+  pot_odds: {group: action, observable: true}
+  # position
+  seat: {group: position, observable: true}
+  position: {group: position, observable: true}
+  relative_position: {group: position, observable: true}
+  blind_vs_blind: {group: position, observable: true}
+  # cards (variant adapter supplies meaning)
+  hole_cards: {group: cards, observable: true}
+  board_cards: {group: cards, observable: true}
+  hand_bucket: {group: cards, observable: true}
+  bucket_path: {group: cards, observable: true, note: prior-street buckets kept for recall}
+  equity_vs_range: {group: cards, observable: true}
+  equity_distribution: {group: cards, observable: true}
+  blocker_mask: {group: cards, observable: true}
+  draw_class: {group: cards, observable: true}
+  draw_visibility: {group: cards, observable: true}
+  nut_potential: {group: cards, observable: true}
+  board_texture_class: {group: cards, observable: true}
+  turn_delta_class: {group: cards, observable: true}
+  # ranges and beliefs derived from public information
+  own_range_summary: {group: range, observable: true}
+  own_range_rank: {group: range, observable: true}
+  opponent_range_summary: {group: range, observable: true}
+  range_advantage: {group: range, observable: true}
+  nut_advantage: {group: range, observable: true}
+  field_nut_mass: {group: range, observable: true}
+  middle_range_mass: {group: range, observable: true}
+  weighted_denial: {group: range, observable: true}
+  all_fold_probability: {group: range, observable: true}
+  # opponent model (table-local, public evidence only)
+  opponent_action_counts: {group: opponent, observable: true}
+  opportunity_counts: {group: opponent, observable: true}
+  opponent_posterior: {group: opponent, observable: true}
+  posterior_effective_sample_size: {group: opponent, observable: true}
+  archetype_posterior: {group: opponent, observable: true}
+  size_response_curve: {group: opponent, observable: true}
+  expected_continuation_rate: {group: opponent, observable: true}
+  line_consistency_score: {group: opponent, observable: true}
+  revealed_showdowns: {group: opponent, observable: true, note: selection-biased}
+  hero_visible_history: {group: self, observable: true}
+  # rules and execution
+  rules_hash: {group: execution, observable: true}
+  variant_capabilities: {group: execution, observable: true}
+  policy_table_key: {group: execution, observable: true}
+  policy_distribution: {group: execution, observable: true}
+  decision_latency: {group: execution, observable: true}
+  # offline only
+  opponent_hole_cards: {group: offline, observable: false}
+  future_cards: {group: offline, observable: false}
+  realized_outcome: {group: offline, observable: false}
+  terminal_points: {group: offline, observable: false}
+  rollout_return: {group: offline, observable: false}
+  continuation_value_label: {group: offline, observable: false}
+  counterfactual_action_values: {group: offline, observable: false}
+  regret_estimates: {group: offline, observable: false}
+  reach_probabilities: {group: offline, observable: false}
+  teacher_distribution: {group: offline, observable: false}
+  opponent_family_label: {group: offline, observable: false}
+  exact_oracle_value: {group: offline, observable: false}
+  source_action_label: {group: offline, observable: false, note: an imported action such as a Pluribus choice}
+  solver_trace: {group: offline, observable: false}
+
+metrics:
+  mean_point_difference: {unit: pool_fraction_per_sng, note: "the strategy.experiments primary metric (paired-block B - A in official points) divided by the total point pool; runnable specs state min_effect in points, i.e. value x pool"}
+  worst_family_point_delta: {unit: pool_fraction_per_sng}
+  slice_point_delta: {unit: pool_fraction_per_sng, note: paired difference restricted to a predeclared slice}
+  exact_state_point_regret: {unit: pool_fraction, note: oracle regret of the chosen mixed action on enumerated states}
+  approximate_response_loss: {unit: pool_fraction_per_sng}
+  held_out_action_log_loss: {unit: nats_per_opportunity}
+  false_promotion_rate: {unit: probability}
+  teacher_student_kl: {unit: nats_per_decision}
+  nash_conv: {unit: game_value_units, note: two-player fixtures only}
+  transfer_point_loss: {unit: pool_fraction_per_sng}
+  artifact_quality_curve: {unit: pool_fraction_per_sng_by_minute}
+  fixture_pass: {unit: pass_fraction, note: share of required cases, properties and mutation checks that pass; invariants require 1.0}

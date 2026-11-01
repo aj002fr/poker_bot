@@ -1,0 +1,33 @@
+schema: knowledge.invariant-test/v1
+id: T014
+title: Sampling coverage and sampled/full agreement
+kind: invariant_test
+records: [I014]
+owner_workstream: M2-B
+target: strategy.solve.mccfr samplers
+test_location: tests/strategy/test_sampling.py, tests/strategy/test_fixture_gates.py
+status: implemented
+implemented_by:
+- tests/strategy/test_sampling.py::test_sampled_regrets_are_unbiased
+- tests/strategy/test_sampling.py::test_biased_sampling_variants_are_detected
+- tests/strategy/test_fixture_gates.py::test_sampled_and_full_traversal_agree
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: Kuhn agreement
+  given:
+    traversals: 100000
+    scheme: external
+  expect:
+    counterfactual_values: within 99% interval of full traversal
+properties:
+- every information set has positive sampling probability
+- importance-weighted estimates are unbiased over seeds
+mutations:
+- omitting the importance weight must fail agreement

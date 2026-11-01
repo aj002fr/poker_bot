@@ -1,0 +1,81 @@
+id: H069
+title: Plan bluffs by whole-line EV with shrunk fold estimates
+kind: strategy
+status: proposed
+cluster: postflop_bluffing
+sources:
+- source: gtow-multistreet-bluffs
+  location: >-
+    Multi-street bluffs, line EV; Multi-street bluffs, triple-barrel quiz; Multi-street bluffs,
+    worked example; Multi-street bluffs, bet-check-bet
+  digest_records: [gtow/H11, gtow/H12, gtow/H13, gtow/H14]
+  transfer_caveat: >-
+    Pedagogical heads-up chip-EV model with dead called bluffs, fixed fold rates and no raises.
+situation: Hero considers starting or continuing a two- or three-street bluff.
+eligible_opportunity: Bet-or-check decision with air or weak equity when at least one more street
+  remains.
+observable_inputs:
+- pot
+- effective_stack_by_opponent
+- streets_remaining
+- opponent_posterior
+- posterior_effective_sample_size
+- expected_continuation_rate
+training_signals: []
+intervention: >-
+  Choose the plan with the highest full-line EV, requiring the river fold rate to repay earlier
+  called barrels; allow a negative incremental barrel that buys a profitable river; compare barrelling
+  with delayed bluffs given probe rates.
+baseline: Greedy per-street EV.
+mechanism: >-
+  Earlier investments must be repaid by later folds, and future options change the present value
+  of a barrel.
+exceptions:
+- Material showdown or improvement equity, forced all-ins, or high raise rates.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Line accounting is generic; fold estimates are opponent-specific.
+source_numbers:
+- value: river folds 50% to 85%
+  context: Article sweep for the pot-sized triple-barrel zero crossing
+  use: sweep_bound
+- value: 13/18 versus 1/2
+  context: Line versus river-local break-even for pot-sized barrels with called earlier streets
+  use: analytic
+parameters: []
+experiment:
+  id: E036
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 2
+  transfer: 3
+  readiness: 1
+  power: 1
+  risk: 2
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Accounting is implemented; strategy needs beliefs and blueprint.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 4 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [I003, H070, H039]

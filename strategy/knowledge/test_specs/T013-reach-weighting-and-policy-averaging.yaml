@@ -1,0 +1,36 @@
+schema: knowledge.invariant-test/v1
+id: T013
+title: Reach weighting and policy averaging
+kind: invariant_test
+records: [I013]
+owner_workstream: M2-B
+target: strategy.solve.cfr regret and average-strategy updates
+test_location: tests/strategy/test_averaging.py, tests/strategy/test_reach_and_card_removal.py, tests/strategy/test_mutations.py
+status: implemented
+implemented_by:
+- tests/strategy/test_averaging.py::test_average_is_the_reach_weighted_mixture_of_iterates
+- tests/strategy/test_averaging.py::test_first_iteration_strategy_sum_is_own_reach_times_uniform
+- tests/strategy/test_reach_and_card_removal.py::test_kuhn_reach_includes_chance_and_opponent
+- tests/strategy/test_mutations.py::test_broken_variant_is_caught
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: hand-computed Kuhn iteration
+  given:
+    iteration: 1
+    policy: uniform
+  expect:
+    regrets: match a hand-computed table
+properties:
+- counterfactual values weight by opponent and chance reach only
+- the average strategy weights by the acting player's own reach
+mutations:
+- weighting regrets by own reach must fail Kuhn NashConv
+- averaging without reach weights must fail Kuhn NashConv
+- dropping chance probabilities must fail the hand-computed iteration

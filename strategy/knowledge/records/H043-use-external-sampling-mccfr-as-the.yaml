@@ -1,0 +1,64 @@
+id: H043
+title: Use external-sampling MCCFR as the primary traversal
+kind: method
+status: proposed
+cluster: training
+sources:
+- source: lanctot-mccfr-2009
+  location: Lanctot et al. 2009
+  digest_records: [cfr/H1]
+  transfer_caveat: Bounds assume two-player zero-sum perfect recall.
+situation: Offline training of a compact abstract game with chance and several opponents.
+eligible_opportunity: Trainer configuration; measured on ladder games and a push/fold abstraction.
+observable_inputs: [policy_table_key]
+training_signals: [regret_estimates, reach_probabilities]
+intervention: >-
+  Prefer external sampling over full traversal or outcome sampling, chosen by NashConv at equal
+  nodes and wall time.
+baseline: Full traversal.
+mechanism: >-
+  External sampling expands the traverser's alternatives while sampling others, cutting work without
+  single-history variance.
+exceptions:
+- Some branching structures favour outcome sampling; multiplayer guarantees do not follow.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Trainer-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: E019
+  primary_metric: nash_conv
+  minimum_effect:
+    value: 0.01
+    unit: game_value_units
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 3
+  effect: 1
+  transfer: 3
+  readiness: 2
+  power: 3
+  risk: 2
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Cheap to measure on exact games; affects compute efficiency, not strategy directly.
+owner: M2-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H044, H048, I014]

@@ -1,0 +1,101 @@
+id: H006
+title: Condition risk on the hands remaining to the cap
+kind: strategy
+status: proposed
+cluster: tournament_clock
+sources:
+- source: mop
+  location: chs. 19-20 pp. 228-258; ch. 27 pp. 324-337
+  digest_records: [mop/H03]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: harrington-v1
+  location: Part Two, pp. 25-28
+  digest_records: [harrington/H02]
+  transfer_caveat: >-
+    The book's patience advice concerns tournament speed in general; the fixed hand cap is the
+    competition's extension.
+- source: mit-15s50
+  location: >-
+    Lecture 7; Lectures 3-4 stack discussion; Lecture 5 ~22:27-27:34 with the hand-200 rule; Lectures
+    1-2 with the hand-200 rule; Lectures 5-6 with the hand-200 rule
+  digest_records: [mit-l78/H2, mit-l34/H5, mit15s50/H17, mit-l12/H7, mit-l56/H8]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: >-
+  Equal stacks and blinds at different hand numbers, especially in the last quarter before hand
+  200.
+eligible_opportunity: Any preflop or postflop decision; analysis is sliced by hands to cap.
+observable_inputs:
+- hand_number
+- hands_to_cap
+- icm_equity_vector
+- stack_rank
+- stack_vector
+- point_vector
+- blind_level
+training_signals: []
+intervention: >-
+  Provide hand number and hands to cap as features so the policy can reduce destructive variance
+  when ahead and seek variance when a passive line locks in a poor cap allocation.
+baseline: The same policy seeing only current stacks and blinds.
+mechanism: >-
+  Fewer remaining hands make cap ICM more immediate and leave less time to recover, so the value
+  of waiting and of chip variance changes with the horizon.
+exceptions:
+- Tables that rarely reach the cap because blinds force eliminations.
+- Blind pressure can dominate waiting even near the cap.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: The cap rule is part of the competition format
+source_numbers:
+- value: 200
+  context: Hand cap in the competition rules as modelled by the arena
+  use: analytic
+- value: 50/25/10/5 hands remaining
+  context: MIT digest evaluation buckets
+  use: illustration
+- value: hands 176-200
+  context: MoP digest regret slice
+  use: illustration
+parameters: []
+experiment:
+  id: E004
+  primary_metric: mean_point_difference
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 2
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 1
+  rationale: >-
+    Seven sources agree; needs only feature plumbing and the learner. Rule uncertainty is the
+    blind schedule.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 7 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H007, H002]

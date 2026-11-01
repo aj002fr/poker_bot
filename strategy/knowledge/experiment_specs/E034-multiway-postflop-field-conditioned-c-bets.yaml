@@ -1,0 +1,108 @@
+schema: knowledge.experiment/v1
+id: E034
+title: 'Multiway postflop: field-conditioned c-bets, nut-potential draws, joint all-fold'
+kind: factorial
+mode: discovery
+records: [H061, H062, H063]
+question: >-
+  In three-plus-way pots, do field-size conditioning, nut-potential draw preference and joint
+  all-fold bluff thresholds improve points over heads-up-derived rules?
+arms:
+- name: headsup_rules
+  role: control
+  description: Heads-up c-bet and bluff rules applied multiway.
+  toggles:
+    field_conditioning: 'off'
+    nut_potential: 'off'
+    joint_all_fold: 'off'
+- name: field
+  role: treatment
+  description: C-bet frequency and size conditioned on player count.
+  toggles:
+    field_conditioning: 'on'
+    nut_potential: 'off'
+    joint_all_fold: 'off'
+- name: field_nut
+  role: treatment
+  description: Adds nut-potential draw preference.
+  toggles:
+    field_conditioning: 'on'
+    nut_potential: 'on'
+    joint_all_fold: 'off'
+- name: all
+  role: treatment
+  description: Adds joint all-fold thresholds for bluffs.
+  toggles:
+    field_conditioning: 'on'
+    nut_potential: 'on'
+    joint_all_fold: 'on'
+factors:
+- name: field conditioning
+  toggle: field_conditioning
+  records_tested: [H061]
+- name: nut potential
+  toggle: nut_potential
+  records_tested: [H062]
+- name: joint all-fold
+  toggle: joint_all_fold
+  records_tested: [H063]
+toggles:
+  field_conditioning: ['off', 'on']
+  nut_potential: ['off', 'on']
+  joint_all_fold: ['off', 'on']
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: [plo]
+seeds:
+  namespace: knowledge/E034
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: paired seed/lineup/rotation block
+  interval: paired t 95%; cluster bootstrap over blocks when skewed
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: slice_point_delta
+minimum_effect:
+  value: 0.004
+  unit: pool_fraction_per_sng
+  basis: provisional
+metrics: [mean_point_difference]
+slices: [three-way, four-plus-way, board texture class]
+guardrails:
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 200
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+run_specs: []
+blocked_by: [M5 blueprint]
+status: blocked
+result_artifact: null

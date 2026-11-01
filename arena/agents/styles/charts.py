@@ -140,12 +140,22 @@ def chart_group(group: str) -> str:
     return "late" if group == "blinds" else group
 
 
-def in_chart(chart: str, group: str, hand: str) -> bool:
-    return hand in CHARTS[chart][chart_group(group)]
+Chart = str | Mapping[str, frozenset[str]]
+"""A chart name from :data:`CHARTS`, or a mapping from position group to hand classes."""
 
 
-def in_range(spec: str, hand: str) -> bool:
-    return hand in _cached(spec)
+def in_chart(chart: Chart, group: str, hand: str) -> bool:
+    groups = CHARTS[chart] if isinstance(chart, str) else chart
+    return hand in groups[chart_group(group)]
+
+
+def chart_name(chart: Chart) -> str:
+    return chart if isinstance(chart, str) else "sampled"
+
+
+def in_range(spec: str | frozenset[str], hand: str) -> bool:
+    """``spec`` is a range string such as ``"77+, AJs+"`` or an already expanded set of classes."""
+    return hand in (spec if isinstance(spec, frozenset) else _cached(spec))
 
 
 _RANGE_CACHE: dict[str, frozenset[str]] = {}

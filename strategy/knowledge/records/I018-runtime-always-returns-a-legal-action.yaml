@@ -1,0 +1,52 @@
+id: I018
+title: Runtime always returns a legal action in constant time
+kind: invariant
+status: proposed
+cluster: invariant_runtime
+sources:
+- source: sequoia-rules
+  location: data digest section B (direct competition constraints)
+  digest_sections: [data-and-rules.md §B]
+  transfer_caveat: >-
+    Silent on the blind schedule, payout vector, interface, ICM details and timing boundary; the
+    arena's fills are practice assumptions.
+situation: Any runtime decision, including table misses and malformed states.
+eligible_opportunity: Every runtime decision.
+observable_inputs: [legal_actions, legal_size_bounds, decision_latency]
+training_signals: []
+intervention: >-
+  The returned action is always legal with an in-bounds size; table misses use a constant-time
+  fallback; latency p99.9 stays within budget on cold and warm starts.
+baseline: Unchecked runtime.
+mechanism: Illegal actions and timeouts forfeit points.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Runtime.
+source_numbers: []
+parameters: []
+experiment:
+  id: T018
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Execution gate for every experiment.
+owner: M3-D
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H053, I023]

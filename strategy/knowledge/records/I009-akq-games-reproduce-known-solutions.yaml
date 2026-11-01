@@ -1,0 +1,57 @@
+id: I009
+title: AKQ games reproduce known solutions
+kind: invariant
+status: proposed
+cluster: invariant_toy_games
+sources:
+- source: mop
+  location: toy-game fixtures 7-8 (limit and no-limit AKQ)
+  digest_sections:
+  - mathematics-of-poker.md toy-game fixtures 7-8
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Solver output on AKQ games with card removal.
+eligible_opportunity: Every solver release.
+observable_inputs: [hole_cards, pot]
+training_signals: [exact_oracle_value]
+intervention: >-
+  Limit AKQ at pot 2 gives the second player value 1/18; no-limit half-street AKQ has optimal
+  size sqrt(2)-1 and value (sqrt(2)-1)^2/6, with queen bluff frequency s/(1+s).
+baseline: Untested solver.
+mechanism: Closed-form equilibria with card dependence.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Abstract games.
+source_numbers: []
+parameters: []
+experiment:
+  id: T009
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Only fixtures with private-card dependence.
+owner: M2-A
+implementation:
+  module: strategy.games.fixtures
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: T009 is covered by the Stage 2 fixture, oracle and mutation tests in strategy.games.fixtures.
+related: [I007]

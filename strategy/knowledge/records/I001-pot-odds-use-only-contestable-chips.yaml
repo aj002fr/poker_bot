@@ -1,0 +1,64 @@
+id: I001
+title: Pot odds use only contestable chips
+kind: invariant
+status: proposed
+cluster: invariant_math
+sources:
+- source: mit-15s50
+  location: Lecture 3 ~08:28-12:12; slides pp. 10-21
+  digest_records: [mit15s50/H07]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: harrington-v1
+  location: Part Four, pp. 56-58
+  digest_records: [harrington/H07]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Any call priced by a terminal pot-odds comparison, including overbets and all-ins.
+eligible_opportunity: Every call price computed by strategy or feature code.
+observable_inputs: [pot, amount_to_call, hero_stack, side_pots, pot_odds]
+training_signals: []
+intervention: >-
+  Break-even equity is C/(P+C) where C is the matched call and P excludes unmatched chips; EV
+  of a terminal call is e*P - (1-e)*C.
+baseline: An implementation pricing the nominal bet.
+mechanism: Unmatched chips are returned and cannot be won.
+exceptions:
+- >-
+  None; this is a rules identity. Point thresholds (I004) replace it for tournament decisions
+  but use the same chip accounting.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Betting arithmetic.
+source_numbers:
+- value: e* = C/(P+C)
+  context: Terminal call break-even
+  use: analytic
+parameters: []
+experiment:
+  id: T001
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Rules identity; any error corrupts every price.
+owner: M2-C
+implementation:
+  module: strategy.math.odds
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [I024, I004]

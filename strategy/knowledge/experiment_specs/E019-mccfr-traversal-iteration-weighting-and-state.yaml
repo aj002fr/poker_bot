@@ -1,0 +1,113 @@
+schema: knowledge.experiment/v1
+id: E019
+title: MCCFR traversal, iteration weighting and state-sampling weights
+kind: factorial
+mode: discovery
+records: [H043, H044, H048]
+question: >-
+  At equal nodes touched and wall time, which traversal, weighting schedule and importance-weighted
+  state sampling reach low NashConv fastest on the ladder games and a push/fold abstraction?
+arms:
+- name: vanilla
+  role: control
+  description: Full traversal, uniform weighting, natural state frequencies.
+  toggles:
+    traversal: full
+    weighting: uniform
+    state_sampling: natural
+- name: external
+  role: treatment
+  description: External-sampling MCCFR.
+  toggles:
+    traversal: external
+    weighting: uniform
+    state_sampling: natural
+- name: external_linear
+  role: treatment
+  description: External sampling with linear weighting.
+  toggles:
+    traversal: external
+    weighting: linear
+    state_sampling: natural
+- name: external_linear_iw
+  role: treatment
+  description: Adds rare-state oversampling with importance weights.
+  toggles:
+    traversal: external
+    weighting: linear
+    state_sampling: importance_weighted
+factors:
+- name: traversal
+  toggle: traversal
+  records_tested: [H043]
+- name: weighting
+  toggle: weighting
+  records_tested: [H044]
+- name: state sampling
+  toggle: state_sampling
+  records_tested: [H048]
+toggles:
+  traversal: [full, external, outcome]
+  weighting: [uniform, linear, discounted]
+  state_sampling: [natural, importance_weighted]
+lineups:
+  train:
+    population: two-player ladder games and one push/fold abstraction
+  evaluate:
+    population: OpenSpiel exact best response
+    note: NashConv is two-player only
+variants:
+  primary: [nlhe]
+  rehearsal: []
+seeds:
+  namespace: knowledge/E019
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: fixture game
+  interval: exact oracle value; bootstrap over state draws where sampled
+  sample_size: >-
+    every enumerated state in the declared slice; sampled slices sized for a 95% interval half-width
+    below the minimum effect
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: nash_conv
+minimum_effect:
+  value: 0.01
+  unit: game_value_units
+  basis: plan_gate
+metrics: [approximate_response_loss]
+slices:
+- Kuhn
+- Leduc
+- push/fold abstraction
+- checkpoint at equal nodes
+- checkpoint at equal wall time
+guardrails:
+- sampled and full traversal agree within interval on Kuhn (T014)
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 50
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+run_specs: []
+blocked_by: [M2-B CFR implementations, T012 oracle tests]
+status: blocked
+result_artifact: null

@@ -1,0 +1,69 @@
+id: H047
+title: Optional behaviour-cloning prior from Pluribus hands
+kind: method
+status: proposed
+cluster: training
+sources:
+- source: phh-dataset
+  location: data digest section A, 'What can be learned' item 1 and import plan
+  digest_sections:
+  - data-and-rules.md §A What can be learned
+  - data-and-rules.md §A Import plan
+  transfer_caveat: >-
+    Six-max 100bb cash NLHE actions sampled from one mixed strategy; CC BY 4.0 attribution required.
+situation: Initialising or regularising the NLHE learner.
+eligible_opportunity: Training only; never at decision time.
+observable_inputs: [hole_cards, board_cards, action_history, position, stack_bb]
+training_signals: [source_action_label]
+intervention: Add a decaying behaviour-cloning term toward Pluribus actions on mapped states.
+baseline: No behaviour-cloning prior.
+mechanism: A strong reference policy may speed early learning.
+exceptions:
+- >-
+  Six-max deep cash differs from the competition; the prior can anchor the learner on wrong-format
+  play.
+- Funding depends on user decision 6.
+variant_scope:
+  transfer: variant_specific
+  variants: [nlhe]
+  notes: NLHE corpus only.
+source_numbers:
+- value: 10000
+  context: Pluribus hands in the PHH corpus
+  use: analytic
+parameters: []
+experiment:
+  id: E032
+  primary_metric: held_out_action_log_loss
+  minimum_effect:
+    value: 0.01
+    unit: nats_per_opportunity
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 2
+  effect: 1
+  transfer: 0
+  readiness: 1
+  power: 1
+  risk: 0
+  rule_uncertainty: 1
+  leakage: 1
+  complexity: 1
+  rationale: Weak transfer to the format; optional by plan.
+owner: M7
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H038, I016]

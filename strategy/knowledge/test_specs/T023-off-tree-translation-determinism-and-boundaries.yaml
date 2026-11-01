@@ -1,0 +1,34 @@
+schema: knowledge.invariant-test/v1
+id: T023
+title: Off-tree translation determinism and boundaries
+kind: invariant_test
+records: [I023]
+owner_workstream: M5
+target: action translation (proposed strategy/abstraction)
+test_location: tests/strategy/abstraction/test_translation.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: on-menu size
+  given:
+    size: menu size
+  expect:
+    translated: same size
+- name: boundaries
+  given:
+    sizes: minimum raise, all-in, one chip above and below each menu size
+  expect:
+    translation: legal and deterministic
+properties:
+- translation is monotone between neighbouring menu sizes
+- the same seed gives the same translation
+mutations:
+- nearest-size rounding without the minimum-raise rule must fail

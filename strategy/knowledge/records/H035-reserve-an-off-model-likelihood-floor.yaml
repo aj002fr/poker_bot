@@ -1,0 +1,74 @@
+id: H035
+title: Reserve an off-model likelihood floor
+kind: method
+status: proposed
+cluster: beliefs
+sources:
+- source: mop
+  location: ch. 5, pp. 59-69
+  digest_records: [mop/H09]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: An observed action has near-zero likelihood under every modelled type.
+eligible_opportunity: Belief update after any observed opponent action.
+observable_inputs:
+- opponent_posterior
+- opponent_action_counts
+- posterior_effective_sample_size
+training_signals: []
+intervention: >-
+  Mix a floor probability into every action likelihood and shrink exploit shifts when the floor
+  absorbs mass.
+baseline: Pure model likelihoods with no floor.
+mechanism: >-
+  Real policies deviate from models; a zero likelihood collapses ranges and invites catastrophic
+  misreads.
+exceptions:
+- Logically impossible private states stay at zero.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Generic belief safety.
+source_numbers: []
+parameters:
+- name: likelihood_floor
+  basis: sweep_only
+  default: null
+  sweep:
+    values: [0.001, 0.005, 0.01, 0.02, 0.05]
+experiment:
+  id: E011
+  primary_metric: held_out_action_log_loss
+  minimum_effect:
+    value: 0.01
+    unit: nats_per_opportunity
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 2
+  effect: 1
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 3
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 0
+  rationale: Risk reduction for little cost.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H034]

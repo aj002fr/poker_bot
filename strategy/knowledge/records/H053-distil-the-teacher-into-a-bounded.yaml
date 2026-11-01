@@ -1,0 +1,82 @@
+id: H053
+title: Distil the teacher into a bounded lookup or shallow student
+kind: method
+status: proposed
+cluster: deployment
+sources:
+- source: mop
+  location: ch. 30, pp. 359-364
+  digest_records: [mop/H22]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: mit-15s50
+  location: Lectures 1-2; Lectures 5-6 with runtime limits
+  digest_records: [mit-l12/H5, mit-l56/H9]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: Deploying an offline strategy under 1 ms per decision and 100 MB.
+eligible_opportunity: Every runtime decision.
+observable_inputs:
+- policy_table_key
+- hand_bucket
+- stack_vector
+- position
+- hands_to_cap
+- decision_latency
+training_signals: [teacher_distribution]
+intervention: >-
+  Distil to lookup tables or a quantized shallow model, sample its mixed output, and keep a legal
+  constant-time fallback.
+baseline: The float teacher (offline reference).
+mechanism: Analysis belongs offline; runtime search has unpredictable tail latency and memory.
+exceptions:
+- Exact enumeration may be cheaper than inference in very small revealed variants.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Deployment path is generic.
+source_numbers:
+- value: 1 ms
+  context: Decision-time budget used by the arena sandbox
+  use: analytic
+- value: 100 MB
+  context: Submission size limit
+  use: analytic
+parameters: []
+experiment:
+  id: E017
+  primary_metric: teacher_student_kl
+  minimum_effect:
+    value: 0.02
+    unit: nats_per_decision
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 3
+  effect: 1
+  transfer: 3
+  readiness: 1
+  power: 2
+  risk: 3
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 2
+  rationale: Mandatory for submission; measurable once a teacher exists.
+owner: M8
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 3 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H054, I018]

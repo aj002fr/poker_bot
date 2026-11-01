@@ -1,0 +1,102 @@
+schema: knowledge.experiment/v1
+id: E037
+title: 'River decisions: worse-call mass, bluff-ratio features, line consistency'
+kind: factorial
+mode: discovery
+records: [H071, H072, H037]
+question: >-
+  Do explicit worse-call mass, bluff-ratio features and a skill-gated line-consistency score improve
+  last-street bet and bluff-catch decisions?
+arms:
+- name: plain
+  role: control
+  description: River policy from hand strength and pot odds.
+  toggles:
+    worse_call_mass: 'off'
+    bluff_ratio_features: 'off'
+    line_consistency: 'off'
+- name: value_ratio
+  role: treatment
+  description: Adds worse-call mass and alpha features.
+  toggles:
+    worse_call_mass: 'on'
+    bluff_ratio_features: 'on'
+    line_consistency: 'off'
+- name: all
+  role: treatment
+  description: Adds line consistency gated by opponent skill posterior.
+  toggles:
+    worse_call_mass: 'on'
+    bluff_ratio_features: 'on'
+    line_consistency: 'on'
+factors:
+- name: worse-call mass
+  toggle: worse_call_mass
+  records_tested: [H071]
+- name: bluff-ratio features
+  toggle: bluff_ratio_features
+  records_tested: [H072]
+- name: line consistency
+  toggle: line_consistency
+  records_tested: [H037]
+toggles:
+  worse_call_mass: ['off', 'on']
+  bluff_ratio_features: ['off', 'on']
+  line_consistency: ['off', 'on']
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: []
+seeds:
+  namespace: knowledge/E037
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: paired seed/lineup/rotation block
+  interval: paired t 95%; cluster bootstrap over blocks when skewed
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: slice_point_delta
+minimum_effect:
+  value: 0.004
+  unit: pool_fraction_per_sng
+  basis: provisional
+metrics: [mean_point_difference, exact_state_point_regret]
+slices: [river nodes, opponent skill family]
+guardrails:
+- half-street toy fixtures (T007) pass
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 120
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+run_specs: []
+blocked_by: [M5 blueprint, E011 beliefs]
+status: blocked
+result_artifact: null

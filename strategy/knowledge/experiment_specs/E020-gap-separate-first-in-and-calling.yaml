@@ -1,0 +1,79 @@
+schema: knowledge.experiment/v1
+id: E020
+title: 'Gap: separate first-in and calling thresholds'
+kind: ab_test
+mode: discovery
+records: [H013]
+question: >-
+  Do independently learned first-in and facing-raise thresholds beat a shared aggression threshold
+  against withheld lineups?
+arms:
+- name: shared
+  role: control
+  description: One aggression threshold used for opening and responding.
+  toggles:
+    gap_model: shared
+- name: separate
+  role: treatment
+  description: Separate first-in and response thresholds conditioned on opener range.
+  toggles:
+    gap_model: separate
+factors: []
+toggles:
+  gap_model: [shared, separate]
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: [short_deck, plo]
+seeds:
+  namespace: knowledge/E020
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: paired seed/lineup/rotation block
+  interval: paired t 95%; cluster bootstrap over blocks when skewed
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: mean_point_difference
+minimum_effect:
+  value: 0.004
+  unit: pool_fraction_per_sng
+  basis: provisional
+metrics: [slice_point_delta]
+slices: [first in, facing one raise, opener family, players behind]
+guardrails:
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 80
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+run_specs: []
+blocked_by: [M3-B parameterized baseline]
+status: blocked
+result_artifact: null

@@ -1,0 +1,56 @@
+id: I012
+title: CFR implementations match OpenSpiel oracles
+kind: invariant
+status: proposed
+cluster: invariant_learning
+sources:
+- source: openspiel
+  location: cfr digest section 3, verification ladder
+  digest_sections: [cfr-pluribus-papers.md §3]
+  transfer_caveat: Offline oracle for small games only; never a deployment dependency.
+situation: Every CFR-family implementation.
+eligible_opportunity: Every trainer release.
+observable_inputs: [policy_distribution]
+training_signals: [exact_oracle_value, regret_estimates]
+intervention: >-
+  Regret matching on RPS reaches 1/3 each with value 0; Kuhn player 0 value -1/18 with average-policy
+  NashConv below 0.01; Leduc player 0 value about -0.085606424078 with NashConv below 0.05, OpenSpiel
+  version pinned.
+baseline: Untested trainer.
+mechanism: Known equilibria and exact best responses.
+exceptions:
+- Two-player only; no multiplayer convergence claim.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Trainer-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: T012
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Ladder gate before any blueprint run.
+owner: M2-B
+implementation:
+  module: strategy.solve.cfr
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: T012 is covered by the Stage 2 fixture, oracle and mutation tests in strategy.solve.cfr.
+related: [I013, I014, H042]

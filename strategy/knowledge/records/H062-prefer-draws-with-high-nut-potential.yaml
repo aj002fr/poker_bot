@@ -1,0 +1,63 @@
+id: H062
+title: Prefer draws with high nut potential in multiway pots
+kind: strategy
+status: proposed
+cluster: postflop_multiway
+sources:
+- source: gtow-multiway
+  location: Multiway pots, nut potential
+  digest_records: [gtow/H18]
+  transfer_caveat: >-
+    Multiway equilibrium has no security guarantee; the all-fold product assumes independent folds.
+situation: Choosing which of several similar-equity draws to bet or raise.
+eligible_opportunity: Multiway postflop decision holding a draw.
+observable_inputs: [nut_potential, draw_class, live_opponents, blocker_mask]
+training_signals: []
+intervention: >-
+  Bet or raise draws that complete to the nuts more often than draws that complete to dominated
+  hands.
+baseline: Draws ranked by raw equity only.
+mechanism: Collective continuing ranges make dominated improvements costly.
+exceptions:
+- Blocker or showdown-value differences dominate.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Especially relevant in PLO; nut ranks come from the adapter.
+source_numbers: []
+parameters: []
+experiment:
+  id: E034
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 1
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Small, specific effect.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H061]

@@ -1,0 +1,40 @@
+schema: knowledge.invariant-test/v1
+id: T009
+title: AKQ games
+kind: invariant_test
+records: [I009]
+owner_workstream: M2-A
+target: strategy.games.akq through the fixture registry, solved by strategy.solve
+test_location: tests/strategy/test_fixture_gates.py, tests/strategy/test_reach_and_card_removal.py
+status: implemented
+implemented_by:
+- tests/strategy/test_fixture_gates.py::test_fixture_gates
+- tests/strategy/test_reach_and_card_removal.py::test_akq_card_removal
+- tests/strategy/test_reach_and_card_removal.py::test_akq_dealt_with_replacement_fails_its_gate
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: limit AKQ
+  given:
+    pot: 2
+    bet: 1
+  expect:
+    second_player_value: 1/18
+- name: no-limit AKQ size
+  given:
+    pot: 1
+  expect:
+    optimal_size: sqrt(2) - 1
+    value: (sqrt(2) - 1)^2 / 6
+    queen_bluff: 1 - 1/sqrt(2)
+properties:
+- limit AKQ value matches (P - 1)/(6(P + 1)) for P in {2, 3, 4}
+- no-limit value function f(s) = s(1 - s)/(6(1 + s)) is maximised at the solved size
+mutations:
+- dealing with replacement (no card removal) must fail the limit case

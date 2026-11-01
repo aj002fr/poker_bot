@@ -1,0 +1,90 @@
+id: H029
+title: Bucket hands by future-equity distribution and blockers
+kind: method
+status: proposed
+cluster: card_abstraction
+sources:
+- source: pluribus-2019
+  location: Pluribus information abstraction; Johanson et al.
+  digest_records: [cfr/H3]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+- source: mit-15s50
+  location: Lecture 7 ~41:42-43:07, 52:54-56:47; Lecture 7
+  digest_records: [mit15s50/H19, mit-l78/H5]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: mop
+  location: ch. 13 pp. 138-145; ch. 28 pp. 345-346
+  digest_records: [mop/H14]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Compressing private hands into buckets for offline training and runtime lookup.
+eligible_opportunity: >-
+  Every abstracted information set; measured on blocker-sensitive fixtures and unabstracted audits.
+observable_inputs:
+- hole_cards
+- board_cards
+- equity_distribution
+- blocker_mask
+- nut_potential
+- hand_bucket
+- bucket_path
+training_signals: []
+intervention: >-
+  Cluster on future-equity histograms plus blocker features instead of scalar current equity,
+  at equal bucket count.
+baseline: Equity-only buckets.
+mechanism: >-
+  Hands with equal present equity can differ in removal effects, nut potential and future certainty;
+  merging them leaks.
+exceptions:
+- >-
+  Very early reveal-day runs may afford only coarse buckets; small card spaces should be exact.
+- Independent-hand toy games or variants without shared deck removal.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: >-
+    The method transfers; buckets must be rebuilt per variant once dealing and ranking rules are
+    known.
+source_numbers: []
+parameters: []
+experiment:
+  id: E014
+  primary_metric: approximate_response_loss
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 2
+  transfer: 2
+  readiness: 1
+  power: 2
+  risk: 2
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 0
+  rationale: Plan rank 12, but needs the blueprint trainer and is only testable per known variant.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 4 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H030, H049]

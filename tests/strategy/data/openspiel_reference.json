@@ -1,0 +1,322 @@
+{
+  "open_spiel": "2.0.2",
+  "games": {
+    "kuhn": {
+      "short_name": "kuhn_poker",
+      "parameters": {
+        "players": "2"
+      },
+      "counts": {
+        "nodes": 58,
+        "terminal": 30,
+        "chance": 4,
+        "decision": 24,
+        "infosets": 12
+      },
+      "uniform_nash_conv": 0.9166666666666666,
+      "uniform_value_p0": 0.12500000000000003,
+      "solvers": {
+        "cfr": [
+          {
+            "iterations": 1,
+            "average_nash_conv": 0.9166666666666666,
+            "average_value_p0": 0.12500000000000003,
+            "current_nash_conv": 0.49999999999999994
+          },
+          {
+            "iterations": 2,
+            "average_nash_conv": 0.5416666666666667,
+            "average_value_p0": 5.551115123125783e-17,
+            "current_nash_conv": 0.2916666666666667
+          },
+          {
+            "iterations": 3,
+            "average_nash_conv": 0.3888888888888888,
+            "average_value_p0": -0.053240740740740755,
+            "current_nash_conv": 0.33333333333333337
+          },
+          {
+            "iterations": 10,
+            "average_nash_conv": 0.1373975876343151,
+            "average_value_p0": -0.05311271033885945,
+            "current_nash_conv": 0.3522044565234631
+          },
+          {
+            "iterations": 100,
+            "average_nash_conv": 0.016451954631830412,
+            "average_value_p0": -0.05614724147718669,
+            "current_nash_conv": 0.23827062912031616
+          },
+          {
+            "iterations": 1000,
+            "average_nash_conv": 0.0018752332939859229,
+            "average_value_p0": -0.055625031582249296,
+            "current_nash_conv": 0.10391341403064636
+          }
+        ],
+        "cfr+": [
+          {
+            "iterations": 1,
+            "average_nash_conv": 0.9166666666666666,
+            "average_value_p0": 0.12500000000000003,
+            "current_nash_conv": 0.49999999999999994
+          },
+          {
+            "iterations": 2,
+            "average_nash_conv": 0.5277777777777777,
+            "average_value_p0": -0.08796296296296285,
+            "current_nash_conv": 0.26223776223776224
+          },
+          {
+            "iterations": 3,
+            "average_nash_conv": 0.28263403263403275,
+            "average_value_p0": -0.09071021571021576,
+            "current_nash_conv": 0.3373015873015872
+          },
+          {
+            "iterations": 10,
+            "average_nash_conv": 0.06537418133668965,
+            "average_value_p0": -0.058724911551706616,
+            "current_nash_conv": 0.0779469321178844
+          },
+          {
+            "iterations": 100,
+            "average_nash_conv": 0.002388808202223369,
+            "average_value_p0": -0.055584006549269316,
+            "current_nash_conv": 0.0812480472813058
+          },
+          {
+            "iterations": 1000,
+            "average_nash_conv": 0.00017473064504169855,
+            "average_value_p0": -0.05555591758265188,
+            "current_nash_conv": 0.03886374724354941
+          }
+        ],
+        "linear-cfr": [
+          {
+            "iterations": 1,
+            "average_nash_conv": 0.9166666666666666,
+            "average_value_p0": 0.12500000000000003,
+            "current_nash_conv": 0.49999999999999994
+          },
+          {
+            "iterations": 2,
+            "average_nash_conv": 0.5277777777777777,
+            "average_value_p0": -0.08796296296296285,
+            "current_nash_conv": 0.3020833333333333
+          },
+          {
+            "iterations": 3,
+            "average_nash_conv": 0.2812499999999999,
+            "average_value_p0": -0.08883101851851849,
+            "current_nash_conv": 0.23207885304659504
+          },
+          {
+            "iterations": 10,
+            "average_nash_conv": 0.042501461224331516,
+            "average_value_p0": -0.05234961946918959,
+            "current_nash_conv": 0.17528901813179704
+          },
+          {
+            "iterations": 100,
+            "average_nash_conv": 0.002178054730106682,
+            "average_value_p0": -0.05551639566565009,
+            "current_nash_conv": 0.06355635846277036
+          },
+          {
+            "iterations": 1000,
+            "average_nash_conv": 0.00018705977212934988,
+            "average_value_p0": -0.0555551990379341,
+            "current_nash_conv": 0.007522889197655036
+          }
+        ],
+        "dcfr": [
+          {
+            "iterations": 1,
+            "average_nash_conv": 0.9166666666666666,
+            "average_value_p0": 0.12500000000000003,
+            "current_nash_conv": 0.49999999999999994
+          },
+          {
+            "iterations": 2,
+            "average_nash_conv": 0.5166666666666666,
+            "average_value_p0": -0.17499999999999982,
+            "current_nash_conv": 0.30208333333333337
+          },
+          {
+            "iterations": 3,
+            "average_nash_conv": 0.2663690476190477,
+            "average_value_p0": -0.1031568877551019,
+            "current_nash_conv": 0.3717005550266805
+          },
+          {
+            "iterations": 10,
+            "average_nash_conv": 0.0455575678515272,
+            "average_value_p0": -0.05543126897285289,
+            "current_nash_conv": 0.19866839040855933
+          },
+          {
+            "iterations": 100,
+            "average_nash_conv": 0.0033326839406504494,
+            "average_value_p0": -0.05555940084888544,
+            "current_nash_conv": 0.06083630501247711
+          },
+          {
+            "iterations": 1000,
+            "average_nash_conv": 0.00029300045623059656,
+            "average_value_p0": -0.055555596082331904,
+            "current_nash_conv": 0.04740935774575228
+          }
+        ]
+      }
+    },
+    "leduc": {
+      "short_name": "leduc_poker",
+      "parameters": {
+        "action_mapping": "False",
+        "players": "2",
+        "starting_player": "0",
+        "suit_isomorphism": "False"
+      },
+      "counts": {
+        "nodes": 9457,
+        "terminal": 5520,
+        "chance": 157,
+        "decision": 3780,
+        "infosets": 936
+      },
+      "uniform_nash_conv": 4.747222222222222,
+      "uniform_value_p0": -0.078125,
+      "solvers": {
+        "cfr": [
+          {
+            "iterations": 1,
+            "average_nash_conv": 4.747222222222222,
+            "average_value_p0": -0.078125,
+            "current_nash_conv": 4.102222222222222
+          },
+          {
+            "iterations": 2,
+            "average_nash_conv": 4.122638888888889,
+            "average_value_p0": 0.08082862646854827,
+            "current_nash_conv": 3.5701835094851146
+          },
+          {
+            "iterations": 3,
+            "average_nash_conv": 3.59761317382768,
+            "average_value_p0": 0.2419677937637916,
+            "current_nash_conv": 3.7398303649394604
+          },
+          {
+            "iterations": 10,
+            "average_nash_conv": 1.777157966337538,
+            "average_value_p0": -0.4448309409352176,
+            "current_nash_conv": 1.3947775703163126
+          },
+          {
+            "iterations": 50,
+            "average_nash_conv": 0.3781669319099128,
+            "average_value_p0": -0.16110649651750197,
+            "current_nash_conv": 0.7650281812651435
+          }
+        ],
+        "cfr+": [
+          {
+            "iterations": 1,
+            "average_nash_conv": 4.747222222222222,
+            "average_value_p0": -0.078125,
+            "current_nash_conv": 4.102222222222222
+          },
+          {
+            "iterations": 2,
+            "average_nash_conv": 4.115833333333334,
+            "average_value_p0": -0.19206436906499397,
+            "current_nash_conv": 3.571382401757623
+          },
+          {
+            "iterations": 3,
+            "average_nash_conv": 3.587088164760741,
+            "average_value_p0": 0.12299601986859654,
+            "current_nash_conv": 3.4142646598715514
+          },
+          {
+            "iterations": 10,
+            "average_nash_conv": 1.2208778031808132,
+            "average_value_p0": -0.35527380509979445,
+            "current_nash_conv": 0.9197323542823634
+          },
+          {
+            "iterations": 50,
+            "average_nash_conv": 0.06824291298909863,
+            "average_value_p0": -0.0862387884455153,
+            "current_nash_conv": 0.2255229604241588
+          }
+        ],
+        "linear-cfr": [
+          {
+            "iterations": 1,
+            "average_nash_conv": 4.747222222222222,
+            "average_value_p0": -0.078125,
+            "current_nash_conv": 4.102222222222222
+          },
+          {
+            "iterations": 2,
+            "average_nash_conv": 4.115833333333334,
+            "average_value_p0": -0.19206436906499397,
+            "current_nash_conv": 3.6027736458714528
+          },
+          {
+            "iterations": 3,
+            "average_nash_conv": 3.6053192055336525,
+            "average_value_p0": 0.1685675922523987,
+            "current_nash_conv": 3.6517589355265865
+          },
+          {
+            "iterations": 10,
+            "average_nash_conv": 1.4421303114144937,
+            "average_value_p0": -0.4082309484259621,
+            "current_nash_conv": 1.7658887762046631
+          },
+          {
+            "iterations": 50,
+            "average_nash_conv": 0.13799036903916334,
+            "average_value_p0": -0.09082919955173119,
+            "current_nash_conv": 1.5007557724611544
+          }
+        ],
+        "dcfr": [
+          {
+            "iterations": 1,
+            "average_nash_conv": 4.747222222222222,
+            "average_value_p0": -0.078125,
+            "current_nash_conv": 4.102222222222222
+          },
+          {
+            "iterations": 2,
+            "average_nash_conv": 4.110388888888888,
+            "average_value_p0": -0.5276946790601288,
+            "current_nash_conv": 3.6027736458714528
+          },
+          {
+            "iterations": 3,
+            "average_nash_conv": 3.63165937128398,
+            "average_value_p0": 0.11659280723684962,
+            "current_nash_conv": 3.586785859749717
+          },
+          {
+            "iterations": 10,
+            "average_nash_conv": 1.557604093992403,
+            "average_value_p0": -0.34911971276511133,
+            "current_nash_conv": 1.7176963539438734
+          },
+          {
+            "iterations": 50,
+            "average_nash_conv": 0.04584366457391065,
+            "average_value_p0": -0.08533843097727242,
+            "current_nash_conv": 0.34444258367855063
+          }
+        ]
+      }
+    }
+  }
+}

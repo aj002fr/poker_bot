@@ -1,0 +1,63 @@
+id: I021
+title: Opponent rates use exact opportunity denominators
+kind: invariant
+status: proposed
+cluster: invariant_features
+sources:
+- source: mit-15s50
+  location: mit-15s50 digest, sample-size section (Wilson counts)
+  digest_sections:
+  - mit-15s50.md evaluation and sample sizes
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: Opponent statistics and changed-action-rate reports.
+eligible_opportunity: Every rate computation.
+observable_inputs: [opponent_action_counts, opportunity_counts]
+training_signals: []
+intervention: >-
+  Rates divide by matching eligible opportunities, never by hands; Wilson intervals reproduce
+  the worst-case counts of about 385, 1,068 and 2,401 opportunities for margins of 5, 3 and 2
+  points.
+baseline: Hands as denominators.
+mechanism: Generic denominators mix contexts with no matching observations.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Statistics.
+source_numbers:
+- value: 385
+  context: Opportunities for a 5-point 95% margin
+  use: analytic
+- value: 1068
+  context: Opportunities for a 3-point 95% margin
+  use: analytic
+- value: 2401
+  context: Opportunities for a 2-point 95% margin
+  use: analytic
+parameters: []
+experiment:
+  id: T021
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Belief layer correctness.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H034]

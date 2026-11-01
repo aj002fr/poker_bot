@@ -1,0 +1,62 @@
+id: I024
+title: Side-pot and effective-stack features match the engine
+kind: invariant
+status: proposed
+cluster: invariant_features
+sources:
+- source: mit-15s50
+  location: Lecture 1 ~17:04-20:14 (effective stacks)
+  digest_sections: [mit-15s50.md Lecture 1 notes]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: pluribus-2019
+  location: cfr digest section 2.3
+  digest_sections: [cfr-pluribus-papers.md §2.3]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+situation: Feature extraction in multiway and all-in states.
+eligible_opportunity: Every feature extraction with unequal stacks.
+observable_inputs:
+- effective_stack_by_opponent
+- side_pots
+- side_pot_eligibility
+- cover_relationships
+training_signals: []
+intervention: >-
+  Per-opponent effective stacks equal min(hero, opponent) of remaining plus committed chips; side
+  pots and eligibility match the engine's settlement for every enumerated all-in pattern.
+baseline: Feature code with independent pot logic.
+mechanism: Features computed differently from settlement mislead the policy.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Betting arithmetic.
+source_numbers: []
+parameters: []
+experiment:
+  id: T024
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Precondition for H021.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H021, I001]

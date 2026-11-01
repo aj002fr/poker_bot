@@ -1,0 +1,35 @@
+schema: knowledge.invariant-test/v1
+id: T015
+title: Information-set freeze and leakage detection
+kind: invariant_test
+records: [I015]
+owner_workstream: M3-A
+target: feature extraction and dataset builders (proposed strategy/features)
+test_location: tests/strategy/features/test_no_leakage.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: hidden-field mutation
+  given:
+    state: any
+    mutate: [opponent_hole_cards, future_cards, realized_outcome]
+  expect:
+    features: unchanged
+- name: PHH row freeze
+  given:
+    source: PHH hand
+  expect:
+    features_use_only: acting seat information set at action time
+properties:
+- features are a function of the acting seat's information set only
+- every feature name maps to a vocabulary entry with observable true
+mutations:
+- a feature that reads showdown cards must fail the mutation test

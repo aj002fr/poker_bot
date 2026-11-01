@@ -1,0 +1,93 @@
+id: H012
+title: Keep non-all-in preflop options at medium-short depth
+kind: strategy
+status: proposed
+cluster: preflop_tree
+sources:
+- source: mit-15s50
+  location: Lecture 4 ~21:42-23:54; slides pp. 35-36; Lecture 4 ~21:42-23:54; Lectures 5-6
+  digest_records: [mit15s50/H11, mit-l34/H8, mit-l56/H10]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: gtow-preflop-icm
+  location: Preflop ICM solving, non-all-in options
+  digest_records: [gtow/H24]
+  transfer_caveat: >-
+    Partly a product announcement; ordinary payout ICM is not the competition's hand-200 allocation.
+situation: >-
+  Effective stack roughly 5-18 big blinds, unopened or blind versus blind, with covering stacks
+  behind.
+eligible_opportunity: Unopened or blind-versus-blind preflop decision at medium-short effective
+  depth.
+observable_inputs:
+- stack_bb
+- m_ratio
+- effective_stack_by_opponent
+- cover_relationships
+- legal_size_bounds
+- position
+- blind_vs_blind
+- point_vector
+- hand_bucket
+training_signals: []
+intervention: >-
+  Include limp and small-raise branches in offline solving before any pruning to fold or jam.
+baseline: Forced shove-or-fold below the depth threshold.
+mechanism: >-
+  Small raises can keep dominated hands in, induce errors, and let a non-shortest stack fold to
+  a narrow re-jam under ICM.
+exceptions:
+- Limit structures or variants without those actions.
+- Evidence that the extra branches carry negligible value or destabilise off-tree play.
+variant_scope:
+  transfer: variant_specific
+  variants: [nlhe]
+  notes: >-
+    Action availability depends on legal sizing; the method transfers once sizing rules are known.
+source_numbers:
+- value: 5-10 M
+  context: MIT lecture depth band for the comparison
+  use: sweep_bound
+- value: 8-12 bb
+  context: GTO Wizard shallow min-raise example
+  use: sweep_bound
+- value: 8-18 BB
+  context: MIT notes raise/fold comparison band
+  use: sweep_bound
+parameters: []
+experiment:
+  id: E006
+  primary_metric: mean_point_difference
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 2
+  effect: 2
+  transfer: 2
+  readiness: 2
+  power: 2
+  risk: 1
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 1
+  rationale: Plan rank 6; needs the push/fold solver and confirmed legal sizes.
+owner: M4
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 4 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H011, H016]

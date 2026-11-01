@@ -1,0 +1,82 @@
+id: H056
+title: Promote on paired-block intervals, not raw means or hand-level tests
+kind: method
+status: proposed
+cluster: evaluation
+sources:
+- source: mop
+  location: ch. 2 pp. 24-33; ch. 27 pp. 330-337
+  digest_records: [mop/H21]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: plan
+  location: plan section 5 (evaluation methodology)
+  digest_sections: [self-play-learning-plan.md §5]
+  transfer_caveat: Project synthesis, not independent evidence.
+situation: Comparing two close candidate policies.
+eligible_opportunity: Every promotion decision.
+observable_inputs: [rules_hash, policy_table_key]
+training_signals: [terminal_points]
+intervention: >-
+  Compute one paired difference per seed/lineup/rotation block with common random numbers and
+  promote only on a predeclared interval and minimum effect, with Holm correction in screens and
+  fresh confirmation.
+baseline: Raw mean comparison or hand-level tests on independent SNGs.
+mechanism: >-
+  Tournament outcomes are noisy and skewed; pairing removes shared luck, and hands within a tournament
+  are not independent.
+exceptions:
+- >-
+  Pairing breaks if policy actions change the chance stream; environment and per-seat streams
+  must be separate.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Evaluation procedure.
+source_numbers:
+- value: 7.84
+  context: Sample-size multiplier for a two-sided 5% test with 80% power
+  use: analytic
+parameters:
+- name: sample_size_multiplier
+  basis: analytic
+  default: 7.84
+  derivation: (z_0.975 + z_0.80)^2 = (1.96 + 0.84)^2
+experiment:
+  id: E010
+  primary_metric: false_promotion_rate
+  minimum_effect:
+    value: 0.02
+    unit: probability
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 3
+  power: 3
+  risk: 3
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 0
+  rationale: >-
+    Every other experiment depends on trustworthy promotion; runnable with the existing benchmark
+    runner.
+owner: M1-C
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [I022, I006]

@@ -1,0 +1,74 @@
+id: H019
+title: Deep premiums prefer a small raise over an open jam
+kind: strategy
+status: proposed
+cluster: preflop_nlhe
+sources:
+- source: harrington-v1
+  location: Part Five, pp. 95-96
+  digest_records: [harrington/H18]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Deep early stack with a premium hand.
+eligible_opportunity: Unopened preflop decision above the depth where a jam stops being standard.
+observable_inputs:
+- stack_bb
+- opponent_posterior
+- size_response_curve
+- legal_size_bounds
+- hand_bucket
+training_signals: []
+intervention: >-
+  Prefer a smaller raise that attracts dominated continuations, unless measured call ranges favour
+  the jam.
+baseline: Jam allowed with premiums at any depth.
+mechanism: >-
+  A deep jam wins only the blinds and is called by a narrow range that is stronger than average.
+exceptions:
+- >-
+  Loose jam callers, a severe positional disadvantage, or a small raise that already commits.
+variant_scope:
+  transfer: variant_specific
+  variants: [nlhe]
+  notes: Premium-hand logic depends on NLHE equities.
+source_numbers:
+- value: p. 96 QQ example
+  context: Harrington worked hand
+  use: illustration
+parameters: []
+experiment:
+  id: E038
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 2
+  transfer: 2
+  readiness: 2
+  power: 2
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Clear mechanism, limited reach.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H016]

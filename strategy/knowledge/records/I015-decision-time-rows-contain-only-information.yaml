@@ -1,0 +1,60 @@
+id: I015
+title: Decision-time rows contain only information-set data
+kind: invariant
+status: proposed
+cluster: invariant_leakage
+sources:
+- source: phh-dataset
+  location: data digest section A, limits on inference and import plan
+  digest_sections:
+  - data-and-rules.md §A Limits on inference
+  - data-and-rules.md §A Import plan
+  transfer_caveat: >-
+    Six-max 100bb cash NLHE actions sampled from one mixed strategy; CC BY 4.0 attribution required.
+- source: plan
+  location: plan section 3 stage 7 and section 4 split discipline
+  digest_sections:
+  - self-play-learning-plan.md §3 Stage 7
+  - self-play-learning-plan.md §4
+  transfer_caveat: Project synthesis, not independent evidence.
+situation: Building features or importing external hands.
+eligible_opportunity: Every training or evaluation row.
+observable_inputs: [hero_visible_history, board_cards, hole_cards]
+training_signals: [opponent_hole_cards, future_cards, realized_outcome]
+intervention: >-
+  Freeze each row at decision time; features may use only the acting seat's information set; hidden
+  cards, future cards and outcomes appear only in label columns; mutating any hidden field leaves
+  features unchanged.
+baseline: Unchecked feature extraction.
+mechanism: Hindsight leakage inflates offline results and fails in play.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Data-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: T015
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Leakage would invalidate every learned component.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H046, H038]

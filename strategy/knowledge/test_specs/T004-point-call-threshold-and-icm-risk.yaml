@@ -1,0 +1,65 @@
+schema: knowledge.invariant-test/v1
+id: T004
+title: Point call threshold and ICM risk premium
+kind: invariant_test
+records: [I004]
+owner_workstream: M2-C
+target: >-
+  strategy.math.points (point_call_threshold, call_point_gain, risk_premium, icm_all_in_call)
+test_location: tests/strategy/math/test_points.py
+status: implemented
+implemented_by:
+- >-
+  tests/strategy/math/test_points.py::test_point_threshold_is_the_indifference_win_probability
+- tests/strategy/math/test_points.py::test_call_point_gain_sign_matches_threshold
+- tests/strategy/math/test_points.py::test_linear_point_utility_has_no_risk_premium
+- tests/strategy/math/test_points.py::test_call_point_gain_handles_ties
+- tests/strategy/math/test_points.py::test_icm_call_utilities_are_ordered
+- tests/strategy/math/test_points.py::test_winner_take_all_points_have_no_risk_premium
+- tests/strategy/math/test_points.py::test_two_survivors_have_no_risk_premium
+- tests/strategy/math/test_points.py::test_chip_threshold_is_pot_odds_on_matched_chips
+- >-
+  tests/strategy/math/test_points.py::test_relabelling_bystanders_leaves_hero_values_unchanged
+- >-
+  tests/strategy/math/test_points.py::test_covered_hero_who_loses_takes_the_last_remaining_prize
+- >-
+  tests/strategy/math/test_points.py::test_short_villain_returns_nothing_and_busts_on_the_win_branch
+- >-
+  tests/strategy/math/test_points.py::test_medium_stack_covered_by_leader_needs_a_large_premium
+- tests/strategy/math/test_points.py::test_value_fn_hook_replaces_icm
+- tests/strategy/math/test_points.py::test_icm_all_in_call_rejects_invalid_states
+- tests/strategy/math/test_points.py::test_point_threshold_requires_win_above_lose
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: medium stack covered by the leader
+  given:
+    stacks: [0, 4000, 700, 3000]
+    prizes: [50, 30, 20, 0]
+    hero: 3
+    villain: 0
+    villain_committed: 6000
+    dead: 300
+  expect:
+    chip_threshold: 3000/6300
+    point_threshold: 0.7322381795
+    risk_premium_above: 0.25
+- name: short villain all-in
+  given:
+    note: villain shorter than hero
+  expect:
+    matched_call: 580
+    contested_pot: 1200
+properties:
+- expected points at q* equal the fold value
+- U_lose <= U_fold <= U_win for every legal all-in state
+- premium is zero for affine utilities, winner-take-all and two survivors
+- relabelling bystanders leaves hero's values unchanged
+mutations:
+- using chip pot odds as the point threshold must fail the covered-medium-stack case

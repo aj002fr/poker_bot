@@ -1,0 +1,78 @@
+id: H041
+title: Train in a league of frozen checkpoints, styles and exploiters
+kind: method
+status: proposed
+cluster: training
+sources:
+- source: mop
+  location: ch. 9 pp. 94-98; ch. 29 pp. 349-358
+  digest_records: [mop/H20]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: pluribus-2019
+  location: Pluribus; OpenSpiel population methods
+  digest_records: [cfr/H6]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+- source: mit-15s50
+  location: Lecture 7
+  digest_records: [mit-l78/H7]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: Iterative eight-player self-play without a convergence guarantee.
+eligible_opportunity: Every training table; measured by cross-play and held-out families.
+observable_inputs: [policy_table_key]
+training_signals: [terminal_points]
+intervention: >-
+  Sample training lineups from the current policy, frozen checkpoints, style families and trained
+  exploiters.
+baseline: Latest-only mirror self-play at equal games and updates.
+mechanism: >-
+  Mirror self-play can cycle or settle on brittle conventions; a league forces retention against
+  earlier responses and diverse tables.
+exceptions:
+- A league can overfit its own registry and still miss novel styles.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Training-procedure claim.
+source_numbers: []
+parameters: []
+experiment:
+  id: E013
+  primary_metric: worst_family_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 1
+  power: 2
+  risk: 3
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Plan rank 11; expensive but core to robustness.
+owner: M6
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 3 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H042, H039]

@@ -1,0 +1,107 @@
+id: H001
+title: Train and promote on terminal official points, not chips
+kind: strategy
+status: proposed
+cluster: objective
+sources:
+- source: mop
+  location: chs. 26-28, pp. 312-342; ch. 27, pp. 324-330
+  digest_records: [mop/H01, mop/H02]
+  transfer_caveat: >-
+    Doubling-up and payout models in the book assume ordinary prize ladders, not the competition's
+    finish points with ICM at a hand cap.
+- source: sequoia-rules
+  location: competition rules; paper utility definitions
+  digest_records: [cfr/H5]
+  transfer_caveat: >-
+    Silent on the blind schedule, payout vector, interface, ICM details and timing boundary; the
+    arena's fills are practice assumptions.
+- source: mit-15s50
+  location: >-
+    Lecture 7; Lecture 5; Lecture 4 slide p. 35; Lecture 5 ~22:27-27:34; Lecture 4 with Lecture
+    5 contrast
+  digest_records: [mit-l78/H1, mit-l56/H1, mit15s50/H12, mit-l34/H4]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: gtow-preflop-icm
+  location: Preflop ICM solving, full-state sensitivity
+  digest_records: [gtow/H22]
+  transfer_caveat: >-
+    Partly a product announcement; ordinary payout ICM is not the competition's hand-200 allocation.
+- source: harrington-v1
+  location: Parts Two, Four, Five, Seven
+  digest_records: [harrington/H28]
+  transfer_caveat: The book reasons in chip EV for live multi-table events; it never models a
+    hand cap.
+situation: >-
+  Every tournament decision, with the largest expected gaps in all-in spots, at finish-point jumps
+  and in the last quarter of the hand cap.
+eligible_opportunity: Any decision in a full SNG; the comparison is made per complete SNG, not
+  per decision.
+observable_inputs:
+- point_vector
+- stack_vector
+- players_remaining
+- hand_number
+- hands_to_cap
+- forced_bets
+- pot
+- legal_actions
+training_signals: [terminal_points, realized_outcome]
+intervention: >-
+  Use the expected official terminal points of the SNG as the learning return and the only promotion
+  metric; chip results become at most an auxiliary diagnostic.
+baseline: The same learner, features and compute trained on per-hand chip deltas.
+mechanism: >-
+  Finish points are a nonlinear function of the stack vector, so chips won are worth less than
+  chips lost and confrontations shift value to players who are not involved; chip-trained policies
+  take risks the scoring does not reward.
+exceptions:
+- >-
+  Early deep-stack states where chip and point gradients are empirically indistinguishable; chip
+  EV can still serve as an auxiliary target there.
+- If the organizers' point vector is close to linear in chips, the gap shrinks.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: The objective is defined by the scorer
+source_numbers: []
+parameters: []
+experiment:
+  id: E001
+  primary_metric: mean_point_difference
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 3
+  effect: 3
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 3
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 1
+  rationale: >-
+    Defines the objective; every later experiment is measured against it. Rule uncertainty is
+    the unpublished official point vector and ICM details.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 9 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H002, H003, H014]

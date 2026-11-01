@@ -1,0 +1,38 @@
+schema: knowledge.invariant-test/v1
+id: T021
+title: Opportunity denominators and Wilson intervals
+kind: invariant_test
+records: [I021]
+owner_workstream: M3-A
+target: opponent statistics (proposed strategy/beliefs)
+test_location: tests/strategy/beliefs/test_opportunities.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: worst-case counts
+  given:
+    p: 0.5
+    confidence: 0.95
+  expect:
+    n_for_5_points: 385
+    n_for_3_points: 1068
+    n_for_2_points: 2401
+- name: denominator
+  given:
+    hands: 50
+    matching_opportunities: 7
+    actions: 3
+  expect:
+    rate: 3/7
+properties:
+- rates never use hands as the denominator
+mutations:
+- dividing by hands must fail the denominator case

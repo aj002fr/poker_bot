@@ -1,0 +1,89 @@
+id: H014
+title: Solve push and call tables under the real point vector
+kind: strategy
+status: proposed
+cluster: preflop_tree
+sources:
+- source: mit-15s50
+  location: Lectures 1-2; Lectures 5-6 with runtime limits
+  digest_records: [mit-l12/H5, mit-l56/H9]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: mop
+  location: ch. 28, pp. 338-348 (point-adjusted jam/call)
+  digest_sections:
+  - mathematics-of-poker.md push/fold sections
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: mit-15s50
+  location: Lecture 4 push/fold tables (chip-EV, ICM excluded)
+  digest_sections: [mit-15s50.md Lecture 4 notes]
+  transfer_caveat: The lecture tables assume chip EV and heads-up callers; only the method transfers.
+situation: Short-stack preflop jam and call decisions, the highest-reach exact subsystem.
+eligible_opportunity: >-
+  Preflop decisions with effective stack in the push/fold region where the action set is fold,
+  call or all-in.
+observable_inputs:
+- stack_vector
+- point_vector
+- position
+- players_to_act
+- hand_bucket
+- effective_stack_by_opponent
+- players_remaining
+- hands_to_cap
+- policy_table_key
+training_signals: [exact_oracle_value]
+intervention: >-
+  Replace fixed charts with tables solved offline under official points over bucketed stack vectors,
+  looked up at runtime with a legal fallback.
+baseline: Fixed chip-EV push/call charts keyed by hero stack.
+mechanism: >-
+  Exact or near-exact solutions remove chart error and ICM blindness while fitting the 1 ms budget
+  as lookups.
+exceptions:
+- Bucket aliasing near sensitive boundaries; audit with unbucketed states.
+- Variants or structures outside table coverage fall back to the generic policy.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: The solver is generic; tables are regenerated per variant from the adapter's equities.
+source_numbers: []
+parameters: []
+experiment:
+  id: E007
+  primary_metric: exact_state_point_regret
+  minimum_effect:
+    value: 0.01
+    unit: pool_fraction
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 3
+  effect: 3
+  transfer: 2
+  readiness: 2
+  power: 3
+  risk: 2
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 2
+  rationale: Exact action regret is measurable cheaply; table generation is a subsystem build.
+owner: M4
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H003, H015, H053]

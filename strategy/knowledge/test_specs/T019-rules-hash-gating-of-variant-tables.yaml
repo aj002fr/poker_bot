@@ -1,0 +1,35 @@
+schema: knowledge.invariant-test/v1
+id: T019
+title: Rules-hash gating of variant tables
+kind: invariant_test
+records: [I019]
+owner_workstream: M9
+target: policy loader (proposed strategy/runtime)
+test_location: tests/strategy/runtime/test_rules_gate.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: mismatched hash
+  given:
+    table_rules: NLHE
+    active_rules: short deck
+  expect:
+    table_used: false
+    policy: generic
+- name: matching hash
+  given:
+    table_rules: NLHE
+    active_rules: NLHE
+  expect:
+    table_used: true
+properties: [no table is selected by file name alone]
+mutations:
+- a loader that ignores the hash must fail the mismatch case

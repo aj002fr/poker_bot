@@ -1,0 +1,103 @@
+schema: knowledge.experiment/v1
+id: E011
+title: Contextual Bayesian beliefs and likelihood floors vs raw counters
+kind: factorial
+mode: discovery
+records: [H034, H035]
+question: >-
+  Do hierarchical context-specific posteriors with an off-model likelihood floor predict held-out
+  opponent actions better than raw or global counters under 200-hand evidence?
+arms:
+- name: global
+  role: control
+  description: Global VPIP/PFR-style counters, no context.
+  toggles:
+    belief_model: global_counts
+    likelihood_floor: 'off'
+- name: raw_cell
+  role: treatment
+  description: Raw counts per exact opportunity cell.
+  toggles:
+    belief_model: raw_cells
+    likelihood_floor: 'off'
+- name: hierarchical
+  role: treatment
+  description: Population-prior Beta/Dirichlet posteriors per context.
+  toggles:
+    belief_model: hierarchical
+    likelihood_floor: 'off'
+- name: hierarchical_floor
+  role: treatment
+  description: Hierarchical posteriors with an off-model floor.
+  toggles:
+    belief_model: hierarchical
+    likelihood_floor: 'on'
+factors:
+- name: belief model
+  toggle: belief_model
+  records_tested: [H034]
+- name: likelihood floor
+  toggle: likelihood_floor
+  records_tested: [H035]
+toggles:
+  belief_model: [global_counts, raw_cells, hierarchical]
+  likelihood_floor: ['off', 'on']
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: [short_deck, plo]
+seeds:
+  namespace: knowledge/E011
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: complete held-out SNG (decisions clustered within it)
+  interval: cluster bootstrap 95% over SNGs
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a 100-SNG pilot
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: held_out_action_log_loss
+minimum_effect:
+  value: 0.01
+  unit: nats_per_opportunity
+  basis: provisional
+metrics: [mean_point_difference, worst_family_point_delta]
+slices:
+- opportunity count bucket
+- opponent_family
+- injected off-policy actions
+guardrails:
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 60
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+run_specs: []
+blocked_by: [M3-A belief layer, M3-C opponent population]
+status: blocked
+result_artifact: null

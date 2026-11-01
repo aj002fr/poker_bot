@@ -1,0 +1,107 @@
+schema: knowledge.experiment/v1
+id: E016
+title: Trajectory and counterfactual labels vs isolated-street and raw-result labels
+kind: factorial
+mode: discovery
+records: [H045, H046]
+question: >-
+  Do full-trajectory value propagation and counterfactual decision labels each improve held-out
+  points, and does the marked-draw fixture catch the isolated-street failure?
+arms:
+- name: isolated_raw
+  role: control
+  description: Per-street targets labelled by realised results.
+  toggles:
+    trajectory: isolated_street
+    labels: raw_outcome
+- name: trajectory_raw
+  role: treatment
+  description: Full-trajectory propagation, realised-result labels.
+  toggles:
+    trajectory: full
+    labels: raw_outcome
+- name: isolated_cf
+  role: treatment
+  description: Per-street targets with counterfactual action values.
+  toggles:
+    trajectory: isolated_street
+    labels: counterfactual
+- name: trajectory_cf
+  role: treatment
+  description: Full trajectory with counterfactual labels.
+  toggles:
+    trajectory: full
+    labels: counterfactual
+factors:
+- name: trajectory
+  toggle: trajectory
+  records_tested: [H045]
+- name: labels
+  toggle: labels
+  records_tested: [H046]
+toggles:
+  trajectory: [isolated_street, full]
+  labels: [raw_outcome, counterfactual]
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: [short_deck, plo]
+seeds:
+  namespace: knowledge/E016
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: paired seed/lineup/rotation block
+  interval: paired t 95%; cluster bootstrap over blocks when skewed
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: mean_point_difference
+minimum_effect:
+  value: 0.004
+  unit: pool_fraction_per_sng
+  basis: provisional
+metrics: [exact_state_point_regret]
+slices:
+- opponent_family
+- seat
+- survivor_count
+- blind_phase
+- hand_quartile
+- multi-street pots
+guardrails:
+- marked-draw fixture (T010) passes for any promoted arm
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 300
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+run_specs: []
+blocked_by: [M3-B learner, T010 toy fixtures]
+status: blocked
+result_artifact: null

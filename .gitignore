@@ -6,3 +6,6 @@ __pycache__/
 artifacts/
 !artifacts/.gitkeep
 *.egg-info/
+
+# Built on demand: python -m strategy.tables.build (see strategy/tables/README.md)
+strategy/tables/data/preflop-uncertainty_plo4.json.gz

@@ -1,0 +1,73 @@
+id: H022
+title: Condition on the full state, not only cards and seat
+kind: strategy
+status: proposed
+cluster: state_features
+sources:
+- source: harrington-v1
+  location: Part One, pp. 11-13
+  digest_records: [harrington/H01]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Identical cards with different stacks, action order or opponents.
+eligible_opportunity: Any decision; tested by feature-group ablation.
+observable_inputs:
+- hole_cards
+- hand_bucket
+- position
+- stack_vector
+- hands_to_cap
+- action_history
+- players_to_act
+- pot_odds
+- opponent_posterior
+training_signals: []
+intervention: >-
+  Condition the action distribution on every feature group and measure each group's held-out value
+  by ablation.
+baseline: Hand class and coarse position only.
+mechanism: Cards are one element among several that determine the best action.
+exceptions:
+- Tiny solved subgames where omitted variables provably do not change the action.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Feature groups are generic; card features come from the adapter.
+source_numbers: []
+parameters: []
+experiment:
+  id: E023
+  primary_metric: mean_point_difference
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 1
+  transfer: 3
+  readiness: 2
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Broad but diffuse; ablation is expensive and the effect is spread across groups.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H023]

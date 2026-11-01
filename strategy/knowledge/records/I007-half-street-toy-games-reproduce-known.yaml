@@ -1,0 +1,60 @@
+id: I007
+title: Half-street toy games reproduce known solutions
+kind: invariant
+status: proposed
+cluster: invariant_toy_games
+sources:
+- source: mop
+  location: >-
+    toy-game fixtures 1-4 (matching pennies, clairvoyance, [0,1] half-street with and without
+    folding)
+  digest_sections:
+  - mathematics-of-poker.md toy-game fixtures 1-4
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Solver output on exactly solvable half-street games.
+eligible_opportunity: Every solver release.
+observable_inputs: [pot, bet_size_pot_fraction]
+training_signals: [exact_oracle_value]
+intervention: >-
+  Matching pennies/RPS mix uniformly with value 0; clairvoyance at P=2 bluffs 1/3, calls 2/3,
+  value 1/3; [0,1] no-fold bets [0,1/2] with value 1/4; [0,1] with folding at P=2 gives y1=3/10,
+  x1*=3/5, y0=9/10, value 1/10.
+baseline: Untested solver.
+mechanism: Closed-form equilibria.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Abstract games.
+source_numbers: []
+parameters: []
+experiment:
+  id: T007
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Ladder stage 2 gate.
+owner: M2-A
+implementation:
+  module: strategy.games.fixtures
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: T007 is covered by the Stage 2 fixture, oracle and mutation tests in strategy.games.fixtures.
+related: [I002, I008]

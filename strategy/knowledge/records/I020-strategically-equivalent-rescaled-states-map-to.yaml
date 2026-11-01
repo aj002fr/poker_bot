@@ -1,0 +1,54 @@
+id: I020
+title: Strategically equivalent rescaled states map to the same features
+kind: invariant
+status: proposed
+cluster: invariant_features
+sources:
+- source: mop
+  location: ch. 7, pp. 74-84
+  digest_sections: [mathematics-of-poker.md §4 H07]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Feature extraction on states that differ only by a common chip scale.
+eligible_opportunity: Every feature extraction.
+observable_inputs: [spr, bet_size_pot_fraction, stack_bb, pot_odds]
+training_signals: []
+intervention: >-
+  Multiplying all stacks, bets and blinds by a constant leaves scale-normalised features, point
+  thresholds and ICM shares unchanged.
+baseline: Raw-amount features.
+mechanism: Scale invariance of no-limit betting and ICM.
+exceptions:
+- >-
+  Discrete minimum chip units and limit structures break exact invariance; tests use exact multiples.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: No-limit and pot-limit games.
+source_numbers: []
+parameters: []
+experiment:
+  id: T020
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Cheap test that catches feature-scaling bugs.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H023]
