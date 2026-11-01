@@ -311,6 +311,21 @@ def test_aids_are_seat_only_and_use_the_seats_own_view():
         assert seen_coach
 
 
+@pytest.mark.parametrize("ruleset", ["uncertainty_plo4", "uncertainty_shortdeck"])
+def test_aids_are_refused_outside_nlhe(ruleset):
+    with harness() as h:
+        create(h, [HUMAN, bot("calling_station")], ruleset_id=ruleset, hand_cap=3)
+        h.join_all()
+        url = f"/tables/{h.table_id}/aids"
+        assert h.client.get(url, headers=auth(h.tokens[0])).json()["error"]["code"] == "aids_unsupported_ruleset"
+        h.start()
+        r = h.client.get(url, headers=auth(h.tokens[0]))
+        assert r.status_code == 409 and r.json()["error"]["code"] == "aids_unsupported_ruleset"
+        assert r.json()["error"]["details"] == {"ruleset_id": ruleset, "supported": ["practice_nlhe"]}
+        assert h.client.get(url).status_code == 401
+        assert h.get().json()["stats"] is not None
+
+
 def test_aids_can_be_switched_off():
     with harness() as h:
         create(h, [HUMAN, bot("style_rock")], {"learning_aids": False})

@@ -38,6 +38,7 @@ from arena.api.clock import Clock, MonotonicClock
 from arena.agents.styles.profiles import RANDOM_POLICY, RANDOM_POOL_DEFAULT
 from arena.api.seats import BotRegistry, BotSpec, bot_turn, live_table_info
 from arena.api.styles import (
+    AIDS_RULESETS,
     SeatPlan,
     StylesInvalid,
     StylesRequest,
@@ -649,6 +650,9 @@ class TableManager:
         with live.queue:
             self._check_usable(live)
             seat = self._require_seat(principal)
+            if live.config.ruleset_id not in AIDS_RULESETS:
+                raise ApiError(409, "aids_unsupported_ruleset", "learning aids are available for No-limit Hold'em only",
+                               {"ruleset_id": live.config.ruleset_id, "supported": list(AIDS_RULESETS)})
             if live.table is None:
                 raise ApiError(409, "not_started", "table has not started")
             if not live.styles.get("learning_aids", True):

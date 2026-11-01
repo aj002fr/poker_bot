@@ -131,7 +131,8 @@ Computed from the seat's own cards, the board and public state only:
   Rock's rules would do here without randomness, with the reason. The hint is a teaching
   heuristic, not optimal play.
 
-A table created with `learning_aids: false` answers `403 learning_aids_disabled`.
+A table created with `learning_aids: false` answers `403 learning_aids_disabled`. Aids
+cover No-limit Hold'em only: other rulesets answer `409 aids_unsupported_ruleset`.
 
 ## Command line
 

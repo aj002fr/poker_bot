@@ -34,6 +34,8 @@ from arena.domain.observations import TableView
 Mode = Literal["labelled", "hidden", "mixed", "random"]
 MODES: tuple[str, ...] = ("labelled", "hidden", "mixed", "random")
 STYLE_RULESETS = ("practice_nlhe",)
+AIDS_RULESETS = ("practice_nlhe",)
+"""Charts, hand classes and the coach assume two hole cards and a standard deck."""
 LINEUP_DOMAIN = "arena-lineup-v1"
 EVIDENCE_STATS = ("vpip", "pfr", "aggression", "fold_to_reraise")
 

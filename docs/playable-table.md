@@ -71,7 +71,7 @@ locations and messages, and never echo the submitted input.
 | 401 | `invalid_credential`, `seat_credential_required`, `operator_required` (no credential) |
 | 403 | `projection_denied` (`ProjectionDenied`), `credential_wrong_table`, `host_credential_required`, `reviewer_permission_required`, `operator_required` (wrong credential), `learning_aids_disabled` |
 | 404 | `table_not_found`, `hand_not_found`, `run_not_found` |
-| 409 | `out_of_turn`, `stale_decision`, `stale_version`, `wrong_hand`, `table_complete`, `deadline_passed`, `action_id_conflict`, `seats_unclaimed`, `already_started`, `not_started`, `seat_unavailable`, `no_open_seat`, `bot_start_failed` |
+| 409 | `out_of_turn`, `stale_decision`, `stale_version`, `wrong_hand`, `table_complete`, `deadline_passed`, `action_id_conflict`, `seats_unclaimed`, `already_started`, `not_started`, `seat_unavailable`, `no_open_seat`, `bot_start_failed`, `aids_unsupported_ruleset` |
 | 422 | `invalid_schema`, `illegal_action`, `table_mismatch`, `invalid_config`, `invalid_seat`, `invalid_styles`, `invalid_request`, `unsupported_ruleset`, `invalid_perspective`, bot registration and run validation codes |
 
 ## Actions, idempotency and deadlines
