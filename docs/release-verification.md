@@ -55,7 +55,7 @@ chromium` in `web/`.
 
 | Gate | Workload | What must hold |
 | --- | --- | --- |
-| `fast` | `pytest -m "not release"` with PostgreSQL required | zero failures; no skip except two structural ones, listed with reasons |
+| `fast` | `uv run --group train pytest -m "not release"` with PostgreSQL and numba required (`ARENA_REQUIRE_NUMBA=1`) | zero failures; no skip except three structural ones (two store-specific tests, and the OpenSpiel module when the opt-in `oracle` group is absent), listed with reasons; the solver tests must run |
 | `nlhe_eval`, `shortdeck_eval`, `plo_eval` | all 2,598,960 / 376,992 five-card hands; 200,000 seven-card samples; 200,000 distinct PLO samples incl. ≥10,000 false-flush and board-only | engine class order equals the independent oracle, category totals equal the spec table |
 | `state_machine` | 1,050,000 generated hands: NLHE 100,000 per N=2..8, others 25,000 per N | invariants after every transition, illegal probes rejected without mutation, oracle settlement, event-for-event replay |
 | `tournaments` | 36,000 complete tables of seeded baseline mixes, in-process | oracle per hand, recomputed markers/blinds/levels, cap or sole survivor, placements and points against the ICM oracle, hash-verified replay, no fallback |

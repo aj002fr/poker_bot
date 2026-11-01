@@ -30,18 +30,25 @@ ALLOWED_SKIPS: dict[tuple[str, str], str] = {
     ("tests.persistence.test_store_contract::test_postgres_migrations_are_idempotent[memory]",
      "migrations exist only for PostgreSQL"):
         "the memory store has no schema migrations",
+    ("::tests.strategy.test_openspiel_oracle", "could not import 'pyspiel'"):
+        "OpenSpiel is the opt-in `oracle` dependency group; make verify-oracle runs these cross-checks",
 }
 
 PG = {"ARENA_REQUIRE_POSTGRES": "1"}
+# The solver tests need numba from the opt-in `train` group. ARENA_REQUIRE_NUMBA makes pytest
+# exit with a usage error when it is missing instead of leaving those modules uncollected.
+TRAIN = {"uv_args": ["--group", "train"], "env": {"ARENA_REQUIRE_NUMBA": "1"}}
 AGENT_FAULTS = ["tests/agents/test_worker_faults.py", "tests/agents/test_deadline.py", "tests/agents/test_retry.py",
                 "tests/agents/test_restore.py", "tests/agents/test_t12.py"]
 
 SHARDS: dict[str, list[dict[str, Any]]] = {
     "fast": [
-        {"name": "verify-fast", "kind": "pytest", "args": ["-m", "not release"], "env": PG,
+        {"name": "verify-fast", "kind": "pytest", "args": ["-m", "not release"],
+         "uv_args": TRAIN["uv_args"], "env": {**PG, **TRAIN["env"]},
          "require": ["tests.golden.test_core_fixtures::", "tests.property.test_generated_hands::",
                      "tests.golden.test_tournament_fixtures::test_icm_fixture",
-                     "tests.metamorphic.test_metamorphic::", "tests.regressions.test_failing_seeds::"]},
+                     "tests.metamorphic.test_metamorphic::", "tests.regressions.test_failing_seeds::",
+                     "tests.strategy.test_fixture_gates::", "tests.strategy.test_regret_matching::"]},
     ],
     "fault": [
         {"name": "persistence (memory + PostgreSQL)", "kind": "pytest", "args": ["tests/persistence"], "env": PG,
@@ -99,7 +106,7 @@ def _env(extra: dict[str, str]) -> dict[str, str]:
 
 def _command(params: dict[str, Any], junit: Path) -> tuple[list[list[str]], Path]:
     if params["kind"] == "pytest":
-        return [["uv", "run", "pytest", "-q", "-p", "no:cacheprovider", "-o", "junit_family=xunit1",
+        return [["uv", "run", *params.get("uv_args", []), "pytest", "-q", "-p", "no:cacheprovider", "-o", "junit_family=xunit1",
                  f"--junitxml={junit}", *params["args"]]], ROOT
     return [["npx", "tsc", "-b"], ["npx", "playwright", "test", "--reporter=junit,list"]], ROOT / "web"
 
@@ -120,7 +127,7 @@ def _cases(junit: Path, kind: str) -> list[dict[str, Any]]:
             if child.tag in ("failure", "error"):
                 outcome, message = "failed", (child.get("message") or child.text or "")[:2000]
             elif child.tag == "skipped" and outcome == "passed":
-                outcome, message = "skipped", child.get("message") or (child.text or "")
+                outcome, message = "skipped", " ".join(filter(None, (child.get("message"), child.text)))
         out.append({"id": test_id, "node": node, "outcome": outcome, "message": message,
                     "time_s": float(tc.get("time") or 0)})
     return out
@@ -154,7 +161,8 @@ def run_shard(params: dict[str, Any]) -> dict[str, Any]:
               "tests_skipped_unexpected": 0}
     exclusions: dict[str, int] = {}
     prefix = "cd web && " if params["kind"] == "playwright" else ""
-    runner = "npx playwright test" if params["kind"] == "playwright" else "uv run pytest"
+    runner = "npx playwright test" if params["kind"] == "playwright" else " ".join(
+        ["uv", "run", *params.get("uv_args", []), "pytest"])
     for c in cases:
         if c["outcome"] == "passed":
             counts["tests_passed"] += 1
