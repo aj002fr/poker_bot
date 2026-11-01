@@ -1,0 +1,32 @@
+{
+  "experiment_id": "endgame-points-vs-chips-shortdeck",
+  "title": "Point-aware vs chip-EV push/fold tables in short deck (full 8-player SNGs)",
+  "description": "Short-deck tables generated through the rules adapter from short-deck showdown tables; never the hold'em ones. The validation partition has only the variant-agnostic baselines for short deck.",
+  "stage": "discovery",
+  "min_effect": 1.0,
+  "interval": "paired_t",
+  "arms": {
+    "A": {
+      "policy": "strategy/endgame/bots/chips.py"
+    },
+    "B": {
+      "policy": "strategy/endgame/bots/points.py"
+    }
+  },
+  "variants": [
+    "uncertainty_shortdeck"
+  ],
+  "table": {
+    "players": 8,
+    "starting_stack": 2000,
+    "hand_cap": 200
+  },
+  "population": {
+    "partition": "validation",
+    "lineups_per_variant": 8
+  },
+  "blocks_per_lineup": 25,
+  "base_seed": "endgame-points-vs-chips-shortdeck-v1",
+  "isolation": "in_process",
+  "bootstrap_resamples": 2000
+}

@@ -10,6 +10,22 @@ parameters the `data` (and so `data_sha256`) is identical whatever `--jobs` is.
 | `postflop-<ruleset>` | `strategy.tables.postflop` | per (street, made level, draw class, texture) cell: equity vs 1..3 random hands, in-cell equity spread, tie share, fallback level | 11-14 KB | 6 s | yes |
 | `families-<ruleset>` | `strategy.tables.families` | per opponent family (the arena's style and baseline bots): action-category probabilities by opportunity and depth, from spectator events of seeded tables | 1-3 KB | 6-20 s | yes |
 
+Stage 3 endgame tables are numpy archives (`<name>.npz`, provenance JSON in a
+`__provenance__` entry; see `store.write_arrays`):
+
+| Table | Generator | Content | In git |
+| --- | --- | --- | --- |
+| `showdown-<ruleset>` | `strategy.tables.showdown` | exact card-removal pair weights per class pair, heads-up all-in win/tie by seeded Monte Carlo (numba evaluator built from the variant's rules), 20 equal-mass strength buckets and the three-way bucket outcome tensor | yes (NLHE, short deck) |
+| `endgame-points-<ruleset>` | `strategy.tables.endgame --mode points` | per decision key (open / call / overcall, four levels fine to coarse): reach-weighted probability of the shove or call per hand class, from solved full-stack-vector push/fold subgames valued in points (ICM continuation, cap-hand ICM, eliminations) | yes |
+| `endgame-chips-<ruleset>` | `--mode chips` | the same states and keys solved for chip EV (baseline) | yes |
+| `endgame-chart-<ruleset>` | `--mode chart` | symmetric-stack chip-EV solutions, coarsest keys only (fixed-chart baseline) | yes |
+| `value-<ruleset>` | `strategy.value.model fit` | continuation-value residual weights per live-player count, with held-out diagnostics in provenance | yes, when fitted |
+
+The endgame tables record the variant hash, the showdown table's data hash, the
+utility, the value function and the per-state solver diagnostics (`diag_*`: the
+largest unilateral deviation gain of every solved state). PLO4 is pot-limit, so the
+generators reject it (`UnsupportedVariant`) instead of reusing hold'em assets.
+
 Files live in `strategy/tables/data/` as gzip-compressed canonical JSON:
 `{"provenance": {...}, "data": {...}}`. Override the directory with `STRATEGY_TABLES_DIR`.
 

@@ -205,8 +205,8 @@ def _solve_chunk(args) -> tuple[dict, list[tuple[int, float, int]]]:
     diags = []
     utility = "points" if mode == "points" else "chips"
     for snap, odd in items:
-        solved = solve_snapshot(snap, _MODEL, utility=utility, odd_order=odd,
-                                value_fn=_VALUE if utility == "points" else None)
+        value_fn = _VALUE.for_snapshot(snap) if _VALUE is not None and utility == "points" else None
+        solved = solve_snapshot(snap, _MODEL, utility=utility, odd_order=odd, value_fn=value_fn)
         scale = snap.payouts[0] if utility == "points" else snap.bb
         diags.append((snap.n, float(np.max(solved.gains)) / scale, solved.solver.iterations))
         for rec in harvest(solved, max_depth_bb=MAX_DEPTH_BB):

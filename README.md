@@ -44,6 +44,9 @@ strategy/solve/    offline solvers on a dense extensive-form tree: regret matchi
                    linear/discounted CFR, external-sampling MCCFR, best response, NashConv
 strategy/games/    Stage 2 toy games with analytic solutions (Kuhn, Leduc, AKQ, [0,1] games,
                    clairvoyance, marked draw, dry side pot) and the fixture gate registry
+strategy/endgame/  Stage 3 push/fold subgames over the full stack vector, class-vector CFR+ with
+                   exact best responses, limp/min-raise gaps, table lookup, push/fold bots (bots/)
+strategy/value/    tournament rollouts and the continuation value V(s) (ICM + fitted residual)
 examples/          template_bot.py: copy it to start a bot
 tests/agents/      fault-injection bots, sandbox probes, fake-clock deadline tests, restore
 tests/api/         API behaviour and HTTP/WebSocket leak checks
@@ -93,6 +96,17 @@ make verify-solve-slow  # full-resolution gates, ES-MCCFR agreement over seeds, 
 make verify-oracle      # live Kuhn/Leduc cross-checks against OpenSpiel 2.0.2
 make bench-solve        # NashConv vs nodes touched and wall time -> artifacts/bench-solve/
 uv run --group oracle python -m tests.strategy.oracle.openspiel_reference  # refresh the frozen file
+```
+
+Stage 3 endgame tables are generated per variant through the rules adapter (NLHE and
+short deck; PLO4 is pot-limit and has no push/fold tables):
+
+```bash
+make tables-showdown   # all-in showdown matrices per variant (about 20 s)
+make tables-endgame    # point-aware, chip-EV and chart push/fold tables (about 30 min on 8 cores)
+make gates-endgame     # exact two-player regrets, multiway gains, limp gaps, table audit
+make value-rollouts value-fit  # rollouts and the fitted continuation value
+make lab-endgame       # paired SNG experiments: point-aware vs chip-EV, chart and no layer
 ```
 
 The CLI plays seeded headless hands and tournaments with simple built-in policies
