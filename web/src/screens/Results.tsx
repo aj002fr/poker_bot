@@ -1,5 +1,6 @@
-import { api, type Credentials } from '../api'
-import { RULESETS, chips, placeLabel, points } from '../format'
+import { api, useStyles, type Credentials } from '../api'
+import { RULESETS, chips, placeLabel, points, seatWho } from '../format'
+import { Reveal } from '../learn/Reveal'
 import type { Snapshot } from '../types'
 
 export function Results({
@@ -13,11 +14,10 @@ export function Results({
 }) {
   const results = snapshot.results!
   const seats = snapshot.setup.seats
+  const catalog = useStyles()
   const label = (seat: number) => {
     const s = seats.find((x) => x.seat === seat)
-    if (!s) return ''
-    if (s.you) return 'You'
-    return s.kind === 'bot' ? `Bot · ${s.label}` : 'Human'
+    return s ? seatWho(s) : ''
   }
   const ordered = [...results.placements].sort((a, b) => a.positions[0] - b.positions[0] || b.points - a.points)
   const totalFallbacks = (seat: number) =>
@@ -93,7 +93,11 @@ export function Results({
         <dt>Config hash</dt>
         <dd className="mono hash">{snapshot.setup.config_hash.slice(0, 24)}…</dd>
       </dl>
+      <Reveal snapshot={snapshot} catalog={catalog} />
       <div className="results-actions">
+        <a className="btn" href="#/learn">
+          Learn path
+        </a>
         <button className="btn btn-primary" onClick={() => navigate('/')}>
           New table
         </button>

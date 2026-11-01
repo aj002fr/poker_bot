@@ -35,7 +35,19 @@ from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError
 
 from arena.agents.worker import SeatAgent
 from arena.api.clock import Clock, MonotonicClock
+from arena.agents.styles.profiles import RANDOM_POLICY, RANDOM_POOL_DEFAULT
 from arena.api.seats import BotRegistry, BotSpec, bot_turn, live_table_info
+from arena.api.styles import (
+    AIDS_RULESETS,
+    SeatPlan,
+    StylesInvalid,
+    StylesRequest,
+    build_aids,
+    build_reveal,
+    pick_style,
+    plan_seats,
+    random_pool,
+)
 from arena.domain.canonical import canonical_json
 from arena.domain.events import EventEnvelope
 from arena.domain.models import ActionEnvelope, TournamentConfig
@@ -45,6 +57,7 @@ from arena.persistence.models import (
     CheckpointRow,
     CommitBatch,
     HandRow,
+    NoteRow,
     ParticipantRow,
     PauseRow,
     ReceiptRow,
@@ -54,8 +67,10 @@ from arena.persistence.models import (
 )
 from arena.persistence.recovery import rebuild_table
 from arena.persistence.store import MemoryStore, OwnershipLost, Store, StoreError, StoreUnavailable
+from arena.table.player_stats import RECENT_SHOWDOWNS, StatsTracker
 from arena.table.projections import (
     Viewer,
+    observation,
     project_events,
     table_history_view,
     table_view,
@@ -107,10 +122,16 @@ def validation_details(exc: ValidationError) -> list[dict[str, Any]]:
     return [{"loc": [str(p) for p in e["loc"]], "msg": e["msg"]} for e in exc.errors()]
 
 
+def default_styles() -> dict[str, Any]:
+    return {"mode": "labelled", "learning_aids": True, "random_pool": list(RANDOM_POOL_DEFAULT)}
+
+
 class SeatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: SeatKind
     policy: StrictStr | None = None
+    reveal: bool | None = None
+    """Bot seats in ``mixed`` style mode: whether the seat's identity is shown during play."""
 
 
 class CreateTableRequest(BaseModel):
@@ -119,6 +140,7 @@ class CreateTableRequest(BaseModel):
     seats: list[SeatRequest] = Field(min_length=2, max_length=8)
     seed: StrictStr | None = Field(None, min_length=1, max_length=128)
     """Optional private seed for reproducible decks; never returned by any endpoint."""
+    styles: StylesRequest | None = None
 
 
 class JoinRequest(BaseModel):
@@ -148,8 +170,11 @@ class SeatSlot:
     claimed: bool = False
     token_hash: str | None = None
     bot: BotSpec | None = None
+    hidden: bool = False
+    random_pick: bool = False
 
-    def public(self, viewer_seat: int | None) -> dict[str, Any]:
+    def identity(self) -> dict[str, Any]:
+        """The seat's real identity. Private while the seat is hidden and the table runs."""
         return {
             "seat": self.seat,
             "kind": self.kind,
@@ -157,9 +182,19 @@ class SeatSlot:
             "label": self.bot.label if self.bot else (self.policy or "Human"),
             "artifact_hash": self.bot.artifact_hash if self.bot else None,
             "source": self.bot.source if self.bot else None,
-            "claimed": self.claimed if self.kind == "human" else True,
-            "you": viewer_seat == self.seat,
+            "style": self.bot.style if self.bot else None,
+            "hidden": self.hidden,
+            "random_pick": self.random_pick,
         }
+
+    def public(self, viewer_seat: int | None, *, revealed: bool = False) -> dict[str, Any]:
+        out = self.identity()
+        del out["random_pick"]
+        if self.hidden and not revealed:
+            out.update(policy=None, label=f"Player {self.seat}", artifact_hash=None, source=None, style=None)
+        out["claimed"] = self.claimed if self.kind == "human" else True
+        out["you"] = viewer_seat == self.seat
+        return out
 
     def row(self) -> ParticipantRow:
         return ParticipantRow(self.seat, self.kind, self.policy, self.bot.artifact_hash if self.bot else None,
@@ -262,12 +297,31 @@ class LiveTable:
     """A commit failed after the engine moved: memory is ahead of the store until reloaded."""
     fenced: bool = False
     halted_reason: str | None = None
+    styles: dict[str, Any] = field(default_factory=lambda: default_styles())
+    """Style mode, learning aids flag and random pool, as requested at create time."""
+    notes: dict[str, NoteRow] = field(default_factory=dict)
+    """Bot reasoning notes by decision id: reviewer replay only, after the table completes."""
+    pending_notes: list[NoteRow] = field(default_factory=list)
+    stats: StatsTracker | None = None
+    stats_seq: int = 0
+
+    @property
+    def revealed(self) -> bool:
+        return self.status == "complete"
+
+    def setup_row(self) -> dict[str, Any]:
+        return {"styles": {**self.styles,
+                           "hidden_seats": sorted(s for s, slot in self.slots.items() if slot.hidden),
+                           "random_seats": sorted(s for s, slot in self.slots.items() if slot.random_pick)}}
 
     def setup_public(self, viewer_seat: int | None) -> dict[str, Any]:
+        revealed = self.revealed
         return {
             "config": self.config.resolved(),
             "config_hash": self.config.config_hash(),
-            "seats": [self.slots[s].public(viewer_seat) for s in sorted(self.slots)],
+            "styles": {**self.styles, "hidden_seats": sorted(s for s, slot in self.slots.items() if slot.hidden),
+                       "revealed": revealed},
+            "seats": [self.slots[s].public(viewer_seat, revealed=revealed) for s in sorted(self.slots)],
         }
 
     def capture_point(self, table: Table) -> None:
@@ -333,13 +387,25 @@ class TableManager:
 
     def resolve_config(self, body: CreateTableRequest, *, operator: bool = False) -> dict[str, Any]:
         config = self.build_config(body.config, len(body.seats))
-        self._validate_seats(body.seats, config, operator)
+        _, plans, styles = self._validate_seats(body, config, operator)
+        hidden = [seat for seat, plan in zip(config.resolved_seats, plans, strict=True) if plan.hidden]
         return {"config": config.resolved(), "config_hash": config.config_hash(),
-                "policies": self.bots.catalog(operator=operator)}
+                "policies": self.bots.catalog(operator=operator), "styles": {**styles, "hidden_seats": hidden}}
 
-    def _validate_seats(self, seats: list[SeatRequest], config: TournamentConfig, operator: bool) -> list[BotSpec | None]:
+    def _validate_seats(self, body: CreateTableRequest, config: TournamentConfig, operator: bool
+                        ) -> tuple[list[BotSpec | None], list[SeatPlan], dict[str, Any]]:
+        """Bot specs (``None`` for humans and random-style seats), each seat's style plan, and the styles setup."""
+        req = body.styles or StylesRequest()
+        try:
+            pool = random_pool(req)
+            plans = plan_seats(body.seats, req, config.ruleset_id)
+        except StylesInvalid as exc:
+            raise ApiError(422, exc.code, exc.message, exc.details) from None
         specs: list[BotSpec | None] = []
-        for i, s in enumerate(seats):
+        for i, (s, plan) in enumerate(zip(body.seats, plans, strict=True)):
+            if plan.random_pick:
+                specs.append(None)
+                continue
             spec = self.bots.resolve(s.policy) if s.kind == "bot" else None
             if s.kind == "bot" and (spec is None or (spec.source == "registered" and not operator)):
                 raise ApiError(422, "invalid_seat", f"seat {i}: unknown bot policy")
@@ -349,7 +415,8 @@ class TableManager:
                 raise ApiError(422, "unsupported_ruleset", f"seat {i}: {spec.label} does not support {config.ruleset_id}",
                                {"seat_index": i, "policy": s.policy, "supported": list(spec.rulesets)})
             specs.append(spec)
-        return specs
+        styles = {"mode": req.mode, "learning_aids": req.learning_aids, "random_pool": pool}
+        return specs, plans, styles
 
     # -------------------------------------------------------- identity / auth
 
@@ -400,16 +467,21 @@ class TableManager:
 
     def create_table(self, body: CreateTableRequest, *, operator: bool = False) -> dict[str, Any]:
         config = self.build_config(body.config, len(body.seats))
-        specs = self._validate_seats(body.seats, config, operator)
+        specs, plans, styles = self._validate_seats(body, config, operator)
         if self.outage_since is not None:
             raise storage_unavailable()
         table_id = "t_" + secrets.token_hex(6)
-        slots = {seat: SeatSlot(seat, s.kind, s.policy, bot=spec)
-                 for seat, s, spec in zip(config.resolved_seats, body.seats, specs, strict=True)}
+        slots: dict[int, SeatSlot] = {}
+        for seat, s, spec, plan in zip(config.resolved_seats, body.seats, specs, plans, strict=True):
+            policy = s.policy
+            if plan.random_pick:
+                policy = f"style_{pick_style(styles['random_pool'], body.seed, seat)}"
+                spec = self.bots.resolve(policy)
+            slots[seat] = SeatSlot(seat, s.kind, policy, bot=spec, hidden=plan.hidden, random_pick=plan.random_pick)
         token = secrets.token_urlsafe(24)
         bot_seed = body.seed if body.seed is not None else secrets.token_hex(16)
         live = LiveTable(table_id, config, slots, body.seed, bot_seed=bot_seed,
-                         host_token_hash=_token_key(token), version=1)
+                         host_token_hash=_token_key(token), version=1, styles=styles)
         with live.queue:
             self._commit(live, "create", participants=[s.row() for s in slots.values()])
             self._register(live)
@@ -520,10 +592,13 @@ class TableManager:
             "turn": None,
             "last_hand": None,
             "results": None,
+            "stats": None,
+            "reveal": None,
         }
         table = live.table
         if table is None:
             return out
+        out["stats"] = self._stats(live).payload(showdowns=RECENT_SHOWDOWNS)
         out["view"] = table_view(table, viewer).model_dump(mode="json")
         actor = table.actor_seat
         if actor is not None:
@@ -541,7 +616,60 @@ class TableManager:
         out["last_hand"] = self._last_hand(table, viewer)
         if live.status == "complete":
             out["results"] = self._results(live)
+            out["reveal"] = self._reveal(live)
         return out
+
+    @staticmethod
+    def _stats(live: LiveTable) -> StatsTracker:
+        """The table's stats tracker, fed with any events committed since it last looked (public view only)."""
+        assert live.table is not None
+        if live.stats is None:
+            live.stats, live.stats_seq = StatsTracker(live.table.seat_ring), 0
+        log = live.table.log
+        if live.stats_seq < len(log):
+            live.stats.feed(project_events(log[live.stats_seq:], Viewer.spectator()))
+            live.stats_seq = len(log)
+        return live.stats
+
+    def _reveal(self, live: LiveTable) -> dict[str, Any]:
+        assert live.revealed
+        stats = self._stats(live).payload()
+        return build_reveal(live.config.config_hash(), [live.slots[s].identity() for s in sorted(live.slots)], stats)
+
+    def stats(self, table_id: str, principal: Principal) -> dict[str, Any]:
+        del principal  # public: built only from what a spectator sees
+        live = self._get(table_id)
+        with live.queue:
+            self._check_usable(live)
+            if live.table is None:
+                raise ApiError(409, "not_started", "table has not started")
+            return {"table_id": live.table_id, "version": live.version, "stats": self._stats(live).payload()}
+
+    def aids(self, table_id: str, principal: Principal) -> dict[str, Any]:
+        live = self._get(table_id)
+        with live.queue:
+            self._check_usable(live)
+            seat = self._require_seat(principal)
+            if live.config.ruleset_id not in AIDS_RULESETS:
+                raise ApiError(409, "aids_unsupported_ruleset", "learning aids are available for No-limit Hold'em only",
+                               {"ruleset_id": live.config.ruleset_id, "supported": list(AIDS_RULESETS)})
+            if live.table is None:
+                raise ApiError(409, "not_started", "table has not started")
+            if not live.styles.get("learning_aids", True):
+                raise ApiError(403, "learning_aids_disabled", "learning aids are switched off for this table")
+            table = live.table
+            view = table_view(table, Viewer.for_seat(seat))
+            obs = observation(table, seat) if not table.complete and table.actor_seat == seat else None
+            return {"table_id": live.table_id, "version": live.version, **build_aids(view, obs)}
+
+    def reviewer_notes(self, table_id: str) -> dict[str, dict[str, Any]]:
+        """Bot reasoning notes by decision id, only for a completed table (reviewer replay)."""
+        live = self._get(table_id)
+        with live.queue:
+            self._check_usable(live)
+            if not live.revealed:
+                raise ApiError(409, "not_complete", "reasoning notes open only after the table is complete")
+            return {d: {"seat": n.seat, "decision_id": d, "text": n.note} for d, n in live.notes.items()}
 
     @staticmethod
     def _last_hand(table: Table, viewer: Viewer) -> dict[str, Any] | None:
@@ -730,7 +858,11 @@ class TableManager:
         assert table is not None
         seat = table.actor_seat
         assert seat is not None
-        bot_turn(table, live.agents[seat])
+        decision_id, note = bot_turn(table, live.agents[seat])
+        if note:
+            row = NoteRow(decision_id, seat, note)
+            live.notes[decision_id] = row
+            live.pending_notes.append(row)
         live.bot_decisions[seat] += 1
         live.dirty_bots.add(seat)
         live.bot_due_ns = None
@@ -860,6 +992,7 @@ class TableManager:
             state_version=table.state_version if table is not None else 0,
             event_count=len(table.log) if table is not None else 0,
             scheduler=self._scheduler(live, self.clock.now_ns()),
+            setup=live.setup_row(),
         )
         return CommitBatch(
             table=row,
@@ -873,6 +1006,7 @@ class TableManager:
             checkpoints=checkpoints,
             awards=awards,
             pauses=list(pauses),
+            notes=list(live.pending_notes),
         )
 
     def _commit(self, live: LiveTable, kind: str, *, receipt: ReceiptRow | None = None,
@@ -901,6 +1035,7 @@ class TableManager:
             live.persisted_seq = len(live.table.log)
         live.pending_points.clear()
         live.dirty_bots.clear()
+        live.pending_notes.clear()
         live.unpublished.append(live.version)
         self._fault("after_commit", live, kind)
 
@@ -1033,8 +1168,15 @@ class TableManager:
         slots = {p.seat: SeatSlot(p.seat, p.kind, p.policy, p.claimed, p.token_hash,  # type: ignore[arg-type]
                                   bot=self.bots.resolve(p.policy) if p.kind == "bot" else None)
                  for p in stored.participants}
+        setup = dict((t.setup or {}).get("styles") or {})
+        for seat in setup.pop("hidden_seats", []):
+            slots[seat].hidden = True
+        for seat in setup.pop("random_seats", []):
+            slots[seat].random_pick = True
         live = LiveTable(t.table_id, config, slots, t.deck_seed, bot_seed=t.bot_seed,
-                         host_token_hash=t.host_token_hash, version=t.version, committed_version=t.version)
+                         host_token_hash=t.host_token_hash, version=t.version, committed_version=t.version,
+                         styles={**default_styles(), **setup})
+        live.notes = {n.decision_id: n for n in stored.notes}
         live.receipts = {r.action_id: StoredReceipt(r.seat, r.fingerprint, r.body) for r in stored.receipts}
         live.unpublished = list(stored.unpublished)
         if t.status == "halted":

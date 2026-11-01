@@ -84,9 +84,143 @@ export interface SeatInfo {
   policy: string | null
   label: string
   artifact_hash: string | null
-  source: 'baseline' | 'registered' | null
+  source: 'baseline' | 'registered' | 'style' | null
   claimed: boolean
   you: boolean
+  /** Set up hidden: before the reveal its policy, label and style are withheld by the server. */
+  hidden?: boolean
+  style?: string | null
+}
+
+export type StyleMode = 'labelled' | 'hidden' | 'mixed' | 'random'
+
+export interface BookRef {
+  part: string
+  section: string
+}
+
+export type StatKey = 'vpip' | 'pfr' | 'aggression' | 'fold_to_reraise'
+
+export interface StyleProfile {
+  id: string
+  policy_id: string
+  name: string
+  family: string
+  description: string
+  book_ref: BookRef
+  expected: Partial<Record<StatKey, [number, number] | null>>
+  counter_strategy: string
+  tells: string[]
+  advanced: boolean
+  rulesets: string[]
+}
+
+export type ChartGroup = 'early' | 'middle' | 'late'
+
+export interface StylesCatalog {
+  styles: StyleProfile[]
+  modes: StyleMode[]
+  random_pool_default: string[]
+  stat_definitions: Record<string, { label: string; book_ref?: BookRef; help?: string }>
+  charts: Record<'conservative' | 'aggressive', Record<ChartGroup, string[]>>
+  grid: string[][]
+}
+
+export interface StylesSetup {
+  mode: StyleMode
+  learning_aids: boolean
+  random_pool: string[]
+  hidden_seats: number[]
+  revealed: boolean
+}
+
+export interface Ratio {
+  count: number
+  of: number
+  rate: number | null
+}
+
+export interface Showdown {
+  hand_number: number
+  hand_id: string
+  cards: string[]
+  board: string[]
+  hand_in_words: string
+  line: Partial<Record<Street, string[]>>
+  won: number
+}
+
+export interface SeatStats {
+  seat: number
+  hands: number
+  vpip: Ratio
+  pfr: Ratio
+  rfi: Ratio
+  aggression: { bets_raises: number; calls: number; factor: number | null }
+  reraise: { faced: number; folded: number; called: number; reraised: number; fold_rate: number | null }
+  showdowns: { count: number; items: Showdown[] }
+}
+
+export interface TableStats {
+  hands_tracked: number
+  seats: Record<string, SeatStats>
+}
+
+export interface Evidence {
+  stat: string
+  label: string
+  value: number | null
+  count?: number
+  of?: number
+  expected: [number, number] | null
+  in_range: boolean | null
+  book_ref: BookRef | null
+}
+
+export interface RevealSeat {
+  seat: number
+  kind: 'human' | 'bot'
+  hidden: boolean
+  random_pick?: boolean
+  policy: string | null
+  label: string
+  style: string | null
+  artifact_hash: string | null
+  book_ref: BookRef | null
+  summary: string | null
+  evidence: Evidence[]
+  showdowns: Showdown[]
+}
+
+export interface Reveal {
+  lineup_hash: string
+  lineup: { seat: number; kind: string; policy: string | null; artifact_hash: string | null }[]
+  seats: RevealSeat[]
+}
+
+export type PositionLabel = 'UTG' | 'MP' | 'CO' | 'BTN' | 'SB' | 'BB'
+export type PositionGroup = 'early' | 'middle' | 'late' | 'blinds'
+
+export interface Aids {
+  table_id: string
+  version: number
+  hand_id: string | null
+  decision_id: string | null
+  positions: Record<string, { label: PositionLabel; group: PositionGroup }>
+  hero: {
+    seat: number
+    position: { label: PositionLabel; group: PositionGroup } | null
+    hole_cards: string[]
+    hand_class: string
+    hand_in_words: string
+    rank_row: string
+    draws: { kind: 'flush_draw' | 'open_ended' | 'gutshot'; outs: number; words: string }[]
+    outs: number
+    charts: { group: ChartGroup; conservative: boolean; aggressive: boolean }
+    equity_vs_random: { vs_one: number; vs_field: number; opponents: number; samples: number; exact: boolean }
+    pot_odds: { to_call: number; pot: number; break_even: number; words: string } | null
+    coach: { action: 'fold' | 'check' | 'call' | 'raise_to'; amount?: number; reason: string; heuristic: string; disclaimer: string } | null
+  } | null
 }
 
 export interface ResolvedConfig {
@@ -126,7 +260,7 @@ export interface Snapshot {
   version: number
   compatibility_status: 'practice_assumptions'
   viewer: { role: 'seat' | 'host' | 'anonymous'; seat: number | null }
-  setup: { config: ResolvedConfig; config_hash: string; seats: SeatInfo[] }
+  setup: { config: ResolvedConfig; config_hash: string; seats: SeatInfo[]; styles?: StylesSetup }
   view: TableView | null
   turn: {
     seat: number
@@ -137,6 +271,8 @@ export interface Snapshot {
   } | null
   last_hand: { hand_id: string; hand_number: number | null; events: PublicEvent[] } | null
   results: Results | null
+  stats?: TableStats | null
+  reveal?: Reveal | null
 }
 
 export interface Policy {
@@ -144,7 +280,8 @@ export interface Policy {
   label: string
   description: string
   artifact_hash: string
-  source: 'baseline' | 'registered'
+  source: 'baseline' | 'registered' | 'style'
+  style?: string
   rulesets: string[]
   state_mode: string
   bot_name: string
@@ -162,6 +299,7 @@ export interface ReplayFrame {
   hand_number: number
   view: TableView
   hole_cards: Record<string, string[]> | null
+  bot_note?: { seat: number; decision_id: string; text: string } | null
 }
 
 export interface ReplayHand {

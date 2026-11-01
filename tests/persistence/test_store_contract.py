@@ -115,4 +115,4 @@ def test_postgres_migrations_are_idempotent(new_store, store_kind):
     with store.inner._conn() as conn:
         assert migrate(conn) == []
         names = [r["name"] for r in conn.execute("SELECT name FROM schema_migrations ORDER BY name")]
-    assert names == ["0001_initial"]
+    assert names == ["0001_initial", "0002_styles_and_notes"]

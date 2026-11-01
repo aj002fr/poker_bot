@@ -36,6 +36,14 @@ export function placeLabel(positions: number[]) {
   return `${ordinal(positions[0])}–${ordinal(positions[positions.length - 1])}`
 }
 
+/** How a seat reads on the table. Hidden seats carry only the server's "Player N" label. */
+export function seatWho(info: SeatInfo | undefined) {
+  if (!info) return 'Human'
+  if (info.you) return 'You'
+  if (info.kind === 'human') return 'Human'
+  return info.hidden && !info.style ? info.label : `Bot · ${info.label}`
+}
+
 export function seatName(seat: number, seats: SeatInfo[] | undefined) {
   const info = seats?.find((s) => s.seat === seat)
   if (info?.you) return `Seat ${seat} (you)`

@@ -35,7 +35,7 @@ arena/table/       dead-button positions, the table service, state hashes, proje
 arena/tournament/  standings, same-hand bust ranking, Malmuth-Harville ICM
 arena/history/     canonical JSON histories, replay verification, PHH export
 arena/agents/      bot SDK (sdk.py), sandboxed worker pool and deadlines (worker.py),
-                   process confinement (sandbox.py), baselines/
+                   process confinement (sandbox.py), baselines/, styles/ (opponent styles)
 arena/benchmark/   run manifests, paired seed-block benchmark runner (runner.py)
 arena/api/         FastAPI server: seat credentials, per-table command writer, deadlines, WebSocket
 arena/persistence/ memory and PostgreSQL stores, migrations, snapshot + replay recovery
@@ -112,6 +112,18 @@ artifact hashes, mean points with confidence intervals, timing and fallbacks per
 scenario and seat count. The endpoints, deadlines and privacy rules are in
 [`docs/playable-table.md`](docs/playable-table.md).
 
+New to poker? Open **Learn** for five short practice tables, from heads-up against a
+labelled calling station to a full table of hidden random styles, with progress kept in
+this browser. On No-limit Hold'em tables, setup also has an **Opponent styles** mode
+(labelled, hidden, mixed or random) and a **Learning aids** switch. With aids on, the
+table shows your hand in words, position labels and tips, the opening chart for your
+seat, pot odds, equity against random hands, an optional coach hint and a recap after
+each hand. All of these use only your own cards and public information. A **Notes and
+guess** panel tracks every opponent's stats with sample sizes and records your style
+guesses. When the table ends, the **Reveal** scores those guesses against each seat's
+true style and shows the evidence. `ARENA_SCREENSHOTS=/some/dir npx playwright test
+screenshots` (in `web/`) captures a walkthrough of these screens.
+
 ## Bots
 
 Write a bot by copying [`examples/template_bot.py`](examples/template_bot.py), then play
@@ -119,8 +131,17 @@ it against the built-in baselines (`check_fold`, `calling_station`, `legal_rando
 the NLHE-only `nlhe_heuristic`). Each run prints mean points with a 95% interval,
 p50/p95/p99/max decision timing in seconds, and fallback counts:
 
+There are also six **opponent styles** modelled on the playing styles of *Harrington on
+Hold'em, Vol. I*: `rock`, `aggressive`, `super_aggressive`, `station`, `weak_tight` and
+the advanced `switcher`. Each has declared stat ranges that a test checks. Tables can show
+them labelled, hide them, mix both or deal random hidden styles, then reveal each seat
+with the evidence once the table ends. They also serve table-reading stats and seat-only
+learning aids (position, hand in words, outs, equity, pot odds and a coach hint). See
+[`docs/opponent-styles.md`](docs/opponent-styles.md).
+
 ```bash
 uv run python -m arena.cli match --bot examples/template_bot.py              # 240 tables
+uv run python -m arena.cli match --bot my_bot.py --opponents rock,aggressive,station
 uv run python -m arena.cli match --bot my_bot.py --ruleset uncertainty_shortdeck --tables 60
 uv run python -m arena.cli benchmark --bots nlhe_heuristic,calling_station,legal_random,check_fold \
     --out artifacts/runs/demo

@@ -59,6 +59,7 @@ from arena.agents.sdk import (
     decode_state,
     encode_state,
     require_supported,
+    split_note,
 )
 from arena.domain.observations import Observation
 
@@ -451,6 +452,8 @@ class Decision:
     worker_cpu_ns: int | None = None
     worker_parse_ns: int | None = None
     state_bytes: int | None = None
+    note: str | None = None
+    """The bot's private reasoning note (:func:`arena.agents.sdk.with_note`), stripped from ``action``."""
 
 
 @dataclass
@@ -721,7 +724,7 @@ class WorkerSeat:
         if m.get("t") != "action" or "action" not in m:
             decision.fallback = "invalid_output"
             return decision
-        decision.action = m["action"]
+        decision.action, decision.note = split_note(m["action"])
         if self.info is not None and self.info.state_mode == "explicit":
             try:
                 state = _checked_state(frame.blob)
@@ -823,9 +826,9 @@ class InProcessSeat:
         except Exception as exc:
             return Decision(None, "bot_exception", rejected={"detail": f"{type(exc).__name__}: {exc}"[:DETAIL_CHARS]})
         wall, cpu = time.perf_counter_ns() - t0, time.thread_time_ns() - c0
-        payload = action.model_dump(exclude_none=True) if hasattr(action, "model_dump") else action
+        payload, note = split_note(action.model_dump(exclude_none=True) if hasattr(action, "model_dump") else action)
         return Decision(payload, None, e2e_ns=wall, worker_wall_ns=wall, worker_cpu_ns=cpu,
-                        state_bytes=len(self.pending) if self.pending is not None else None)
+                        state_bytes=len(self.pending) if self.pending is not None else None, note=note)
 
     def accept(self) -> None:
         if self.pending is not None:

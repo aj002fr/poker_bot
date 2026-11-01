@@ -1,44 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { bot, createTable, human, noHorizontalOverflow, openSeat } from './support'
-
-const WIDTHS = [
-  { width: 360, height: 780 },
-  { width: 768, height: 1024 },
-  { width: 1440, height: 1000 },
-]
-
-type Box = { id: string; x: number; y: number; w: number; h: number }
-
-async function feltBoxes(page: Page) {
-  return page.evaluate(() => {
-    const box = (el: Element, id: string) => {
-      const r = el.getBoundingClientRect()
-      return { id, x: r.x, y: r.y, w: r.width, h: r.height }
-    }
-    const felt = document.querySelector('.felt')!
-    return {
-      felt: box(felt, 'felt'),
-      seats: [...felt.querySelectorAll('[data-testid^="seat-"]')].map((e) => box(e, e.getAttribute('data-testid')!)),
-      board: box(felt.querySelector('.board')!, 'board'),
-    }
-  })
-}
-
-const overlap = (a: Box, b: Box) =>
-  Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y))
-
-async function expectCleanFelt(page: Page, seats: number) {
-  const { felt, seats: boxes, board } = await feltBoxes(page)
-  expect(boxes).toHaveLength(seats)
-  for (const [i, a] of boxes.entries()) {
-    expect(a.x, `${a.id} left edge`).toBeGreaterThanOrEqual(felt.x - 0.5)
-    expect(a.y, `${a.id} top edge`).toBeGreaterThanOrEqual(felt.y - 0.5)
-    expect(a.x + a.w, `${a.id} right edge`).toBeLessThanOrEqual(felt.x + felt.w + 0.5)
-    expect(a.y + a.h, `${a.id} bottom edge`).toBeLessThanOrEqual(felt.y + felt.h + 0.5)
-    expect(overlap(a, board), `${a.id} overlaps the board`).toBeLessThanOrEqual(1)
-    for (const b of boxes.slice(i + 1)) expect(overlap(a, b), `${a.id} overlaps ${b.id}`).toBeLessThanOrEqual(1)
-  }
-}
+import { bot, createTable, expectCleanFelt, human, noHorizontalOverflow, openSeat, WIDTHS } from './support'
 
 async function expectTextLabelledCards(page: Page) {
   const cards = await page.locator('[data-card]').evaluateAll((els) =>

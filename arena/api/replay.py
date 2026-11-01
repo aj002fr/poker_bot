@@ -70,7 +70,9 @@ def _frame(table: Table, perspective: Perspective, seat: int | None, kind: Frame
     return out
 
 
-def build_frames(log: list[EventEnvelope], perspective: Perspective, seat: int | None) -> list[dict[str, Any]]:
+def build_frames(log: list[EventEnvelope], perspective: Perspective, seat: int | None,
+                 notes: dict[str, dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    """``notes`` (reviewer only): bot reasoning notes by decision id, attached to the frame each decision made."""
     started = log[0].data
     config = TournamentConfig.model_validate(started["config"], strict=True)
     hand_starts = [e for e in log if e.type == "HandStarted"]
@@ -93,18 +95,27 @@ def build_frames(log: list[EventEnvelope], perspective: Perspective, seat: int |
     )
     if table.hand is not None:
         frames.append(_frame(table, perspective, seat, "deal"))
+    notes = notes if perspective == "reviewer" else None
     for actor, action, reason, rejected in _commands(log):
         hand_before = table.hand_number
+        decision_id = table.decision_id
+        first = len(frames)
         if reason is not None:
             table.apply_fallback(actor, reason, rejected)
         else:
             table.submit(actor, action)
         if table.complete:
             frames.append(_frame(table, perspective, seat, "complete"))
+        else:
+            frames.append(_frame(table, perspective, seat, "deal" if table.hand_number != hand_before else "action"))
+        if notes and decision_id in notes and reason is None:
+            frames[first]["bot_note"] = dict(notes[decision_id])
+        if table.complete:
             break
-        frames.append(_frame(table, perspective, seat, "deal" if table.hand_number != hand_before else "action"))
     if table.log != log:
         raise ReplayError("re-simulated log differs from the stored log")
+    for f in frames:
+        f.setdefault("bot_note", None)
     return frames
 
 
@@ -116,13 +127,14 @@ class ReplayCache:
         self._items: OrderedDict[tuple, dict[str, Any]] = OrderedDict()
         self._lock = threading.Lock()
 
-    def get(self, log: list[EventEnvelope], perspective: Perspective, seat: int | None) -> dict[str, Any]:
-        key = (log[0].table_id, len(log), perspective, seat)
+    def get(self, log: list[EventEnvelope], perspective: Perspective, seat: int | None,
+            notes: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
+        key = (log[0].table_id, len(log), perspective, seat, len(notes) if notes else 0)
         with self._lock:
             if key in self._items:
                 self._items.move_to_end(key)
                 return self._items[key]
-        built = _index(log, perspective, seat)
+        built = _index(log, perspective, seat, notes)
         with self._lock:
             self._items[key] = built
             while len(self._items) > self.size:
@@ -130,8 +142,9 @@ class ReplayCache:
         return built
 
 
-def _index(log: list[EventEnvelope], perspective: Perspective, seat: int | None) -> dict[str, Any]:
-    frames = build_frames(log, perspective, seat)
+def _index(log: list[EventEnvelope], perspective: Perspective, seat: int | None,
+           notes: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
+    frames = build_frames(log, perspective, seat, notes)
     viewer = {"seat": Viewer.for_seat(seat) if seat is not None else Viewer.spectator(),
               "spectator": Viewer.spectator(), "reviewer": Viewer.reviewer()}[perspective]
     hands: dict[int, dict[str, Any]] = {}

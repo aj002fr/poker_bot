@@ -33,6 +33,10 @@ from arena.agents.sdk import (
 from arena.domain.models import Action
 from arena.domain.observations import Observation
 
+# Trusted library code bots may import; it must be loaded before the sandbox hides the repository.
+import arena.agents.styles.engine  # noqa: E402, F401, I001
+import arena.table.player_stats  # noqa: E402, F401
+
 LOG_CAP_BYTES = 64 * 1024
 WARMUP_OBSERVATION = os.path.join(os.path.dirname(os.path.abspath(__file__)), "warmup_observation.json")
 WARMUP_ROUNDS = 200

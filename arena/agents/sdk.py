@@ -38,6 +38,7 @@ from arena.domain.models import RULESET_IDS, Action, LegalActions, RulesetId
 from arena.domain.observations import Observation
 
 __all__ = [
+    "MAX_NOTE_CHARS",
     "MAX_STATE_BYTES",
     "Action",
     "BotInfo",
@@ -61,6 +62,7 @@ __all__ = [
     "load_bot",
     "raise_to",
     "require_supported",
+    "with_note",
 ]
 
 JsonValue = Union[None, bool, int, float, str, list["JsonValue"], dict[str, "JsonValue"]]
@@ -68,6 +70,8 @@ StateMode = Literal["explicit", "instance"]
 
 MAX_STATE_BYTES = 64 * 1024
 TABLE_INFO_SCHEMA_VERSION = 1
+NOTE_KEY = "note"
+MAX_NOTE_CHARS = 200
 
 
 class TableInfo(BaseModel):
@@ -229,6 +233,30 @@ def call() -> Action:
 def raise_to(amount: int) -> Action:
     """Raise (or bet) to a street total. ``amount`` is not an increment."""
     return Action(type="raise_to", amount=amount)
+
+
+def with_note(action: Action | dict, note: str) -> dict:
+    """``action`` plus a private reasoning note (at most :data:`MAX_NOTE_CHARS` characters).
+
+    The arena strips the note before validating the action, stores it in the table's
+    private record, and shows it only in the post-table reviewer replay. A note that is
+    not a string is dropped; the action is unaffected either way.
+    """
+    payload = action.model_dump(exclude_none=True) if isinstance(action, Action) else dict(action)
+    payload[NOTE_KEY] = str(note)[:MAX_NOTE_CHARS]
+    return payload
+
+
+def split_note(payload: Any) -> tuple[Any, str | None]:
+    """Separate a bot's reply into the action payload and its note (arena side)."""
+    if not isinstance(payload, dict) or NOTE_KEY not in payload:
+        return payload, None
+    rest = {k: v for k, v in payload.items() if k != NOTE_KEY}
+    note = payload[NOTE_KEY]
+    if not isinstance(note, str):
+        return rest, None
+    text = "".join(ch if ch.isprintable() else " " for ch in note[:MAX_NOTE_CHARS]).strip()
+    return rest, text or None
 
 
 def check_or_fold(legal: LegalActions) -> Action:

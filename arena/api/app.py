@@ -40,6 +40,7 @@ from arena.api.operator import is_operator, operator_token_from_env
 from arena.api.replay import ReplayCache, ReplayError, check_perspective
 from arena.api.runs import RunManager, RunRejected, RunRequest
 from arena.api.seats import BotRegistrationError
+from arena.api.styles import styles_catalog
 from arena.domain.models import RULESET_IDS
 from arena.persistence.store import MemoryStore, Store
 from arena.table.projections import ProjectionDenied
@@ -192,6 +193,10 @@ def create_app(
         return {"rulesets": list(RULESET_IDS), "policies": manager.bots.catalog(operator=is_op),
                 "max_seats": 8, "min_seats": 2, "operator": is_op}
 
+    @app.get("/styles")
+    async def styles() -> dict[str, Any]:
+        return styles_catalog()
+
     @app.post("/configs/resolve")
     def resolve(body: CreateTableRequest, request: Request) -> dict[str, Any]:
         return manager.resolve_config(body, operator=operator(request))
@@ -220,6 +225,14 @@ def create_app(
         return await run_in_threadpool(manager.submit_action, table_id, principal, raw, received_ns,
                                        registered=True)
 
+    @app.get("/tables/{table_id}/stats")
+    def stats(table_id: str, request: Request) -> dict[str, Any]:
+        return manager.stats(table_id, principal_for(request, table_id))
+
+    @app.get("/tables/{table_id}/aids")
+    def aids(table_id: str, request: Request) -> dict[str, Any]:
+        return manager.aids(table_id, principal_for(request, table_id))
+
     @app.get("/tables/{table_id}/history")
     def history(table_id: str, request: Request, perspective: str | None = None) -> dict[str, Any]:
         return manager.history(table_id, principal_for(request, table_id), perspective)
@@ -235,8 +248,9 @@ def create_app(
             chosen = check_perspective(name, seat=seat, host=principal.role == "host", complete=complete)
         except ValueError:
             raise ApiError(422, "invalid_perspective", "perspective must be seat, spectator or reviewer") from None
+        notes = await run_in_threadpool(manager.reviewer_notes, table_id) if chosen == "reviewer" else None
         try:
-            index = await asyncio.to_thread(replays.get, log, chosen, seat if chosen == "seat" else None)
+            index = await asyncio.to_thread(replays.get, log, chosen, seat if chosen == "seat" else None, notes)
         except ReplayError as exc:
             raise ApiError(500, "replay_mismatch", str(exc)) from None
         hands = index["hands"]

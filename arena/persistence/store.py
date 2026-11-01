@@ -27,6 +27,7 @@ from arena.persistence.models import (
     CheckpointRow,
     CommitBatch,
     HandRow,
+    NoteRow,
     ParticipantRow,
     PauseRow,
     ReceiptRow,
@@ -100,6 +101,7 @@ class _MemTable:
     receipts: dict[str, ReceiptRow] = field(default_factory=dict)
     checkpoints: dict[int, CheckpointRow] = field(default_factory=dict)
     awards: dict[int, AwardRow] = field(default_factory=dict)
+    notes: dict[str, NoteRow] = field(default_factory=dict)
     pauses: list[PauseRow] = field(default_factory=list)
     outbox: list[_Outbox] = field(default_factory=list)
 
@@ -141,7 +143,7 @@ class MemoryStore:
                 if current.owner_id != writer_id or current.table.version != batch.expected_version:
                     raise OwnershipLost(table_id)
                 staged = copy.copy(current)
-                for name in ("participants", "hands", "snapshots", "receipts", "checkpoints", "awards"):
+                for name in ("participants", "hands", "snapshots", "receipts", "checkpoints", "awards", "notes"):
                     setattr(staged, name, dict(getattr(current, name)))
                 staged.events = list(current.events)
                 staged.pauses = list(current.pauses)
@@ -172,6 +174,10 @@ class MemoryStore:
                 staged.checkpoints[c.seat] = CheckpointRow(**_j(c.__dict__))
             for a in batch.awards:
                 staged.awards[a.seat] = AwardRow(**_j(a.__dict__))
+            for n in batch.notes:
+                if n.decision_id in staged.notes:
+                    raise StoreError("duplicate bot note")
+                staged.notes[n.decision_id] = NoteRow(**_j(n.__dict__))
             for pause in batch.pauses:
                 self._put_pause(staged, pause)
             if any(o.version == row.version for o in staged.outbox):
@@ -215,6 +221,7 @@ class MemoryStore:
                 open_pause=open_pause,
                 scheduler_age_s=self._now() - t.scheduler_at,
                 unpublished=[o.version for o in t.outbox if not o.published],
+                notes=[NoteRow(**_j(n.__dict__)) for _, n in sorted(t.notes.items())],
             )
 
     def table_ids(self) -> list[str]:

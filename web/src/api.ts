@@ -1,5 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Action, Perspective, Policy, Replay, ResolvedConfig, RunBrief, RunView, Snapshot } from './types'
+import type {
+  Action,
+  Aids,
+  Perspective,
+  Policy,
+  Replay,
+  ResolvedConfig,
+  RunBrief,
+  RunView,
+  Snapshot,
+  StyleMode,
+  StylesCatalog,
+} from './types'
 
 const BASE = '/api'
 
@@ -101,7 +113,8 @@ export function savePending(tableId: string, pending: PendingSubmission | null) 
 
 export interface CreateBody {
   config: Record<string, unknown>
-  seats: { kind: 'human' | 'bot'; policy?: string | null }[]
+  seats: { kind: 'human' | 'bot'; policy?: string | null; reveal?: boolean }[]
+  styles?: { mode: StyleMode; learning_aids: boolean; random_pool?: string[] }
 }
 
 export const api = {
@@ -147,6 +160,67 @@ export const api = {
       token,
       body: JSON.stringify(envelope),
     }),
+  styles: () => request<StylesCatalog>('/styles'),
+  aids: (tableId: string, seatToken: string) => request<Aids>(`/tables/${tableId}/aids`, { token: seatToken }),
+}
+
+/** Creates a table; when it has a human seat, this tab claims the first one. */
+export async function createAndJoin(body: CreateBody, operator?: string | null): Promise<string> {
+  const created = await api.create(body, operator)
+  const creds: Credentials = { hostToken: created.host_token }
+  if (body.seats.some((s) => s.kind === 'human')) {
+    const joined = await api.join(created.table_id)
+    creds.seat = joined.seat
+    creds.seatToken = joined.seat_token
+  }
+  saveCredentials(created.table_id, creds)
+  return created.table_id
+}
+
+let stylesCache: Promise<StylesCatalog> | null = null
+
+/** Style profiles, opening charts and the starting-hand grid: the server holds the only copy. */
+export function useStyles(): StylesCatalog | null {
+  const [catalog, setCatalog] = useState<StylesCatalog | null>(null)
+  useEffect(() => {
+    let live = true
+    stylesCache ??= api.styles().catch((err) => {
+      stylesCache = null
+      throw err
+    })
+    stylesCache.then(
+      (c) => live && setCatalog(c),
+      () => undefined,
+    )
+    return () => {
+      live = false
+    }
+  }, [])
+  return catalog
+}
+
+/** Learning aids for this seat's current spot, refreshed as the table moves. Stale results are dropped. */
+export function useAids(tableId: string, seatToken: string | null, version: number, enabled: boolean) {
+  const [aids, setAids] = useState<Aids | null>(null)
+  const [failed, setFailed] = useState(false)
+  const latest = useRef(-1)
+  useEffect(() => {
+    if (!enabled || !seatToken) return
+    const asked = version
+    const t = window.setTimeout(() => {
+      api.aids(tableId, seatToken).then(
+        (a) => {
+          if (asked < latest.current) return
+          latest.current = asked
+          setAids(a)
+          setFailed(false)
+        },
+        () => setFailed(true),
+      )
+    }, 60)
+    return () => window.clearTimeout(t)
+  }, [tableId, seatToken, version, enabled])
+  return { aids, failed }
 }
 
 export interface RunBody {

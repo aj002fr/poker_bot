@@ -27,6 +27,8 @@ class TableRow:
     scheduler: dict[str, Any] | None = None
     """The pending decision as of the last commit or heartbeat: decision_id, seat, kind, remaining_ms."""
     halted_reason: str | None = None
+    setup: dict[str, Any] | None = None
+    """Private seat setup beyond the participants: style mode, hidden seats, random picks."""
 
 
 @dataclass
@@ -100,6 +102,15 @@ class PauseRow:
 
 
 @dataclass
+class NoteRow:
+    """A bot's private reasoning note for one accepted decision (reviewer replay only)."""
+
+    decision_id: str
+    seat: int
+    note: str
+
+
+@dataclass
 class CommitBatch:
     """Everything one command changes, written in one transaction or not at all."""
 
@@ -116,6 +127,7 @@ class CommitBatch:
     awards: list[AwardRow] = field(default_factory=list)
     pauses: list[PauseRow] = field(default_factory=list)
     """New pauses are inserted; rows with a ``pause_id`` are updated (to close them)."""
+    notes: list[NoteRow] = field(default_factory=list)
 
 
 @dataclass
@@ -134,3 +146,4 @@ class StoredTable:
     """Seconds since the scheduler was last written; how stale ``remaining_ms`` can be."""
     unpublished: list[int]
     """Outbox versions committed but not yet broadcast."""
+    notes: list[NoteRow] = field(default_factory=list)
