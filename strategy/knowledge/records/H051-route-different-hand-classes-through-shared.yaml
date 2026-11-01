@@ -1,0 +1,70 @@
+id: H051
+title: Route different hand classes through shared sizes and lines
+kind: strategy
+status: proposed
+cluster: range_construction
+sources:
+- source: mop
+  location: ch. 9 pp. 94-98; ch. 30 pp. 360-362; ch. 20 pp. 243-258; ch. 30 pp. 360-363
+  digest_records: [mop/H12, mop/H17]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Value hands, draws and bluffs reach the same node or continue to later streets.
+eligible_opportunity: Bet-size choice at nodes reached by mixed hand classes.
+observable_inputs:
+- own_range_summary
+- draw_visibility
+- nut_potential
+- legal_size_bounds
+training_signals: []
+intervention: >-
+  Keep some strong hands in lines that also carry draws and bluffs, and use overlapping size buckets
+  across classes.
+baseline: Class-segregated sizes and lines.
+mechanism: >-
+  Class-specific sizes disclose information; later bluffs are credible only if the line can contain
+  value.
+exceptions:
+- A pure action is correct when one action dominates across a region.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Generic range construction.
+source_numbers: []
+parameters: []
+experiment:
+  id: E025
+  primary_metric: approximate_response_loss
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 2
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Hard to measure without trained responses.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H050, H052]

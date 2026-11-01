@@ -1,0 +1,80 @@
+id: H032
+title: Evaluate fold and called branches jointly for bets and shoves
+kind: strategy
+status: proposed
+cluster: equity
+sources:
+- source: mit-15s50
+  location: Lecture 3 ~45:07-57:45; slides pp. 48-59
+  digest_records: [mit15s50/H08]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: A bet or shove can win immediately but retains equity when called.
+eligible_opportunity: Bet or all-in decision where the opponent can fold or call.
+observable_inputs:
+- pot
+- amount_to_call
+- legal_actions
+- all_fold_probability
+- equity_vs_range
+- stack_vector
+- point_vector
+training_signals: []
+intervention: >-
+  Value the bet as fold probability times pot plus called probability times called-branch value,
+  against checking, instead of a fixed aggression rule.
+baseline: Heuristic aggression rule.
+mechanism: >-
+  Pure and semi-bluff value come from both branches; checking can dominate when free realisation
+  is worth more.
+exceptions:
+- Multiway responses and future actions need joint branch enumeration.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Branch arithmetic is generic.
+source_numbers:
+- value: EV = f*P + (1-f)*(e*(P+2B) - B)
+  context: Semi-bluff value of a terminal bet
+  use: analytic
+parameters:
+- name: semi_bluff_value
+  basis: analytic
+  default: strategy.math.semi_bluff_ev(fold_prob, bet, pot, called_equity)
+  derivation: Two-branch expectation; property-tested in tests/strategy/math/test_odds.py
+experiment:
+  id: E026
+  primary_metric: exact_state_point_regret
+  minimum_effect:
+    value: 0.01
+    unit: pool_fraction
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Formula already implemented; integration is cheap.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H030, I002]

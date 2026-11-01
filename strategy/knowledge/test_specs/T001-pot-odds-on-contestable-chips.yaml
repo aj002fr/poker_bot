@@ -1,0 +1,56 @@
+schema: knowledge.invariant-test/v1
+id: T001
+title: Pot odds on contestable chips
+kind: invariant_test
+records: [I001]
+owner_workstream: M2-C
+target: strategy.math.odds (pot_odds_threshold, call_ev, effective_pot_odds)
+test_location: tests/strategy/math/test_odds.py
+status: implemented
+implemented_by:
+- tests/strategy/math/test_odds.py::test_pot_odds_threshold_is_the_zero_of_call_ev
+- tests/strategy/math/test_odds.py::test_call_ev_sign_matches_threshold
+- tests/strategy/math/test_odds.py::test_pot_odds_are_scale_invariant
+- tests/strategy/math/test_odds.py::test_pot_odds_worked_values
+- tests/strategy/math/test_odds.py::test_effective_pot_odds_ignores_unmatched_chips
+- tests/strategy/math/test_odds.py::test_effective_overbet_case_from_fixture_catalogue
+- tests/strategy/math/test_odds.py::test_rejects_invalid_inputs
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: half-pot call
+  given:
+    pot: 100
+    call: 50
+  expect:
+    threshold: 1/3
+- name: overbet against a short stack
+  given:
+    pot_before_bet: 400
+    bet: 2200
+    hero_stack: 750
+  expect:
+    matched_call: 750
+    contestable_pot: 1150
+    threshold: 750/1900
+- name: zero equity call
+  given:
+    pot: 100
+    call: 50
+    equity: 0
+  expect:
+    call_ev: -50
+properties:
+- call_ev(threshold, pot, call) == 0 exactly for integer inputs (Fraction arithmetic)
+- sign(call_ev) == sign(equity - threshold)
+- threshold is invariant to multiplying pot and call by k > 0
+- unmatched chips never enter the pot or the call
+mutations:
+- pricing the nominal bet instead of the matched call must fail the overbet case
+- using C/P instead of C/(P+C) must fail the zero-EV property

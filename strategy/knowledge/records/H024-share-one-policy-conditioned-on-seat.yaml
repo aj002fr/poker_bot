@@ -1,0 +1,78 @@
+id: H024
+title: Share one policy conditioned on seat, position and players behind
+kind: strategy
+status: proposed
+cluster: state_features
+sources:
+- source: harrington-v1
+  location: Part One pp. 12-17; Part Five pp. 81-90
+  digest_records: [harrington/H04]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+- source: mit-15s50
+  location: Lecture 7
+  digest_records: [mit-l78/H9]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: Marginal hands first in or facing action at different seats.
+eligible_opportunity: Any preflop decision; compared by policy structure.
+observable_inputs:
+- seat
+- position
+- relative_position
+- players_to_act
+- blind_vs_blind
+- stack_bb
+training_signals: []
+intervention: >-
+  Use one shared policy with position, players-behind and interaction terms rather than an unconditioned
+  shared policy or separate per-seat policies.
+baseline: Shared policy without seat conditioning.
+mechanism: >-
+  Position value depends on later information and on how many players can still resist; sharing
+  keeps data efficiency and model size.
+exceptions:
+- ICM pressure, short re-shove stacks or aggressive blinds can override positional widening.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Structural for any seated game.
+source_numbers: []
+parameters: []
+experiment:
+  id: E022
+  primary_metric: mean_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 3
+  effect: 1
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 3
+  rationale: Likely small marginal value; conditioning structure is complex to compare fairly.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H025]

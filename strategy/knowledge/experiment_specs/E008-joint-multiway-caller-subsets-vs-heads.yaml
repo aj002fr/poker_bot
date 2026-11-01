@@ -1,0 +1,84 @@
+schema: knowledge.experiment/v1
+id: E008
+title: Joint multiway caller subsets vs heads-up multipliers
+kind: oracle_comparison
+mode: discovery
+records: [H015]
+question: >-
+  Does explicit caller-subset evaluation reduce exact point regret for shoves and calls with two
+  or more players left to act?
+arms:
+- name: multiplier
+  role: control
+  description: Heads-up value times a position multiplier; zero equity when called twice.
+  toggles:
+    multiway_model: headsup_multiplier
+- name: joint
+  role: treatment
+  description: Enumerate or sample caller subsets and overcalls with side pots.
+  toggles:
+    multiway_model: joint_subsets
+factors: []
+toggles:
+  multiway_model: [headsup_multiplier, joint_subsets]
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: [short_deck, plo]
+seeds:
+  namespace: knowledge/E008
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: enumerated state
+  interval: exact oracle value; bootstrap over state draws where sampled
+  sample_size: >-
+    every enumerated state in the declared slice; sampled slices sized for a 95% interval half-width
+    below the minimum effect
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: exact_state_point_regret
+minimum_effect:
+  value: 0.01
+  unit: pool_fraction
+  basis: plan_gate
+metrics: [mean_point_delta]
+slices:
+- players_behind >= 2
+- early and middle position shoves
+- reshoves
+- side pot present
+guardrails:
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 60
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+blocked_by: [M4 push/fold endgame solver]
+status: blocked
+result_artifact: null

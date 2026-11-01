@@ -1,0 +1,34 @@
+schema: knowledge.invariant-test/v1
+id: T018
+title: Legal action and constant-time fallback
+kind: invariant_test
+records: [I018]
+owner_workstream: M3-D
+target: deployed bot entry point (proposed strategy/runtime)
+test_location: tests/strategy/runtime/test_legality_latency.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: fuzzed states
+  given:
+    states: 100,000 random legal states including all-ins and minimum raises
+  expect:
+    illegal_actions: 0
+- name: table miss
+  given:
+    key: absent
+  expect:
+    fallback: legal
+    latency: constant
+properties:
+- every returned size lies within legal bounds
+- p99.9 latency within budget on cold and warm starts
+mutations: [a fallback that raises must fail]

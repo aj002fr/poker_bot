@@ -1,0 +1,79 @@
+id: H007
+title: Anticipate the next blind level, not just the current one
+kind: strategy
+status: proposed
+cluster: tournament_clock
+sources:
+- source: mit-15s50
+  location: Lecture 5 ~06:46-14:00; Lecture 5 stack zones
+  digest_records: [mit15s50/H16, mit-l56/H6]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: The table is a few hands from a scheduled blind increase.
+eligible_opportunity: Decisions within one orbit before a level change, compared with the same
+  depth mid-level.
+observable_inputs:
+- hands_to_blind_change
+- next_forced_bets
+- forced_bets
+- stack_bb
+- m_ratio
+- position
+- stack_vector
+training_signals: []
+intervention: >-
+  Feed projected next-level depth and hands to the change so aggression and waiting reflect where
+  the stack will stand after the increase.
+baseline: Current blind level only.
+mechanism: >-
+  A stack's fold equity and purchasing power drop discontinuously at the next level, so the last
+  orbit before it has different value.
+exceptions:
+- >-
+  Unknown future blind amounts must not be guessed; the feature is off until the official schedule
+  is loaded.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Format-level feature.
+source_numbers:
+- value: 25
+  context: Hands per blind level in the arena practice schedule (official schedule unpublished)
+  use: illustration
+parameters: []
+experiment:
+  id: E004
+  primary_metric: mean_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 1
+  rule_uncertainty: 2
+  leakage: 0
+  complexity: 0
+  rationale: Useful but depends on an unpublished schedule.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H006, H009]

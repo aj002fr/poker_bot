@@ -1,0 +1,70 @@
+id: H017
+title: Small-blind limping rises with depth
+kind: strategy
+status: proposed
+cluster: preflop_nlhe
+sources:
+- source: mpt-extract
+  location: Modern Poker Theory ch. 7, small blind first-in
+  digest_records: [gtow/H27]
+  transfer_caveat: >-
+    Nine-handed NLHE with a 12.5% ante and chip EV; charts must be regenerated, never transcribed.
+situation: Folded to the small blind at 15-80 big blinds.
+eligible_opportunity: Small-blind first-in decision.
+observable_inputs:
+- stack_bb
+- blind_vs_blind
+- opponent_posterior
+- icm_risk_premium
+- legal_actions
+training_signals: []
+intervention: Allow a limp option whose frequency is learned by depth, versus raise-or-fold.
+baseline: Raise-or-fold small blind.
+mechanism: Out of position against one player, a limp keeps a wide range in cheaply as stacks
+  deepen.
+exceptions:
+- Big blinds that overfold to raises or punish limps poorly.
+variant_scope:
+  transfer: variant_specific
+  variants: [nlhe]
+  notes: Depends on blind structure and NLHE ranges.
+source_numbers:
+- value: 15-80bb
+  context: MPT aggregate equilibrium depth band
+  use: sweep_bound
+parameters: []
+experiment:
+  id: E038
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 1
+  transfer: 1
+  readiness: 2
+  power: 1
+  risk: 0
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 0
+  rationale: Rare node in eight-handed SNGs; small effect.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H016]

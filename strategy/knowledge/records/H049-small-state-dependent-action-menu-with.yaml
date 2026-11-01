@@ -1,0 +1,80 @@
+id: H049
+title: Small state-dependent action menu with explicit off-tree translation
+kind: method
+status: proposed
+cluster: action_abstraction
+sources:
+- source: pluribus-2019
+  location: Pluribus action abstraction
+  digest_records: [cfr/H4]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+- source: mit-15s50
+  location: Lecture 7 ~45:28-48:14; Lecture 8 ~51:00; Lectures 7-8
+  digest_records: [mit15s50/H20, mit-l78/H4]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: A big-bet variant allows many legal sizes.
+eligible_opportunity: Every abstracted bet or raise decision, and every opponent size off the
+  menu.
+observable_inputs:
+- pot
+- effective_stack_by_opponent
+- street
+- legal_size_bounds
+- bet_size_pot_fraction
+- amount_to_call
+training_signals: []
+intervention: >-
+  Train at most three context-dependent sizes plus all-in, and map opponent sizes to the menu
+  with a deterministic translation rule.
+baseline: Dense uniform pot-fraction grid at equal node budget.
+mechanism: >-
+  Near-duplicate sizes multiply training cost with little strategic difference; translation covers
+  the gaps.
+exceptions:
+- Limit games or evidence that a missing size causes material regret.
+- Boundary errors can be large; fuzz every boundary.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Big-bet variants; limit games use fixed sizes.
+source_numbers: []
+parameters: []
+experiment:
+  id: E015
+  primary_metric: approximate_response_loss
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 2
+  transfer: 2
+  readiness: 1
+  power: 2
+  risk: 2
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 1
+  rationale: Plan rank 13, but needs the blueprint trainer to measure.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 3 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [I023, H016]

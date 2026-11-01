@@ -1,0 +1,139 @@
+# Source registry. Records cite a key from `sources`; `digest_record` keys point at the
+# numbered hypothesis lists in the project-store digests (internal/reading/...), which
+# are paraphrases, not copies. Nothing here is authoritative strategy: every source is
+# a hypothesis generator whose claims must pass the arena's own experiments.
+
+digests:
+  mop: internal/reading/mathematics-of-poker.md
+  harrington: internal/reading/harrington-vol1.md
+  gtow: internal/reading/gtowizard-mpt.md
+  cfr: internal/reading/cfr-pluribus-papers.md
+  mit15s50: internal/reading/mit-15s50.md
+  mit-l12: internal/reading/mit-notes/mit-ocw-lectures-1-2-sequoia.md
+  mit-l34: internal/reading/mit-notes/mit-lectures-3-4-strategy-research.md
+  mit-l56: internal/reading/mit-notes/mit-lectures-5-6-tournament-economics.md
+  mit-l78: internal/reading/mit-notes/mit-lectures-7-8-self-play-research.md
+  data: internal/reading/data-and-rules.md
+
+sources:
+  mop:
+    title: The Mathematics of Poker
+    authors: Bill Chen, Jerrod Ankenman
+    year: 2006
+    kind: book
+    digest: mop
+    caveat: Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up model do not transfer to an eight-bot points SNG.
+  harrington-v1:
+    title: Harrington on Hold'em, Volume I
+    authors: Dan Harrington, Bill Robertie
+    year: 2004
+    kind: book
+    digest: harrington
+    caveat: Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and sizes are era-specific.
+  gtow-cbet-sizing:
+    title: The Mechanics of C-Bet Sizing
+    authors: GTO Wizard
+    kind: article
+    url: https://blog.gtowizard.com/the-mechanics-of-c-bet-sizing/
+    digest: gtow
+    caveat: Heads-up 100bb cash NLHE solver outputs without ICM.
+  gtow-turn-textures:
+    title: How to Analyze Turn Textures in Poker
+    authors: GTO Wizard
+    kind: article
+    url: https://blog.gtowizard.com/how-to-analyze-turn-textures-in-poker/
+    digest: gtow
+    caveat: Heads-up 100bb cash NLHE; positional asymmetries are line-specific.
+  gtow-multistreet-bluffs:
+    title: The Math of Multi-Street Bluffs
+    authors: GTO Wizard
+    kind: article
+    url: https://blog.gtowizard.com/the-math-of-multistreet-bluffs/
+    digest: gtow
+    caveat: Pedagogical heads-up chip-EV model with dead called bluffs, fixed fold rates and no raises.
+  gtow-multiway:
+    title: 10 Tips for Multiway Pots in Poker
+    authors: GTO Wizard
+    kind: article
+    url: https://blog.gtowizard.com/10-tips-multiway-pots-in-poker/
+    digest: gtow
+    caveat: Multiway equilibrium has no security guarantee; the all-fold product assumes independent folds.
+  gtow-preflop-icm:
+    title: Preflop ICM Solving
+    authors: GTO Wizard
+    kind: article
+    url: https://blog.gtowizard.com/preflop-icm-solving/
+    digest: gtow
+    caveat: Partly a product announcement; ordinary payout ICM is not the competition's hand-200 allocation.
+  mpt-extract:
+    title: Modern Poker Theory (free extract)
+    authors: Michael Acevedo
+    kind: book-extract
+    url: https://cdn.shopify.com/s/files/1/0505/2124/3838/files/modernpokertheoryextract.pdf?v=1617804680
+    digest: gtow
+    caveat: Nine-handed NLHE with a 12.5% ante and chip EV; charts must be regenerated, never transcribed.
+  neller-lanctot-cfr:
+    title: An Introduction to Counterfactual Regret Minimization
+    authors: Todd Neller, Marc Lanctot
+    year: 2013
+    kind: tutorial
+    url: https://modelai.gettysburg.edu/2013/cfr/cfr.pdf
+    digest: cfr
+    caveat: Two-player zero-sum convergence results do not extend to eight players.
+  lanctot-mccfr-2009:
+    title: Monte Carlo Sampling for Regret Minimization in Extensive Games
+    authors: Marc Lanctot, Kevin Waugh, Martin Zinkevich, Michael Bowling
+    year: 2009
+    kind: paper
+    url: https://proceedings.neurips.cc/paper/2009/file/00411460f7c92d2124a67ea0f4cb5f85-Paper.pdf
+    digest: cfr
+    caveat: Bounds assume two-player zero-sum perfect recall.
+  pluribus-2019:
+    title: Superhuman AI for multiplayer poker
+    authors: Noam Brown, Tuomas Sandholm
+    year: 2019
+    kind: paper
+    url: https://noambrown.github.io/papers/19-Science-Superhuman.pdf
+    digest: cfr
+    caveat: Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength is empirical.
+  johanson-rnr-2007:
+    title: Computing Robust Counter-Strategies
+    authors: Michael Johanson, Martin Zinkevich, Michael Bowling
+    year: 2007
+    kind: paper
+    url: https://poker.cs.ualberta.ca/publications/NIPS07-rnash.pdf
+    digest: cfr
+    caveat: The safety theorem is two-player zero-sum and the opponent models used millions of hands.
+  openspiel:
+    title: OpenSpiel algorithm catalog
+    authors: DeepMind
+    kind: software
+    url: https://openspiel.readthedocs.io/en/latest/algorithms.html
+    digest: cfr
+    caveat: Offline oracle for small games only; never a deployment dependency.
+  mit-15s50:
+    title: MIT 15.S50 Poker Theory and Analytics (2015), lectures 1-8
+    authors: MIT OpenCourseWare
+    year: 2015
+    kind: lecture-series
+    url: https://ocw.mit.edu/courses/15-s50-poker-theory-and-analytics-january-iap-2015/
+    digest: mit15s50
+    caveat: Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores ICM.
+  phh-dataset:
+    title: PHH dataset (Pluribus subset) and PHH specification
+    authors: University of Toronto Computer Poker Research Group
+    kind: dataset
+    url: https://github.com/uoftcprg/phh-dataset
+    digest: data
+    caveat: Six-max 100bb cash NLHE actions sampled from one mixed strategy; CC BY 4.0 attribution required.
+  sequoia-rules:
+    title: Sequoia pokerbot competition official rules
+    kind: rules
+    url: https://pokerbot.sequoiacap.com/rules.html
+    digest: data
+    caveat: Silent on the blind schedule, payout vector, interface, ICM details and timing boundary; the arena's fills are practice assumptions.
+  plan:
+    title: Self-play learning plan for the Sequoia pokerbot arena
+    kind: project-plan
+    path: docs/self-play-learning-plan.md (project store)
+    caveat: Project synthesis, not independent evidence.

@@ -1,0 +1,77 @@
+id: H005
+title: As leader, pressure covered medium stacks rather than the shortest stack
+kind: strategy
+status: proposed
+cluster: points
+sources:
+- source: mit-15s50
+  location: Lecture 5 ~19:53-27:34; slides pp. 70-77; Lecture 5
+  digest_records: [mit15s50/H14, mit-l56/H4]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: >-
+  Hero covers the table, a covered medium stack acts behind, and at least one shorter stack remains.
+eligible_opportunity: >-
+  Unopened pot where hero is the chip leader and the next player to act is covered and not the
+  shortest stack.
+observable_inputs:
+- stack_rank
+- cover_relationships
+- shortest_stack
+- point_vector
+- position
+- opponent_posterior
+- hands_to_cap
+training_signals: []
+intervention: >-
+  Widen first-in pressure when the target is a covered medium stack, and do not widen equally
+  against a desperate shortest stack.
+baseline: Leader opening independent of the target's stack role.
+mechanism: >-
+  A covered medium stack loses more points from a confrontation and so should fold more; the shortest
+  stack has less to protect and calls wider.
+exceptions:
+- Targets that ignore ICM pressure.
+- Doubling up the nearest rival, or players behind with overcall risk.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Stack-role logic transfers; hand selection for the widening is variant-specific.
+source_numbers: []
+parameters: []
+experiment:
+  id: E028
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 1
+  risk: 0
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 1
+  rationale: Narrow reach and depends on opponents responding to ICM.
+owner: M7
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H004]

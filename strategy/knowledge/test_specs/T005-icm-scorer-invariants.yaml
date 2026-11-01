@@ -1,0 +1,53 @@
+schema: knowledge.invariant-test/v1
+id: T005
+title: ICM scorer invariants
+kind: invariant_test
+records: [I005]
+owner_workstream: M1-A
+target: arena.tournament.scoring.icm and strategy.math.points busted-player handling
+test_location: tests/strategy/math/test_icm_invariants.py
+status: implemented
+implemented_by:
+- >-
+  tests/strategy/math/test_icm_invariants.py::test_icm_allocations_sum_to_the_contested_prizes
+- tests/strategy/math/test_icm_invariants.py::test_equal_stacks_get_equal_shares
+- >-
+  tests/strategy/math/test_icm_invariants.py::test_scaling_all_stacks_leaves_shares_unchanged
+- tests/strategy/math/test_icm_invariants.py::test_permuting_players_permutes_values
+- tests/strategy/math/test_icm_invariants.py::test_more_chips_never_means_fewer_points
+- tests/strategy/math/test_icm_invariants.py::test_winner_take_all_is_chip_share
+- >-
+  tests/strategy/math/test_points.py::test_covered_hero_who_loses_takes_the_last_remaining_prize
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: winner take all
+  given:
+    stacks: [1, 2, 3]
+    prizes: [1]
+  expect:
+    values: [1/6, 2/6, 3/6]
+- name: equal stacks
+  given:
+    stacks: [500, 500, 500]
+    prizes: [50, 30, 20]
+  expect:
+    values: [33.333, 33.333, 33.333]
+properties:
+- sum of allocations equals the sum of prizes for the surviving positions
+- equal stacks receive equal shares
+- multiplying every stack by k leaves allocations unchanged
+- permuting players permutes allocations
+- a larger stack never receives a smaller allocation (non-increasing prizes)
+- a busted player receives the prize for the position it just finished in
+- >-
+  complements tests/oracles/test_icm.py (oracle algorithms) and tests/release/workloads/icm.py
+  (permutations), which had no scaling-invariance check
+mutations:
+- proportional chip-share allocation must fail the equal-sum ladder cases

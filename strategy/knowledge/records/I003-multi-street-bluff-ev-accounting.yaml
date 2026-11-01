@@ -1,0 +1,59 @@
+id: I003
+title: Multi-street bluff EV accounting
+kind: invariant
+status: proposed
+cluster: invariant_math
+sources:
+- source: gtow-multistreet-bluffs
+  location: Multi-street bluff article, line EV derivation and quiz
+  digest_sections:
+  - gtowizard-mpt.md multi-street bluff mathematics
+  transfer_caveat: >-
+    Pedagogical heads-up chip-EV model with dead called bluffs, fixed fold rates and no raises.
+situation: A bluff line with bets on several streets and street-specific fold probabilities.
+eligible_opportunity: Every full-line bluff EV computation.
+observable_inputs: [pot, bet_size_pot_fraction, streets_remaining]
+training_signals: []
+intervention: >-
+  Line EV equals the sum over streets of reach times fold probability times the pot before that
+  bet, minus final reach times total bets; it must equal recursive enumeration, and the last-street
+  break-even must solve EV = 0.
+baseline: River-local break-even.
+mechanism: Called earlier bets are sunk only after they are paid; later folds must repay them.
+exceptions:
+- Dead called bluffs with no equity; called equity requires the semi-bluff extension.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Accounting identity.
+source_numbers:
+- value: 13/18
+  context: Required river fold rate for pot-sized bets 1
+  3: null
+  9 into pot 1 with earlier calls certain: null
+  use: analytic
+parameters: []
+experiment:
+  id: T003
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Wrong accounting would mis-rank every bluff line.
+owner: M2-C
+implementation:
+  module: strategy.math.odds
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H069]

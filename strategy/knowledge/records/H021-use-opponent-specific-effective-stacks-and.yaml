@@ -1,0 +1,86 @@
+id: H021
+title: Use opponent-specific effective stacks and side-pot eligibility
+kind: strategy
+status: proposed
+cluster: state_features
+sources:
+- source: mit-15s50
+  location: Lecture 1 ~17:04-20:14; slide p. 43; Lecture 3 opening example
+  digest_records: [mit15s50/H02, mit-l34/H1]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: mit-15s50
+  location: Lectures 1-2 notes, effective-stack discussion
+  digest_sections:
+  - mit-notes/mit-ocw-lectures-1-2-sequoia.md L1 item 6
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: pluribus-2019
+  location: cfr digest section 2.3 (tournament-state abstraction)
+  digest_sections: [cfr-pluribus-papers.md §2.3]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+situation: Unequal stacks, possible side pots, preflop or postflop.
+eligible_opportunity: Any decision with at least two opponents whose effective stacks against
+  hero differ.
+observable_inputs:
+- effective_stack_by_opponent
+- cover_relationships
+- side_pot_eligibility
+- side_pots
+- stack_vector
+- players_to_act
+- position
+training_signals: []
+intervention: >-
+  Replace hero-stack or single-minimum-stack keys with per-opponent effective stacks, cover relationships
+  and side-pot eligibility.
+baseline: Hero stack plus one scalar effective stack.
+mechanism: >-
+  Maximum risk and payoff differ by opponent; one minimum stack discards the multiway structure.
+exceptions:
+- Genuinely heads-up pots with no side-pot possibility.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Pure betting-state arithmetic.
+source_numbers: []
+parameters: []
+experiment:
+  id: E009
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 2
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 3
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Correctness-adjacent feature with broad transfer; plan rank 4.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [I024, H015]

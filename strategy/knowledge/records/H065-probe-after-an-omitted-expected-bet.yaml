@@ -1,0 +1,76 @@
+id: H065
+title: Probe after an omitted expected bet, but model traps
+kind: strategy
+status: proposed
+cluster: postflop_turn
+sources:
+- source: gtow-turn-textures
+  location: Turn textures, checked-through flop
+  digest_records: [gtow/H10]
+  transfer_caveat: Heads-up 100bb cash NLHE; positional asymmetries are line-specific.
+- source: harrington-v1
+  location: Part Six pp. 129-130; Hand 6-9 pp. 141-143
+  digest_records: [harrington/H21]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: The preflop aggressor checks a flop they usually bet.
+eligible_opportunity: Turn decision for the non-aggressor after the aggressor checked the flop
+  back.
+observable_inputs:
+- expected_continuation_rate
+- action_history
+- board_texture_class
+- opponent_posterior
+- position
+- equity_vs_range
+training_signals: []
+intervention: >-
+  Increase modest probes in proportion to the surprise of the missing bet, only when the check
+  more likely caps the range than traps.
+baseline: No probe logic beyond equity.
+mechanism: >-
+  Surrendered initiative and shed draws create fold equity, but an anomalous check can signal
+  strength.
+exceptions: [Slow-play-heavy opponents.]
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Line logic transfers to big-bet games.
+source_numbers: []
+parameters: []
+experiment:
+  id: E035
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Moderate reach.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H064, H066]

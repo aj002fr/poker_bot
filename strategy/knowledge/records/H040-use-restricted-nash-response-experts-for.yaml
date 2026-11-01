@@ -1,0 +1,71 @@
+id: H040
+title: Use restricted Nash response experts for archetype exploitation
+kind: method
+status: proposed
+cluster: exploitation
+sources:
+- source: johanson-rnr-2007
+  location: Johanson, Zinkevich and Bowling 2007
+  digest_records: [cfr/H7]
+  transfer_caveat: The safety theorem is two-player zero-sum and the opponent models used millions
+    of hands.
+situation: Population statistics suggest an opponent archetype but the model is uncertain.
+eligible_opportunity: Decisions against an opponent whose archetype posterior exceeds the gate.
+observable_inputs:
+- archetype_posterior
+- posterior_effective_sample_size
+- policy_distribution
+training_signals: [opponent_family_label]
+intervention: >-
+  Train restricted-response experts per archetype offline at several restriction probabilities
+  and select from a held-out Pareto frontier.
+baseline: Pure best response, and the robust baseline.
+mechanism: Small sacrifices in modelled gain sharply cut losses when the model is wrong.
+exceptions:
+- The safety theorem is two-player zero-sum; eight-player benefit is empirical.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Training method is generic.
+source_numbers: []
+parameters:
+- name: restriction_probability
+  basis: sweep_only
+  default: null
+  sweep:
+    values: [0.0, 0.25, 0.5, 0.75, 1.0]
+experiment:
+  id: E012
+  primary_metric: mean_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 2
+  transfer: 3
+  readiness: 1
+  power: 2
+  risk: 2
+  rule_uncertainty: 0
+  leakage: 1
+  complexity: 3
+  rationale: Expensive offline training; leakage risk from archetype labels.
+owner: M7
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H039]

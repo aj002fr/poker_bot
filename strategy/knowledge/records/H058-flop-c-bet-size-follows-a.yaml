@@ -1,0 +1,91 @@
+id: H058
+title: Flop c-bet size follows a texture curve
+kind: strategy
+status: proposed
+cluster: postflop_flop
+sources:
+- source: gtow-cbet-sizing
+  location: >-
+    C-bet sizing, wetness curve; C-bet sizing, paired-board example; C-bet sizing, dynamic-board
+    example; C-bet sizing, monotone connected example
+  digest_records: [gtow/H02, gtow/H03, gtow/H04, gtow/H05]
+  transfer_caveat: Heads-up 100bb cash NLHE solver outputs without ICM.
+- source: mpt-extract
+  location: Modern Poker Theory ch. 12
+  digest_records: [gtow/H28]
+  transfer_caveat: >-
+    Nine-handed NLHE with a 12.5% ante and chip EV; charts must be regenerated, never transcribed.
+situation: >-
+  Choosing a flop c-bet size across dry, dynamic, nut-saturated, connected and paired boards.
+eligible_opportunity: Heads-up flop c-bet decision.
+observable_inputs:
+- board_texture_class
+- field_nut_mass
+- middle_range_mass
+- weighted_denial
+- nut_advantage
+- blocker_mask
+- spr
+training_signals: []
+intervention: >-
+  Let size move small on dry or paired boards, larger on dynamic boards where hero holds a nut
+  edge, and back to checks or small bets on nut-saturated boards.
+baseline: One size for all textures.
+mechanism: >-
+  Denial value peaks on dynamic boards before current nut saturation; paired boards contain many
+  cheap folds; saturated boards leave a strong continuing range.
+exceptions:
+- >-
+  Extreme action-conditioned range or nut asymmetry, multiway pots, or nonstandard preflop ranges.
+variant_scope:
+  transfer: variant_specific
+  variants: [nlhe]
+  notes: Texture classes and solver examples are NLHE-specific.
+source_numbers:
+- value: one-third pot
+  context: Small size on paired and saturated boards in the examples
+  use: initialization_candidate
+- value: 75% and 125% pot
+  context: Large sizes on dynamic boards in the examples
+  use: initialization_candidate
+parameters:
+- name: flop_size_grid
+  basis: sweep_only
+  default: null
+  sweep:
+    pot_fractions: [0.25, 0.33, 0.5, 0.75, 1.0, 1.25]
+experiment:
+  id: E033
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 1
+  effect: 1
+  transfer: 1
+  readiness: 1
+  power: 1
+  risk: 0
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Article-level solver patterns with weak format transfer.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 5 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H057, H059]

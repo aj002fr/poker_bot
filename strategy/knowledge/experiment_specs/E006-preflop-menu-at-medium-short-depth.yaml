@@ -1,0 +1,90 @@
+schema: knowledge.experiment/v1
+id: E006
+title: 'Preflop menu at medium-short depth: fold/jam vs compact full menu'
+kind: ab_test
+mode: discovery
+records: [H011, H012]
+question: >-
+  At roughly 5-18 big blinds, does a compact menu with limp and small raises beat forced fold-or-jam,
+  and where does the jam-only collapse hold?
+arms:
+- name: fold_jam
+  role: control
+  description: Fold or all-in only below the transition depth.
+  toggles:
+    preflop_menu: fold_jam
+- name: compact
+  role: treatment
+  description: Fold, call/limp, min-raise, one small raise and all-in.
+  toggles:
+    preflop_menu: compact
+- name: pruned
+  role: treatment
+  description: Compact menu solved offline, then actions with negligible reach or regret pruned.
+  toggles:
+    preflop_menu: compact_pruned
+factors: []
+toggles:
+  preflop_menu: [fold_jam, compact, compact_pruned]
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: []
+seeds:
+  namespace: knowledge/E006
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: paired seed/lineup/rotation block
+  interval: paired t 95%; cluster bootstrap over blocks when skewed
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: mean_point_delta
+minimum_effect:
+  value: 0.004
+  unit: pool_fraction_per_sng
+  basis: provisional
+metrics: [exact_state_point_regret, slice_point_delta]
+slices:
+- effective depth 5-10 M
+- effective depth 8-18 bb
+- blind versus blind
+- unopened late position
+- covering stacks behind
+guardrails:
+- 'off-tree stability: no point loss against odd-size probes'
+- table bytes within the preflop budget
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 200
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+blocked_by: [M4 push/fold endgame solver, variant and legal sizing confirmed]
+status: blocked
+result_artifact: null

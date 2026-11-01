@@ -1,0 +1,73 @@
+id: H038
+title: Use PHH Pluribus action frequencies as belief priors
+kind: method
+status: proposed
+cluster: beliefs
+sources:
+- source: phh-dataset
+  location: data digest section A, 'What can be learned' item 2
+  digest_sections:
+  - data-and-rules.md §A What can be learned
+  transfer_caveat: >-
+    Six-max 100bb cash NLHE actions sampled from one mixed strategy; CC BY 4.0 attribution required.
+situation: Early table hands with little evidence about an opponent.
+eligible_opportunity: Belief updates in context cells with few observations.
+observable_inputs:
+- opponent_action_counts
+- opportunity_counts
+- position
+- stack_bb
+- action_history
+training_signals: [source_action_label]
+intervention: >-
+  Seed hierarchical priors from action frequencies in the 15,169 Pluribus decisions, mapped to
+  arena contexts and weighted as weak pseudo-counts.
+baseline: Priors from the arena opponent population only.
+mechanism: A strong player's frequencies may centre priors better than arbitrary defaults.
+exceptions:
+- Six-max deep cash play differs from eight-bot turbo SNGs; priors may mislead.
+- Imported rows must pass the information-set freeze.
+variant_scope:
+  transfer: variant_specific
+  variants: [nlhe]
+  notes: The corpus is NLHE only.
+source_numbers:
+- value: 15169
+  context: Pluribus strategic actions in the corpus
+  use: analytic
+parameters: []
+experiment:
+  id: E032
+  primary_metric: held_out_action_log_loss
+  minimum_effect:
+    value: 0.01
+    unit: nats_per_opportunity
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 2
+  effect: 1
+  transfer: 1
+  readiness: 1
+  power: 2
+  risk: 1
+  rule_uncertainty: 2
+  leakage: 2
+  complexity: 1
+  rationale: Transfer and leakage risks; licence attribution required.
+owner: M7
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H047, I016, I015]

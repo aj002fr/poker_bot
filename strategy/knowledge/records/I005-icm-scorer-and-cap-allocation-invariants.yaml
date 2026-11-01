@@ -1,0 +1,59 @@
+id: I005
+title: ICM scorer and cap allocation invariants
+kind: invariant
+status: proposed
+cluster: invariant_scoring
+sources:
+- source: neller-lanctot-cfr
+  location: cfr digest section 3, additional invariants
+  digest_sections:
+  - cfr-pluribus-papers.md §3 additional invariants
+  transfer_caveat: Two-player zero-sum convergence results do not extend to eight players.
+- source: mop
+  location: ch. 27, pp. 324-330
+  digest_sections: [mathematics-of-poker.md §4 H02]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Any call to the cap ICM scorer.
+eligible_opportunity: Every ICM evaluation.
+observable_inputs: [stack_vector, point_vector, icm_equity_vector]
+training_signals: []
+intervention: >-
+  Allocations sum to the unassigned pool; equal stacks get equal shares; scaling all stacks leaves
+  shares unchanged; a zero stack gets its determined finish points; permuting labels permutes
+  values.
+baseline: Unchecked scorer.
+mechanism: Properties of the Malmuth-Harville model.
+exceptions:
+- The organizer's exact ICM method is unconfirmed; tests pin the arena's implementation.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Scorer-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: T005
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: The scorer labels every point experiment.
+owner: M1-A
+implementation:
+  module: arena.tournament.scoring
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [I004, I006]

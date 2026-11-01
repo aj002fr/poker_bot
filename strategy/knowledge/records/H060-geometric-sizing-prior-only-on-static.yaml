@@ -1,0 +1,78 @@
+id: H060
+title: Geometric sizing prior only on static boards
+kind: strategy
+status: proposed
+cluster: postflop_flop
+sources:
+- source: mop
+  location: ch. 19 pp. 231-242; ch. 20 pp. 243-258
+  digest_records: [mop/H15]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Several streets remain and the stack can be spread across bets.
+eligible_opportunity: Postflop bet-size decision with two or more streets left.
+observable_inputs: [spr, streets_remaining, board_texture_class, nut_advantage, pot]
+training_signals: []
+intervention: >-
+  Initialise equal pot-growth sizing on static boards and allow larger or asymmetric sizes on
+  dynamic boards.
+baseline: No sizing prior, and an unconditional geometric prior.
+mechanism: >-
+  Static clairvoyant games favour equal growth; changing equities alter the value of early commitment.
+exceptions:
+- Restricted legal sizes and multiway action.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Geometry is generic; texture gating is variant-specific.
+source_numbers:
+- value: s = (((P + 2S)/P)^(1/M) - 1)/2
+  context: Geometric pot fraction for M streets
+  use: analytic
+parameters:
+- name: geometric_fraction
+  basis: analytic
+  default: strategy.math.geometric_bet_fraction(stack, pot, streets)
+  derivation: Equal pot-fraction bets that exactly commit the stack by the last street
+- name: geometric_prior_weight
+  basis: sweep_only
+  default: null
+  sweep:
+    values: [0.0, 0.25, 0.5, 1.0]
+    by: board_texture_class
+experiment:
+  id: E033
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Analytic piece exists; the gate needs the blueprint.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H057, I010]

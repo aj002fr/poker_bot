@@ -1,0 +1,69 @@
+id: H064
+title: Turn play follows changes in nut and equity advantage
+kind: strategy
+status: proposed
+cluster: postflop_turn
+sources:
+- source: gtow-turn-textures
+  location: >-
+    Turn textures, blanks; Turn textures, draw-completing cards; Turn textures, high-card improvers
+  digest_records: [gtow/H07, gtow/H08, gtow/H09]
+  transfer_caveat: Heads-up 100bb cash NLHE; positional asymmetries are line-specific.
+situation: Turn cards that keep, transfer or broaden the aggressor's advantage.
+eligible_opportunity: Turn decision for the flop aggressor.
+observable_inputs: [turn_delta_class, nut_advantage, range_advantage, spr, blocker_mask]
+training_signals: []
+intervention: >-
+  Polarise to check-or-large when a blank keeps the nut edge; cut size and frequency only when
+  the caller actually gains nut combos; bet more often but smaller when a high card broadly improves
+  the aggressor.
+baseline: Turn policy without delta features.
+mechanism: >-
+  Board appearance without range support creates false alarms; polarised strong hands want pot
+  growth; thin value needs smaller sizes.
+exceptions:
+- Shallow SPR, multiway pots, high risk premium, or dual-change cards.
+variant_scope:
+  transfer: variant_specific
+  variants: [nlhe]
+  notes: Turn texture classes are NLHE-specific.
+source_numbers:
+- value: check or 125% pot versus 33%-heavy
+  context: Turn policy comparison in the article
+  use: illustration
+parameters: []
+experiment:
+  id: E035
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 1
+  effect: 1
+  transfer: 1
+  readiness: 1
+  power: 1
+  risk: 0
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Deep heads-up turns are rare in the format.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 3 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H065, H066]

@@ -1,0 +1,78 @@
+schema: knowledge.experiment/v1
+id: E021
+title: 'Players-behind action order: squeeze risk and closing position'
+kind: ablation
+mode: discovery
+records: [H025]
+question: >-
+  Does accounting for players still to act (reopen risk, action closure, escape options) improve
+  marginal calls over immediate pot odds?
+arms:
+- name: pot_odds
+  role: control
+  description: Immediate pot odds only.
+  toggles:
+    action_order: ignore
+- name: action_order
+  role: treatment
+  description: Players behind, closure and squeeze posteriors in the call value.
+  toggles:
+    action_order: model
+factors: []
+toggles:
+  action_order: [ignore, model]
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: [short_deck, plo]
+seeds:
+  namespace: knowledge/E021
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: paired seed/lineup/rotation block
+  interval: paired t 95%; cluster bootstrap over blocks when skewed
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: slice_point_delta
+minimum_effect:
+  value: 0.004
+  unit: pool_fraction_per_sng
+  basis: provisional
+metrics: [mean_point_delta]
+slices: [players behind >= 1, action closes, squeezer family present]
+guardrails:
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 60
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+blocked_by: [M3-A feature layer]
+status: blocked
+result_artifact: null

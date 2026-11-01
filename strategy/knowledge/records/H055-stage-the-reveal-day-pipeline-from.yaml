@@ -1,0 +1,75 @@
+id: H055
+title: Stage the reveal-day pipeline from a generic policy upward
+kind: method
+status: proposed
+cluster: variant_transfer
+sources:
+- source: pluribus-2019
+  location: competition schedule; Pluribus resource report
+  digest_records: [cfr/H9]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+- source: sequoia-rules
+  location: data digest section B (direct competition constraints)
+  digest_sections: [data-and-rules.md §B]
+  transfer_caveat: >-
+    Silent on the blind schedule, payout vector, interface, ICM details and timing boundary; the
+    arena's fills are practice assumptions.
+situation: The variant is revealed at the start of a 60-minute build phase.
+eligible_opportunity: Reveal-day build; rehearsed on short deck and PLO.
+observable_inputs: [rules_hash, variant_capabilities, decision_latency]
+training_signals: []
+intervention: >-
+  Submit a generic evaluator-driven policy first, then add endgame tables and a coarse blueprint
+  as each passes gates.
+baseline: Wait for a full coarse blueprint before submitting.
+mechanism: Correctness and an on-time submission dominate an unfinished solver.
+exceptions:
+- >-
+  If precomputed code or tables are disallowed, even the generic path must be rebuilt on the day.
+- Exotic variants can consume the phase in evaluator work.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Process claim for any variant.
+source_numbers:
+- value: 60 minutes
+  context: Build phase length per the digest of the rules
+  use: analytic
+parameters: []
+experiment:
+  id: E027
+  primary_metric: transfer_point_loss
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 3
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 1
+  rationale: High risk reduction for competition day; secondary to the long-run bot.
+owner: M9
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H027, I019]

@@ -1,0 +1,94 @@
+id: H002
+title: Fit a learned point continuation value with ICM as the prior
+kind: strategy
+status: proposed
+cluster: objective
+sources:
+- source: pluribus-2019
+  location: cfr digest section 2.1 (game and utility model) and H5 exceptions
+  digest_sections: [cfr-pluribus-papers.md §2.1, cfr-pluribus-papers.md §6 H5]
+  transfer_caveat: >-
+    Pluribus used chips in cash games; the continuation-value idea is the digest's extension to
+    finish points.
+- source: mop
+  location: ch. 27, pp. 324-337 (ICM as a model, not the full continuation value)
+  digest_sections:
+  - mathematics-of-poker.md §4 H02 exceptions
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: mit-15s50
+  location: Lectures 3-4 notes, H4 offline implementation (ICM-delta auxiliary targets)
+  digest_sections:
+  - mit-notes/mit-lectures-3-4-strategy-research.md H4
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: >-
+  Hand-level credit assignment before the cap, where cap ICM of the current stack vector is only
+  an approximation of eventual points.
+eligible_opportunity: Every completed hand in a training SNG that does not end the SNG.
+observable_inputs:
+- stack_vector
+- point_vector
+- icm_equity_vector
+- hand_number
+- hands_to_cap
+- blind_level
+- players_remaining
+training_signals: [continuation_value_label, terminal_points, rollout_return]
+intervention: >-
+  Give the learner a per-hand value equal to a fitted estimate of expected terminal points from
+  the post-hand state, initialised from cap ICM and refreshed from full-tournament rollouts.
+baseline: Terminal points only, and separately per-hand ICM-delta shaping.
+mechanism: >-
+  Per-hand shaping lowers variance; a learned continuation value can capture blind pressure and
+  the remaining horizon that static ICM ignores.
+exceptions:
+- >-
+  A poorly fitted continuation value can be worse than ICM; terminal rollouts remain the oracle
+  and the summed shaping must telescope to terminal points.
+- At hand 200 the cap ICM is exact and no fit is needed.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Uses only the stack vector
+source_numbers: []
+parameters: []
+experiment:
+  id: E002
+  primary_metric: mean_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 1
+  power: 2
+  risk: 3
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 2
+  rationale: >-
+    High value for training efficiency but needs the learner and rollout machinery; bias risk
+    is a modelling complexity cost.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H001]

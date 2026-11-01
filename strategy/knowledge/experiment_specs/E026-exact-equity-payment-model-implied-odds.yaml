@@ -1,0 +1,109 @@
+schema: knowledge.experiment/v1
+id: E026
+title: Exact equity, payment-model implied odds and joint branch evaluation
+kind: factorial
+mode: discovery
+records: [H030, H031, H032]
+question: >-
+  Do exact combo equity, a learned future-payment model and joint fold/called-branch evaluation
+  each reduce exact point regret relative to outs counts and fixed aggression rules?
+arms:
+- name: heuristic
+  role: control
+  description: Outs-based equity, no implied odds, fixed aggression rule.
+  toggles:
+    equity_source: outs
+    implied_odds: none
+    branch_eval: heuristic
+- name: exact
+  role: treatment
+  description: Exact blocker-aware combo equity.
+  toggles:
+    equity_source: exact
+    implied_odds: none
+    branch_eval: heuristic
+- name: exact_joint
+  role: treatment
+  description: Exact equity with joint fold and called-branch value.
+  toggles:
+    equity_source: exact
+    implied_odds: none
+    branch_eval: joint
+- name: exact_joint_payment
+  role: treatment
+  description: Adds a learned payment curve for future streets.
+  toggles:
+    equity_source: exact
+    implied_odds: payment_model
+    branch_eval: joint
+factors:
+- name: equity source
+  toggle: equity_source
+  records_tested: [H030]
+- name: implied odds
+  toggle: implied_odds
+  records_tested: [H031]
+- name: branch evaluation
+  toggle: branch_eval
+  records_tested: [H032]
+toggles:
+  equity_source: [outs, fitted, exact]
+  implied_odds: [none, payment_model]
+  branch_eval: [heuristic, joint]
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: [short_deck, plo]
+seeds:
+  namespace: knowledge/E026
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: enumerated state
+  interval: exact oracle value; bootstrap over state draws where sampled
+  sample_size: >-
+    every enumerated state in the declared slice; sampled slices sized for a 95% interval half-width
+    below the minimum effect
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: exact_state_point_regret
+minimum_effect:
+  value: 0.01
+  unit: pool_fraction
+  basis: plan_gate
+metrics: [mean_point_delta]
+slices: [draw class, near-boundary preflop calls, tight opponent ranges]
+guardrails:
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 60
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+blocked_by: [M3-A equity layer]
+status: blocked
+result_artifact: null

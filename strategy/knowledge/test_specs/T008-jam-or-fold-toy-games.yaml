@@ -1,0 +1,40 @@
+schema: knowledge.invariant-test/v1
+id: T008
+title: Jam-or-fold toy games
+kind: invariant_test
+records: [I008]
+owner_workstream: M2-A
+target: push/fold solver (strategy/solvers, proposed)
+test_location: tests/strategy/solvers/test_jam_fold.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: deterministic showdown
+  given:
+    stack: 2
+  expect:
+    call_threshold: 1/2
+    jam_threshold: 2/3
+    value: 0
+- name: equity smoothing
+  given:
+    stack: 3
+  expect:
+    call_threshold: 3/4
+    jam_threshold: 3/4
+    value: 1/16
+properties:
+- >-
+  deterministic case matches x = 3/(2(1+S)), y = 3S/(1+S)^2, value -1/2 + 9S/(4(1+S)^2) for S
+  in {1, 2, 4, 8}
+- smoothed case matches both closed-form branches and is continuous at the branch point
+mutations:
+- swapping the jammer and caller thresholds must fail

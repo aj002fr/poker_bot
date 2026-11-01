@@ -1,0 +1,89 @@
+id: H034
+title: Contextual hierarchical Bayesian opponent beliefs
+kind: method
+status: proposed
+cluster: beliefs
+sources:
+- source: mop
+  location: ch. 3 pp. 34-45; chs. 5-6 pp. 59-73
+  digest_records: [mop/H08]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: mit-15s50
+  location: Lecture 2 ~09:47-17:16, 42:20-45:49; Lecture 2; Lectures 3-4
+  digest_records: [mit15s50/H04, mit-l12/H3, mit-l34/H7]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: harrington-v1
+  location: Part Five, pp. 91-93
+  digest_records: [harrington/H13]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Adapting to an opponent from sparse within-table observations.
+eligible_opportunity: >-
+  Any decision facing an opponent action whose context cell has an exact opportunity denominator.
+observable_inputs:
+- opponent_action_counts
+- opportunity_counts
+- position
+- stack_bb
+- players_remaining
+- action_history
+- bet_size_pot_fraction
+- opponent_posterior
+- posterior_effective_sample_size
+training_signals: [opponent_family_label]
+intervention: >-
+  Maintain population-prior Beta/Dirichlet posteriors per context (position, depth, survivors,
+  size, action path), with opening and reraising rates modelled separately.
+baseline: Global counters such as VPIP/PFR, and raw per-cell counts.
+mechanism: >-
+  Small samples should regress to the population, and pooled counts confound contexts in which
+  players behave differently.
+exceptions:
+- Opponent identities that are not stable across hands; use seat or session priors only.
+- Family labels may train the prior offline but must never be inputs at decision time.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Belief machinery is generic; context cells come from the variant's action structure.
+source_numbers: []
+parameters: []
+experiment:
+  id: E011
+  primary_metric: held_out_action_log_loss
+  minimum_effect:
+    value: 0.01
+    unit: nats_per_opportunity
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 2
+  rule_uncertainty: 0
+  leakage: 1
+  complexity: 1
+  rationale: Plan rank 9; held-out log loss is cheap to measure. Leakage risk from family labels.
+owner: M3-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 5 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H035, H039, I021]

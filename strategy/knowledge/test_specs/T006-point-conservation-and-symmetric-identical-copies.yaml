@@ -1,0 +1,38 @@
+schema: knowledge.invariant-test/v1
+id: T006
+title: Point conservation and symmetric identical copies
+kind: invariant_test
+records: [I006]
+owner_workstream: M1-C
+target: arena tournament simulator plus official point scorer
+test_location: tests/strategy/evaluation/test_point_conservation.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: table conservation
+  given:
+    tables: 200
+    entrants: eight copies of one style bot
+    seeds: fixed namespace
+  expect:
+    each_table_point_sum: S
+- name: symmetric copies
+  given:
+    blocks: enough for a 95% interval half-width of 0.01 S
+    rotation: all seats
+  expect:
+    mean_points_per_copy: S/8 within the interval
+properties:
+- every completed table awards exactly the pool S, including ties and cap finishes
+- per-seat mean of identical copies does not differ from S/8 after seat rotation
+mutations:
+- a scorer that drops the cap ICM remainder must fail conservation
+- a seat-biased dealer must fail the symmetric-copies interval

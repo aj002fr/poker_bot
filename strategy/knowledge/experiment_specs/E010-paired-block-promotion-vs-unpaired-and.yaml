@@ -1,0 +1,85 @@
+schema: knowledge.experiment/v1
+id: E010
+title: Paired-block promotion vs unpaired and hand-level promotion
+kind: null_simulation
+mode: discovery
+records: [H056]
+question: >-
+  Under null policy changes, does paired-block evaluation with seat rotation give a lower false-promotion
+  rate and honest intervals compared with unpaired SNGs and hand-level tests?
+arms:
+- name: hand_level
+  role: control
+  description: Hand-level t-test on chip results.
+  toggles:
+    promotion_design: hand_level
+- name: unpaired
+  role: treatment
+  description: Independent SNGs, tournament-level interval.
+  toggles:
+    promotion_design: unpaired_sng
+- name: paired
+  role: treatment
+  description: Paired seed/lineup/rotation blocks with common random numbers.
+  toggles:
+    promotion_design: paired_block
+factors: []
+toggles:
+  promotion_design: [hand_level, unpaired_sng, paired_block]
+lineups:
+  train:
+    population: none
+    note: no training; arms are evaluation procedures
+  evaluate:
+    population: validation
+    families: six arena anchors and validation draws
+    candidate: identical policy copies relabelled A and B, plus a known injected effect
+variants:
+  primary: [nlhe]
+  rehearsal: [short_deck, plo]
+seeds:
+  namespace: knowledge/E010
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: simulated null A/B run
+  interval: Wilson 95% on the false-promotion proportion
+  sample_size: at least 1,000 null runs per design arm
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: false_promotion_rate
+minimum_effect:
+  value: 0.02
+  unit: probability
+  basis: provisional
+metrics: [mean_point_delta]
+slices:
+- policy changes that alter chance consumption
+- skewed lineups
+guardrails:
+- interval coverage of a known injected effect at least 0.93
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 60
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+blocked_by: [M1-C evaluation statistics]
+status: blocked
+result_artifact: null

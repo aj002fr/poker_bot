@@ -1,0 +1,82 @@
+id: H015
+title: Evaluate multiway caller subsets jointly
+kind: strategy
+status: proposed
+cluster: preflop_tree
+sources:
+- source: mit-15s50
+  location: Lecture 4 ~42:07-43:35; slides pp. 96-108; Lecture 4 multiway section
+  digest_records: [mit15s50/H10, mit-l34/H3]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: mop
+  location: ch. 29, pp. 349-358
+  digest_records: [mop/H19]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: A shove, reshove or call with two or more players still able to enter.
+eligible_opportunity: Preflop all-in decision with at least two live players yet to act or already
+  involved.
+observable_inputs:
+- players_to_act
+- opponent_range_summary
+- blocker_mask
+- stack_vector
+- cover_relationships
+- side_pot_eligibility
+- action_history
+- point_vector
+training_signals: [exact_oracle_value]
+intervention: >-
+  Enumerate or sample caller subsets and overcall sequences with side pots instead of applying
+  heads-up multipliers.
+baseline: Heads-up value times position multipliers, with zero equity assumed when called twice.
+mechanism: >-
+  Responses are coupled through ranges, blockers and stacks, multiway called equity is not zero,
+  and one action can transfer equity between two other players.
+exceptions:
+- Only one opponent can continue.
+- Proven decomposable terminal states.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Joint evaluation is generic; equities come from the variant adapter.
+source_numbers: []
+parameters: []
+experiment:
+  id: E008
+  primary_metric: exact_state_point_regret
+  minimum_effect:
+    value: 0.01
+    unit: pool_fraction
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 3
+  reach: 2
+  effect: 2
+  transfer: 3
+  readiness: 2
+  power: 3
+  risk: 2
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Exact oracle comparison is cheap; enumeration adds complexity.
+owner: M4
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 3 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H014, H004, I011]

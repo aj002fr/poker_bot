@@ -1,0 +1,91 @@
+id: H010
+title: Learn smooth stack-depth regime gates instead of fixed thresholds
+kind: strategy
+status: proposed
+cluster: stack_pressure
+sources:
+- source: harrington-v1
+  location: Part One pp. 7, 11-12; Conclusion p. 173
+  digest_records: [harrington/H03]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+- source: mit-15s50
+  location: Lecture 5 ~06:46-14:00 (M zones)
+  digest_sections:
+  - mit-15s50.md stack-depth zones
+  - mit-notes/mit-lectures-5-6-tournament-economics.md stack-zone translation
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: Stack-to-forced-bet ratio declines through the SNG.
+eligible_opportunity: Any opening, calling or all-in decision; analysis sliced by depth.
+observable_inputs:
+- m_ratio
+- stack_bb
+- effective_stack_by_opponent
+- next_forced_bets
+- icm_equity_vector
+training_signals: []
+intervention: >-
+  Allow opening, calling and all-in frequencies to change with depth through learned soft gates,
+  compared against hard thresholds swept over a grid.
+baseline: No regime structure, and separately fixed zone thresholds.
+mechanism: >-
+  Strategy changes as forced bets become large relative to stacks; smooth gates avoid discontinuities
+  that opponents could exploit.
+exceptions:
+- Smooth policies may dominate any explicit regime boundary.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Depth regimes are format-level; zone labels serve only as analysis slices.
+source_numbers:
+- value: M zones 2 / 8 / 12 / 30
+  context: Lecture stack-zone boundaries (about 3 / 12 / 18 / 45 BB without antes)
+  use: sweep_bound
+- value: 70% calling requirement
+  context: Lecture rule of thumb
+  use: rejected
+parameters:
+- name: regime_boundaries_m
+  basis: sweep_only
+  default: null
+  sweep:
+    grid: boundaries drawn from 1-40 M
+    note: source zones bound the grid only
+experiment:
+  id: E005
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 1
+  transfer: 3
+  readiness: 2
+  power: 2
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 0
+  rationale: Cheap analysis structure; effect likely modest.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H008, H011]

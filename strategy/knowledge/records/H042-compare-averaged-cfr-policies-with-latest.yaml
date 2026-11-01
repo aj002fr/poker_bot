@@ -1,0 +1,65 @@
+id: H042
+title: Compare averaged CFR+ policies with latest-policy self-play
+kind: method
+status: proposed
+cluster: training
+sources:
+- source: mit-15s50
+  location: Lecture 7 ~25:43-34:27
+  digest_records: [mit15s50/H18, mit-l78/H3]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: Offline training of a fixed abstraction for a revealed variant.
+eligible_opportunity: Policy produced by the offline trainer.
+observable_inputs: [policy_table_key]
+training_signals: [regret_estimates, reach_probabilities, terminal_points]
+intervention: >-
+  Use the averaged CFR+ or sampled-CFR policy as the baseline candidate, compared at equal compute
+  with latest-policy mirror self-play.
+baseline: Latest iterate of mirror self-play.
+mechanism: Regret averaging stabilises mixed policies; multiplayer value must still be measured.
+exceptions:
+- >-
+  No multiplayer convergence claim; an abstraction or utility bug invalidates the comparison.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Trainer-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: E018
+  primary_metric: approximate_response_loss
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 1
+  power: 2
+  risk: 2
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Needs the CFR stack; complements H041.
+owner: M2-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 2 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H041, H043, I013]

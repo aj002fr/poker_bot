@@ -1,0 +1,79 @@
+schema: knowledge.experiment/v1
+id: E039
+title: Visible vs concealed draws in synthetic variant pairs
+kind: ablation
+mode: discovery
+records: [H033]
+question: >-
+  In paired synthetic variants differing only in draw visibility, does a draw-visibility feature
+  change learned values and reduce exploitability?
+arms:
+- name: no_visibility
+  role: control
+  description: Draw features ignore visibility.
+  toggles:
+    draw_visibility: 'off'
+- name: visibility
+  role: treatment
+  description: Separate features for visible and concealed improvement.
+  toggles:
+    draw_visibility: 'on'
+factors: []
+toggles:
+  draw_visibility: ['off', 'on']
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [stud]
+  rehearsal: [nlhe]
+seeds:
+  namespace: knowledge/E039
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: paired seed/lineup/rotation block
+  interval: paired t 95%; cluster bootstrap over blocks when skewed
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: approximate_response_loss
+minimum_effect:
+  value: 0.004
+  unit: pool_fraction_per_sng
+  basis: provisional
+metrics: [slice_point_delta]
+slices: [visible draws, concealed draws]
+guardrails:
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 40
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+blocked_by:
+- variant adapter with exposed cards (stud-like)
+status: blocked
+result_artifact: null

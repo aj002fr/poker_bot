@@ -1,0 +1,68 @@
+id: H071
+title: Bet the river for value only with enough worse-call mass
+kind: strategy
+status: proposed
+cluster: postflop_river
+sources:
+- source: harrington-v1
+  location: Part Seven, p. 160
+  digest_records: [harrington/H25]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: A marginal made hand reaches the river.
+eligible_opportunity: River value-bet decision with a medium-strength hand.
+observable_inputs:
+- opponent_range_summary
+- own_range_rank
+- bet_size_pot_fraction
+- size_response_curve
+training_signals: []
+intervention: >-
+  Require positive value against the estimated calling range (worse hands that call versus better
+  hands that call or raise) before betting.
+baseline: Bet whenever the hand is likely best.
+mechanism: River bets have no protection value; if only better hands call, betting loses.
+exceptions:
+- Converting the hand into a profitable bluff.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Generic.
+source_numbers: []
+parameters: []
+experiment:
+  id: E037
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 1
+  transfer: 3
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Clear mechanism; needs calibrated ranges.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H072, H037]

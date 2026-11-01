@@ -1,0 +1,53 @@
+id: I008
+title: Jam-or-fold toy games reproduce known solutions
+kind: invariant
+status: proposed
+cluster: invariant_toy_games
+sources:
+- source: mop
+  location: toy-game fixtures 5-6
+  digest_sections:
+  - mathematics-of-poker.md toy-game fixtures 5-6
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Solver output on [0,1] jam-or-fold games.
+eligible_opportunity: Every solver release.
+observable_inputs: [pot, stack_bb]
+training_signals: [exact_oracle_value]
+intervention: >-
+  Deterministic showdown at S=2 gives call threshold 1/2, jam threshold 2/3, value 0; with equity
+  smoothing at S=3 both thresholds are 3/4 and value 1/16.
+baseline: Untested solver.
+mechanism: Closed-form equilibria.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Abstract games.
+source_numbers: []
+parameters: []
+experiment:
+  id: T008
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Ladder gate for the push/fold solver.
+owner: M2-A
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [I007, H014]

@@ -1,0 +1,66 @@
+id: H033
+title: Distinguish visible from concealed draws
+kind: strategy
+status: proposed
+cluster: equity
+sources:
+- source: mop
+  location: ch. 20, pp. 243-258
+  digest_records: [mop/H18]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Variants where improvement can be public (exposed cards) or private.
+eligible_opportunity: Decisions with a draw in a variant that exposes some cards.
+observable_inputs: [draw_visibility, draw_class, board_cards, streets_remaining, pot]
+training_signals: []
+intervention: Value concealed nut potential more and defend differently against visible completions.
+baseline: Draw features that ignore visibility.
+mechanism: >-
+  A public completion lets the defender avoid paying off; a concealed one keeps the information
+  edge.
+exceptions:
+- No future betting or compulsory showdown.
+variant_scope:
+  transfer: variant_specific
+  variants: [stud]
+  notes: >-
+    Only matters for variants with exposed private cards; NLHE community cards are visible to
+    all.
+source_numbers: []
+parameters: []
+experiment:
+  id: E039
+  primary_metric: approximate_response_loss
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 1
+  effect: 1
+  transfer: 1
+  readiness: 1
+  power: 1
+  risk: 0
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 1
+  rationale: Only relevant if a stud-like variant is revealed.
+owner: M9
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H031]

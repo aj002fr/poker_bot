@@ -1,0 +1,71 @@
+id: H066
+title: A called flop c-bet should suppress automatic turn barrels
+kind: strategy
+status: proposed
+cluster: postflop_turn
+sources:
+- source: harrington-v1
+  location: Part Six problems, pp. 133-155
+  digest_records: [harrington/H20]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: >-
+  Hero c-bet the flop with air or a marginal hand, was called, and the turn does not help hero's
+  range.
+eligible_opportunity: Turn decision after a called flop c-bet.
+observable_inputs:
+- action_history
+- opponent_range_summary
+- turn_delta_class
+- opponent_posterior
+- position
+training_signals: []
+intervention: >-
+  Update the opponent range on the flop call and check more often unless the turn creates range
+  advantage or proven fold equity.
+baseline: Independent-street policy that barrels at a fixed rate.
+mechanism: The call is evidence of equity and narrows the opponent's range.
+exceptions:
+- Opponents who float the flop and overfold the turn.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Cross-street updating is generic.
+source_numbers: []
+parameters: []
+experiment:
+  id: E035
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Common line; benefits from trajectory training anyway.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H045, H064]

@@ -1,0 +1,52 @@
+schema: knowledge.invariant-test/v1
+id: T003
+title: Multi-street bluff EV accounting
+kind: invariant_test
+records: [I003]
+owner_workstream: M2-C
+target: >-
+  strategy.math.odds (multi_street_bluff_ev, multi_street_bluff_last_fold_break_even, pot_fraction_bets,
+  geometric_bet_fraction)
+test_location: tests/strategy/math/test_odds.py
+status: implemented
+implemented_by:
+- tests/strategy/math/test_odds.py::test_multi_street_ev_matches_tree_enumeration
+- tests/strategy/math/test_odds.py::test_one_street_line_is_a_single_bluff
+- tests/strategy/math/test_odds.py::test_multi_street_ev_boundaries_and_scaling
+- tests/strategy/math/test_odds.py::test_last_fold_break_even_zeroes_the_line
+- >-
+  tests/strategy/math/test_odds.py::test_pot_sized_triple_barrel_needs_far_more_than_river_local_folds
+- tests/strategy/math/test_odds.py::test_pot_fraction_bets_track_called_pot_growth
+- tests/strategy/math/test_odds.py::test_geometric_fraction_commits_the_stack_exactly
+- tests/strategy/math/test_odds.py::test_geometric_two_streets_stack_four_is_pot_sized
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: pot-sized triple barrel with called earlier streets
+  given:
+    pot: 1
+    bets: [1, 3, 9]
+    earlier_folds: [0, 0]
+  expect:
+    river_break_even: 13/18
+    river_local_break_even: 1/2
+- name: two-street geometric
+  given:
+    stack: 4
+    pot: 1
+    streets: 2
+  expect:
+    fraction: 1.0
+properties:
+- closed-form line EV equals recursive enumeration of fold and call branches
+- a one-street line equals bluff_ev
+- EV scales linearly with a common chip multiplier
+- the solved last-street fold rate gives EV 0 when it lies in [0, 1]
+mutations:
+- forgetting earlier called bets must fail the triple-barrel case

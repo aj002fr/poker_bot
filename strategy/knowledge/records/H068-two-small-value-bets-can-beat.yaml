@@ -1,0 +1,65 @@
+id: H068
+title: Two small value bets can beat one large bet
+kind: strategy
+status: proposed
+cluster: postflop_turn
+sources:
+- source: harrington-v1
+  location: Part Seven, pp. 156-157
+  digest_records: [harrington/H23]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Safe turn, likely best hand, sticky one-pair opponent, two streets left.
+eligible_opportunity: Turn value-bet decision with two streets remaining.
+observable_inputs: [size_response_curve, board_texture_class, spr, streets_remaining]
+training_signals: []
+intervention: Optimise turn and river sizes jointly, allowing repeated small value bets.
+baseline: Each street sized independently.
+mechanism: Two affordable calls can extract more in total than one large bet.
+exceptions:
+- Draw-heavy boards, low SPR, or opponents who react to repeated betting.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Joint sizing transfers to big-bet games.
+source_numbers:
+- value: 30-40% pot per street
+  context: Book guideline
+  use: initialization_candidate
+parameters: []
+experiment:
+  id: E035
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Narrow situation.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H067]

@@ -1,0 +1,73 @@
+id: H046
+title: Label decisions by counterfactual value, not realised results
+kind: method
+status: proposed
+cluster: training
+sources:
+- source: mit-15s50
+  location: Lecture 2 ~07:25-09:47; Lecture 2
+  digest_records: [mit15s50/H06, mit-l12/H6]
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+- source: harrington-v1
+  location: Parts Five to Seven, pp. 97-172
+  digest_records: [harrington/H32]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Selecting and labelling self-play decisions for learning or review.
+eligible_opportunity: Decision points where hero had a real choice (walks excluded).
+observable_inputs: [legal_actions, hero_visible_history]
+training_signals: [counterfactual_action_values, realized_outcome, rollout_return]
+intervention: >-
+  Train on estimated action values or regret, prioritise high-regret or uncertain decisions, and
+  never label an action good because the runout won.
+baseline: Labels from realised hand or SNG results.
+mechanism: Realised cards are noisy labels and encourage hindsight leakage.
+exceptions:
+- >-
+  Terminal points remain the evaluation target; deal-frequency checks remain useful for engine
+  tests.
+- Counterfactual evaluators can be biased; audit with exact small states.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Labelling method.
+source_numbers: []
+parameters: []
+experiment:
+  id: E016
+  primary_metric: mean_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 2
+  transfer: 3
+  readiness: 1
+  power: 2
+  risk: 3
+  rule_uncertainty: 0
+  leakage: 1
+  complexity: 2
+  rationale: Leakage risk if counterfactual labels touch decision-time features.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 3 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H045, I015]

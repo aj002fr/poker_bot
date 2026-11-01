@@ -1,0 +1,82 @@
+id: H061
+title: Condition c-bets on field size and texture; shrink multiway
+kind: strategy
+status: proposed
+cluster: postflop_multiway
+sources:
+- source: harrington-v1
+  location: Part Two pp. 25-28; Part Six pp. 123-130; Part Six, pp. 123-129
+  digest_records: [harrington/H11, harrington/H19]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+- source: gtow-multiway
+  location: Multiway pots, range betting; Multiway pots, bet sizes
+  digest_records: [gtow/H17, gtow/H19]
+  transfer_caveat: >-
+    Multiway equilibrium has no security guarantee; the all-fold product assumes independent folds.
+situation: The preflop aggressor sees a flop against one or several opponents.
+eligible_opportunity: Flop continuation-bet decision, sliced by number of live opponents.
+observable_inputs:
+- live_opponents
+- board_texture_class
+- range_advantage
+- field_nut_mass
+- action_closes
+- spr
+- opponent_posterior
+training_signals: []
+intervention: >-
+  C-bet more heads-up on favourable dry boards; multiway, bet a selective stronger range with
+  smaller sizes and give up most air.
+baseline: Heads-up c-bet rules applied regardless of field size.
+mechanism: >-
+  The chance someone connects rises with each opponent and no single defender must continue as
+  often; large sizes isolate hero against the strongest combined range.
+exceptions:
+- Overwhelming range-plus-nut advantage or validated multiway overfolding.
+- Low SPR.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Multiway logic is structural; texture classes are variant-specific.
+source_numbers:
+- value: 25-33% pot rather than 75-125%
+  context: Multiway value size in the article
+  use: initialization_candidate
+parameters: []
+experiment:
+  id: E034
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 2
+  transfer: 2
+  readiness: 1
+  power: 2
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Multiway flops are common in loose bot fields.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 4 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H062, H063]

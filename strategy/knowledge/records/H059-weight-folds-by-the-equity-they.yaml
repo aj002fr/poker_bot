@@ -1,0 +1,66 @@
+id: H059
+title: Weight folds by the equity they give up
+kind: strategy
+status: proposed
+cluster: postflop_flop
+sources:
+- source: gtow-cbet-sizing
+  location: C-bet sizing, fold-equity quality
+  digest_records: [gtow/H06]
+  transfer_caveat: Heads-up 100bb cash NLHE solver outputs without ICM.
+situation: Candidate sizes produce similar raw fold rates.
+eligible_opportunity: Bet-size choice between two sizes with similar estimated fold probability.
+observable_inputs:
+- weighted_denial
+- equity_distribution
+- all_fold_probability
+- marginal_point_value
+training_signals: []
+intervention: Prefer the larger size only when the extra folds remove material equity or point
+  utility.
+baseline: Raw fold rate as the denial measure.
+mechanism: >-
+  Folding a hand with almost no equity gains little; the count of folds is an incomplete measure.
+exceptions:
+- Strong future leverage not captured by current equity.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: The weighting idea transfers to big-bet games.
+source_numbers: []
+parameters: []
+experiment:
+  id: E033
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 0
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Conceptually useful; measurable only inside the blueprint.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H058]

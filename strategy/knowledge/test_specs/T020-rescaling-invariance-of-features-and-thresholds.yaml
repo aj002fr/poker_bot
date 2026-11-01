@@ -1,0 +1,30 @@
+schema: knowledge.invariant-test/v1
+id: T020
+title: Rescaling invariance of features and thresholds
+kind: invariant_test
+records: [I020]
+owner_workstream: M3-A
+target: feature extraction (proposed strategy/features) and strategy.math
+test_location: tests/strategy/features/test_rescaling.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: doubled state
+  given:
+    state: any
+    multiplier: 2
+  expect:
+    normalised_features: unchanged
+    icm_shares: unchanged
+    point_threshold: unchanged
+properties:
+- all scale-normalised features are invariant to exact integer multiples
+mutations: [a feature using raw chips must fail]

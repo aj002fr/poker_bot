@@ -1,0 +1,107 @@
+schema: knowledge.experiment/v1
+id: E003
+title: Point-aware all-in calls and bystander utility
+kind: factorial
+mode: discovery
+records: [H003, H004]
+question: >-
+  Do point-threshold all-in calls and modelled bystander fold utility each reduce exact point
+  regret on enumerated call/fold states, and do they interact?
+arms:
+- name: chip_odds
+  role: control
+  description: Call when equity beats chip pot odds; fold worth zero.
+  toggles:
+    point_threshold: 'off'
+    bystander_utility: 'off'
+- name: threshold
+  role: treatment
+  description: Call against q*_point from the exact scorer.
+  toggles:
+    point_threshold: 'on'
+    bystander_utility: 'off'
+- name: bystander
+  role: treatment
+  description: Chip odds, but fold valued through modelled opponent collisions.
+  toggles:
+    point_threshold: 'off'
+    bystander_utility: 'on'
+- name: both
+  role: treatment
+  description: Point threshold with bystander fold utility.
+  toggles:
+    point_threshold: 'on'
+    bystander_utility: 'on'
+factors:
+- name: point threshold
+  toggle: point_threshold
+  records_tested: [H003]
+- name: bystander utility
+  toggle: bystander_utility
+  records_tested: [H004]
+toggles:
+  point_threshold: ['off', 'on']
+  bystander_utility: ['off', 'on']
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: [short_deck, plo]
+seeds:
+  namespace: knowledge/E003
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: enumerated state
+  interval: exact oracle value; bootstrap over state draws where sampled
+  sample_size: >-
+    every enumerated state in the declared slice; sampled slices sized for a 95% interval half-width
+    below the minimum effect
+  multiplicity: Holm across the M1-M3 discovery screen
+primary_metric: exact_state_point_regret
+minimum_effect:
+  value: 0.01
+  unit: pool_fraction
+  basis: plan_gate
+metrics: [mean_point_delta, slice_point_delta]
+slices:
+- survivor_count
+- hero_stack_rank
+- covered_vs_covering
+- hands_to_cap_bucket
+- pending_all_in_count
+guardrails:
+- 'overfold audit: exploitability of the call policy against a repeated-shove probe'
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 40
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+blocked_by: [M2-C scenario/ICM invariant suite]
+status: blocked
+result_artifact: null

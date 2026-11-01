@@ -1,0 +1,72 @@
+id: H072
+title: Give the river policy bluff-ratio features
+kind: strategy
+status: proposed
+cluster: postflop_river
+sources:
+- source: mop
+  location: ch. 11, pp. 110-120
+  digest_records: [mop/H13]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Last-street bet or bluff-catch decisions.
+eligible_opportunity: River decision with a bet or a call available.
+observable_inputs:
+- pot
+- bet_size_pot_fraction
+- own_range_summary
+- opponent_range_summary
+- pot_odds
+training_signals: []
+intervention: >-
+  Provide alpha = B/(P+B) and the residual between estimated bluff/value mass and the indifference
+  ratio as features.
+baseline: No explicit ratio features.
+mechanism: Indifference depends on the bet-to-pot ratio and on the bluff/value composition.
+exceptions:
+- Multiway, side-pot, split-pot or non-terminal nodes need a fuller model.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Ratio arithmetic is generic.
+source_numbers:
+- value: alpha = B/(P+B)
+  context: Bluff-to-bet ratio and caller's break-even
+  use: analytic
+parameters: []
+experiment:
+  id: E037
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Cheap features; value depends on range estimates.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [I002, H071]

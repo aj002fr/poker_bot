@@ -1,0 +1,72 @@
+id: H027
+title: Reuse generic decision layers across variants and swap card tables
+kind: strategy
+status: proposed
+cluster: variant_transfer
+sources:
+- source: harrington-v1
+  location: Parts One, Four, Seven
+  digest_records: [harrington/H29]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: The revealed game differs from Hold'em.
+eligible_opportunity: Every decision in a non-NLHE variant.
+observable_inputs:
+- legal_actions
+- pot
+- stack_vector
+- position
+- action_history
+- equity_vs_range
+- variant_capabilities
+- rules_hash
+training_signals: []
+intervention: >-
+  Keep price, leverage, position, belief and tournament layers fixed and retrain only card-specific
+  equity and texture components.
+baseline: Reuse the whole Hold'em policy, or rebuild from scratch.
+mechanism: Betting arithmetic generalises while starting hands and draw structure do not.
+exceptions:
+- Variants with materially different betting or showdown rules.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: This is the transfer claim itself.
+source_numbers: []
+parameters: []
+experiment:
+  id: E027
+  primary_metric: transfer_point_loss
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 2
+  transfer: 3
+  readiness: 1
+  power: 1
+  risk: 2
+  rule_uncertainty: 2
+  leakage: 0
+  complexity: 1
+  rationale: Central to the surprise-variant plan but only measurable with adapters.
+owner: M9
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H055, I019]

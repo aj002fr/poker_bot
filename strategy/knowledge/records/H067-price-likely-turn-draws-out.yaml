@@ -1,0 +1,77 @@
+id: H067
+title: Price likely turn draws out
+kind: strategy
+status: proposed
+cluster: postflop_turn
+sources:
+- source: harrington-v1
+  location: Part Seven, pp. 158-159
+  digest_records: [harrington/H22]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Hero likely leads on the turn and the opponent may hold a one-card draw.
+eligible_opportunity: Turn bet-size decision with a likely draw in the opponent's range.
+observable_inputs:
+- opponent_range_summary
+- draw_class
+- pot
+- effective_stack_by_opponent
+- size_response_curve
+training_signals: []
+intervention: >-
+  Choose a size that gives draws insufficient direct odds while still inducing calls, searched
+  against draw-response curves.
+baseline: Size independent of draw presence.
+mechanism: A free or cheap river loses both denial and value.
+exceptions:
+- ICM favouring pot control, aggressive draw raises, or a shallow stack forcing a jam.
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Pricing logic transfers; draw counts are variant-specific.
+source_numbers:
+- value: two-thirds to three-quarters pot for a nine-out draw
+  context: Book guideline
+  use: initialization_candidate
+parameters:
+- name: draw_pricing_fraction
+  basis: sweep_only
+  default: null
+  sweep:
+    pot_fractions: [0.5, 0.67, 0.75, 1.0]
+experiment:
+  id: E035
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 1
+  rationale: Narrow; sizing already covered by response curves.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H036]

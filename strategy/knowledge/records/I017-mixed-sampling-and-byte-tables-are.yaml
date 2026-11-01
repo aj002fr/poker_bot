@@ -1,0 +1,53 @@
+id: I017
+title: Mixed sampling and byte tables are exact
+kind: invariant
+status: proposed
+cluster: invariant_runtime
+sources:
+- source: pluribus-2019
+  location: cfr digest section 2.6 (precomputed versus 1 ms work)
+  digest_sections: [cfr-pluribus-papers.md §2.6]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+situation: Runtime action selection from stored distributions.
+eligible_opportunity: Every runtime decision and every packed table.
+observable_inputs: [policy_distribution, legal_actions]
+training_signals: []
+intervention: >-
+  Each byte row sums to 255; quantisation error per action is at most 1/255 before masking; seeded
+  sampling reproduces frequencies within a binomial interval; masking illegal actions renormalises
+  correctly.
+baseline: Unchecked packing and sampling.
+mechanism: Arithmetic of quantisation and sampling.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Runtime.
+source_numbers: []
+parameters: []
+experiment:
+  id: T017
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Guards H050 and H054.
+owner: M8
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H054, H050]

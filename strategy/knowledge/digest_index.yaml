@@ -1,0 +1,172 @@
+# Every numbered hypothesis in the project-store reading digests (internal/reading/...).
+# Titles are short paraphrases; `location` is the original source location the digest
+# cites. The linter requires each key to be cited by at least one record, so nothing
+# extracted from a source is silently dropped during deduplication.
+# data-and-rules.md has no numbered hypotheses; records cite its sections instead.
+
+records:
+  # The Mathematics of Poker (Chen and Ankenman)
+  mop/H01: {title: Use terminal points as the training target, location: "chs. 26-28, pp. 312-342"}
+  mop/H02: {title: Exact cap ICM over proportional stack share, location: "ch. 27, pp. 324-330"}
+  mop/H03: {title: Hands-to-cap as a strategic feature, location: "chs. 19-20 pp. 228-258; ch. 27 pp. 324-337"}
+  mop/H04: {title: Point-risk premium for all-in calls, location: "ch. 28, pp. 338-342"}
+  mop/H05: {title: Separate first-in and calling thresholds, location: "ch. 12 pp. 121-137; ch. 28 pp. 338-342"}
+  mop/H06: {title: Raise-versus-jam transition depth is a prior to learn, location: "ch. 28, pp. 345-348"}
+  mop/H07: {title: SPR and streets remaining as scale features, location: "ch. 7 pp. 74-84; ch. 19 pp. 228-242"}
+  mop/H08: {title: Contextual Bayesian beliefs over raw counters, location: "ch. 3 pp. 34-45; chs. 5-6 pp. 59-73"}
+  mop/H09: {title: Likelihood floors against misreads, location: "ch. 5, pp. 59-69"}
+  mop/H10: {title: Decompose showdown, fold and continuation value, location: "ch. 8, pp. 85-93"}
+  mop/H11: {title: Balanced base with capped exploitation, location: "ch. 9 pp. 94-98; ch. 30 pp. 360-362"}
+  mop/H12: {title: Shared size buckets hide hand class, location: "ch. 9 pp. 94-98; ch. 30 pp. 360-362"}
+  mop/H13: {title: Bluff-ratio features for last-street play, location: "ch. 11, pp. 110-120"}
+  mop/H14: {title: Card removal at fixed model size, location: "ch. 13 pp. 138-145; ch. 28 pp. 345-346"}
+  mop/H15: {title: Texture-gated geometric sizing, location: "ch. 19 pp. 231-242; ch. 20 pp. 243-258"}
+  mop/H16: {title: Train whole trajectories, location: "chs. 19-20, pp. 228-258"}
+  mop/H17: {title: Keep strong hands in draw and bluff lines, location: "ch. 20 pp. 243-258; ch. 30 pp. 360-363"}
+  mop/H18: {title: Distinguish visible and hidden draws, location: "ch. 20, pp. 243-258"}
+  mop/H19: {title: Evaluate multiway states jointly, location: "ch. 29, pp. 349-358"}
+  mop/H20: {title: Population self-play over latest-only, location: "ch. 9 pp. 94-98; ch. 29 pp. 349-358"}
+  mop/H21: {title: Paired tournament evaluation, location: "ch. 2 pp. 24-33; ch. 27 pp. 330-337"}
+  mop/H22: {title: Distil a bounded runtime policy, location: "ch. 30, pp. 359-364"}
+
+  # Harrington on Hold'em, Volume I
+  harrington/H01: {title: Condition on the full state not cards and seat, location: "Part One, pp. 11-13"}
+  harrington/H02: {title: Bounded horizon changes patience, location: "Part Two, pp. 25-28"}
+  harrington/H03: {title: Learn stack-depth inflection points, location: "Part One pp. 7, 11-12; Conclusion p. 173"}
+  harrington/H04: {title: Position value depends on context, location: "Part One pp. 12-17; Part Five pp. 81-90"}
+  harrington/H05: {title: Learned gap between opening and calling, location: "Part Five, pp. 87-88"}
+  harrington/H06: {title: Squeeze risk from players behind, location: "Part Five pp. 87-95; Hand 5-23 p. 122"}
+  harrington/H07: {title: Price only matched chips, location: "Part Four, pp. 56-58"}
+  harrington/H08: {title: Discount outs that do not win, location: "Part Four, pp. 58-60"}
+  harrington/H09: {title: Implied odds need a payment model, location: "Part Four, pp. 57-58"}
+  harrington/H10: {title: Commitment collapses call into fold or jam, location: "Part Four pp. 64-66; Part Seven pp. 160-161"}
+  harrington/H11: {title: Multiway fields devalue air and weak pairs, location: "Part Two pp. 25-28; Part Six pp. 123-130"}
+  harrington/H12: {title: Speculative hands need depth, location: "Part Five, pp. 89-90"}
+  harrington/H13: {title: Model opening and reraising looseness separately, location: "Part Five, pp. 91-93"}
+  harrington/H14: {title: Squeeze capped opener and caller, location: "Part Five, pp. 94-95"}
+  harrington/H15: {title: Own image predicts resistance, location: "Part Three, pp. 45-47"}
+  harrington/H16: {title: In-character premium actions conceal strength, location: "Part Three, pp. 45-46"}
+  harrington/H17: {title: Size response curves over one fold rate, location: "Part Three pp. 48-55; Part Six pp. 127-130"}
+  harrington/H18: {title: Deep premiums prefer a small raise to a jam, location: "Part Five, pp. 95-96"}
+  harrington/H19: {title: Board- and field-conditioned continuation bets, location: "Part Six, pp. 123-129"}
+  harrington/H20: {title: A flop call suppresses automatic turn barrels, location: "Part Six problems, pp. 133-155"}
+  harrington/H21: {title: Probe after an omitted continuation bet, location: "Part Six pp. 129-130; Hand 6-9 pp. 141-143"}
+  harrington/H22: {title: Price likely turn draws out, location: "Part Seven, pp. 158-159"}
+  harrington/H23: {title: Two small value bets versus one large, location: "Part Seven, pp. 156-157"}
+  harrington/H24: {title: Keep escape options with players behind, location: "Part Six Hand 6-18 pp. 154-155; Part Seven pp. 161-172"}
+  harrington/H25: {title: River value needs worse hands that call, location: "Part Seven, p. 160"}
+  harrington/H26: {title: Multiway river aggression is stronger, location: "Part Seven, pp. 159, 171-172"}
+  harrington/H27: {title: Line inconsistency depends on opponent skill, location: "Part Six pp. 129-130; Part Seven pp. 163-171"}
+  harrington/H28: {title: Tournament utility modifies high-variance advice, location: "Parts Two, Four, Five, Seven"}
+  harrington/H29: {title: Generic decision layers transfer across variants, location: "Parts One, Four, Seven"}
+  harrington/H30: {title: Uncertainty constrains exploitation, location: "Part Three, pp. 39-55"}
+  harrington/H31: {title: Tune mixtures not deterministic rules, location: "Part Two pp. 23-24; Part Five pp. 82-87, 112-114"}
+  harrington/H32: {title: Grade decisions by expected value not outcome, location: "Parts Five to Seven, pp. 97-172"}
+
+  # GTO Wizard articles and Modern Poker Theory extract
+  gtow/H01: {title: Range advantage drives frequency and nut advantage drives size, location: "C-bet sizing, overview"}
+  gtow/H02: {title: Size rises then falls with board dynamism, location: "C-bet sizing, wetness curve"}
+  gtow/H03: {title: Dry paired boards favour small broad bets, location: "C-bet sizing, paired-board example"}
+  gtow/H04: {title: Dynamic boards with a nut edge add large sizes, location: "C-bet sizing, dynamic-board example"}
+  gtow/H05: {title: Nut-saturated boards favour checks and small bets, location: "C-bet sizing, monotone connected example"}
+  gtow/H06: {title: Weight folds by the equity they surrender, location: "C-bet sizing, fold-equity quality"}
+  gtow/H07: {title: Blank turns with retained nut edge polarise, location: "Turn textures, blanks"}
+  gtow/H08: {title: Completing cards matter only with range support, location: "Turn textures, draw-completing cards"}
+  gtow/H09: {title: Broad equity improvers raise frequency and lower size, location: "Turn textures, high-card improvers"}
+  gtow/H10: {title: Checked-through flops shift draws to the prober, location: "Turn textures, checked-through flop"}
+  gtow/H11: {title: Choose bluffs by whole-line EV, location: "Multi-street bluffs, line EV"}
+  gtow/H12: {title: Called early barrels raise the river fold requirement, location: "Multi-street bluffs, triple-barrel quiz"}
+  gtow/H13: {title: A negative turn barrel can buy a profitable river, location: "Multi-street bluffs, worked example"}
+  gtow/H14: {title: Turn probes can make delayed bluffs worse than barrels, location: "Multi-street bluffs, bet-check-bet"}
+  gtow/H15: {title: Shrink sparse overfold estimates before costly lines, location: "Multi-street bluffs, population exploits"}
+  gtow/H16: {title: Multiway bluffs need joint all-fold probability, location: "Multiway pots, shared defence burden"}
+  gtow/H17: {title: Stop range betting multiway, location: "Multiway pots, range betting"}
+  gtow/H18: {title: Prefer draws with nut potential multiway, location: "Multiway pots, nut potential"}
+  gtow/H19: {title: Smaller multiway value sizes, location: "Multiway pots, bet sizes"}
+  gtow/H20: {title: Discount realisation when a player can raise behind, location: "Multiway pots, position"}
+  gtow/H21: {title: Selective river bluffs after check-downs, location: "Multiway pots, capped ranges"}
+  gtow/H22: {title: Preflop policy depends on the full stack vector, location: "Preflop ICM solving, full-state sensitivity"}
+  gtow/H23: {title: A distant micro-stack tightens covered medium stacks, location: "Preflop ICM solving, micro-stack"}
+  gtow/H24: {title: Keep a small raise beside the jam when shallow, location: "Preflop ICM solving, non-all-in options"}
+  gtow/H25: {title: Folding has positive utility when others may collide, location: "Preflop ICM solving, multiway fold utility"}
+  gtow/H26: {title: Smaller first-in raises below moderate depth, location: "Modern Poker Theory ch. 7, RFI sizing"}
+  gtow/H27: {title: Small-blind limping grows with depth, location: "Modern Poker Theory ch. 7, small blind first-in"}
+  gtow/H28: {title: Connected versus paired board topology, location: "Modern Poker Theory ch. 12"}
+
+  # CFR, Pluribus, robust response and OpenSpiel
+  cfr/H1: {title: External-sampling MCCFR as the primary traversal, location: "Lanctot et al. 2009"}
+  cfr/H2: {title: Linear weighting for early convergence, location: "Pluribus; Neller and Lanctot tutorial"}
+  cfr/H3: {title: Distributional card buckets, location: "Pluribus information abstraction; Johanson et al."}
+  cfr/H4: {title: A compact dynamic bet menu, location: "Pluribus action abstraction"}
+  cfr/H5: {title: Expected-points utility over chips, location: "competition rules; paper utility definitions"}
+  cfr/H6: {title: Frozen-policy league reduces cycling, location: "Pluribus; OpenSpiel population methods"}
+  cfr/H7: {title: Restricted response for robust exploitation, location: "Johanson, Zinkevich and Bowling 2007"}
+  cfr/H8: {title: Byte-quantised probabilities, location: "competition size limit; blueprint design"}
+  cfr/H9: {title: Staged same-day retraining, location: "competition schedule; Pluribus resource report"}
+
+  # MIT 15.S50 digest
+  mit15s50/H01: {title: Forced-bet pressure widens first-in aggression, location: "Lecture 1 ~25:31-28:56; slide p. 48"}
+  mit15s50/H02: {title: Opponent-specific effective stacks, location: "Lecture 1 ~17:04-20:14; slide p. 43"}
+  mit15s50/H03: {title: Evidence-gated exploitation, location: "Lecture 1 ~10:22-13:31; Lecture 7 ~1:02:21"}
+  mit15s50/H04: {title: Matching-opportunity opponent models, location: "Lecture 2 ~09:47-17:16, 42:20-45:49"}
+  mit15s50/H05: {title: Point utility over chip pot odds, location: "Lecture 2 ~03:09-07:02; slides pp. 4-6"}
+  mit15s50/H06: {title: Train on decision regret not outcomes, location: "Lecture 2 ~07:25-09:47"}
+  mit15s50/H07: {title: Exact pot-odds oracle, location: "Lecture 3 ~08:28-12:12; slides pp. 10-21"}
+  mit15s50/H08: {title: Joint fold and called-branch value, location: "Lecture 3 ~45:07-57:45; slides pp. 48-59"}
+  mit15s50/H09: {title: Exact combo equity over fitted formulas, location: "Lecture 4 ~24:01-30:06; slides pp. 40-57"}
+  mit15s50/H10: {title: Joint multiway caller modelling, location: "Lecture 4 ~42:07-43:35; slides pp. 96-108"}
+  mit15s50/H11: {title: Full preflop action set at medium-short depth, location: "Lecture 4 ~21:42-23:54; slides pp. 35-36"}
+  mit15s50/H12: {title: Point-trained near-cap preflop policy, location: "Lecture 4 slide p. 35; Lecture 5 ~22:27-27:34"}
+  mit15s50/H13: {title: Preserve fold equity before forced costs, location: "Lecture 5 ~08:11-11:12; slides pp. 10-11"}
+  mit15s50/H14: {title: Leader pressure on covered medium stacks, location: "Lecture 5 ~19:53-27:34; slides pp. 70-77"}
+  mit15s50/H15: {title: Collision avoidance on overcalls, location: "Lecture 5 ~22:27-27:34; slides pp. 71-77"}
+  mit15s50/H16: {title: Anticipate blind transitions, location: "Lecture 5 ~06:46-14:00"}
+  mit15s50/H17: {title: Horizon-dependent risk, location: "Lecture 5 ~22:27-27:34 with the hand-200 rule"}
+  mit15s50/H18: {title: CFR+ baseline versus latest-policy self-play, location: "Lecture 7 ~25:43-34:27"}
+  mit15s50/H19: {title: Blocker-aware abstraction, location: "Lecture 7 ~41:42-43:07, 52:54-56:47"}
+  mit15s50/H20: {title: Small menu with off-tree handling, location: "Lecture 7 ~45:28-48:14; Lecture 8 ~51:00"}
+  mit15s50/H21: {title: Range-consistent policy features, location: "Lecture 8 ~27:56-38:08, 42:22-46:05"}
+  mit15s50/H22: {title: Confidence-scaled marginal threshold shifts, location: "Lecture 8 ~56:32-1:00:49"}
+
+  # MIT OCW lectures 1-2 notes
+  mit-l12/H1: {title: Forced bets widen unopened short-stack aggression, location: "Lectures 1-2"}
+  mit-l12/H2: {title: Finish pressure tightens collision and overcall ranges, location: "Lecture 2 bubble example"}
+  mit-l12/H3: {title: Opportunity-conditioned shrunk range estimates, location: "Lecture 2"}
+  mit-l12/H4: {title: Robust baseline before an evidence gate, location: "Lectures 1-2"}
+  mit-l12/H5: {title: Preflop lookup specialisation for score and latency, location: "Lectures 1-2"}
+  mit-l12/H6: {title: Decision-quality labels over result labels, location: "Lecture 2"}
+  mit-l12/H7: {title: Cap proximity changes the value of variance, location: "Lectures 1-2 with the hand-200 rule"}
+  mit-l12/H8: {title: Variant identification gates hold'em ranges, location: "Lectures 1-2"}
+
+  # MIT lectures 3-4 notes
+  mit-l34/H1: {title: Effective-stack M over hero-stack M, location: "Lecture 3 opening example"}
+  mit-l34/H2: {title: Exact combo equity over percentile regression, location: "Lecture 4 range-equity fit"}
+  mit-l34/H3: {title: Joint multiway callers over heads-up multipliers, location: "Lecture 4 multiway section"}
+  mit-l34/H4: {title: Point utility changes near-cap preflop ranges, location: "Lecture 4 with Lecture 5 contrast"}
+  mit-l34/H5: {title: Blind-change and cap-horizon features, location: "Lectures 3-4 stack discussion"}
+  mit-l34/H6: {title: Train against diverse response populations, location: "Lecture 4 caller-range assumption"}
+  mit-l34/H7: {title: Limited within-table adaptation, location: "Lectures 3-4"}
+  mit-l34/H8: {title: Full legal actions versus shove-fold at 5-10 M, location: "Lecture 4 ~21:42-23:54"}
+
+  # MIT lectures 5-6 notes
+  mit-l56/H1: {title: Cap-aware point value over chip EV, location: "Lecture 5"}
+  mit-l56/H2: {title: ICM-adjusted call thresholds for medium stacks, location: "Lecture 5"}
+  mit-l56/H3: {title: Preserve fold equity before the dead zone, location: "Lecture 5 stack zones"}
+  mit-l56/H4: {title: Covered-stack pressure targets medium stacks, location: "Lecture 5"}
+  mit-l56/H5: {title: Collision avoidance captures bystander equity, location: "Lecture 5"}
+  mit-l56/H6: {title: Blind-transition anticipation, location: "Lecture 5 stack zones"}
+  mit-l56/H7: {title: Orbit and table-size correction, location: "Lectures 5-6"}
+  mit-l56/H8: {title: Horizon-dependent risk schedule, location: "Lectures 5-6 with the hand-200 rule"}
+  mit-l56/H9: {title: Offline stack-vector lookup within 1 ms, location: "Lectures 5-6 with runtime limits"}
+  mit-l56/H10: {title: Small raises versus open shoves, location: "Lectures 5-6"}
+
+  # MIT lectures 7-8 notes
+  mit-l78/H1: {title: Exact terminal point utility over chip delta, location: "Lecture 7"}
+  mit-l78/H2: {title: Phase-aware conditioning, location: "Lecture 7"}
+  mit-l78/H3: {title: CFR+ or sampled CFR over latest-policy self-play, location: "Lecture 7 ~25:43-34:27"}
+  mit-l78/H4: {title: Adaptive menu with off-tree translation, location: "Lectures 7-8"}
+  mit-l78/H5: {title: Blocker-aware buckets, location: "Lecture 7"}
+  mit-l78/H6: {title: Range-consistent features and belief updates, location: "Lecture 8"}
+  mit-l78/H7: {title: Population self-play with exploiters, location: "Lecture 7"}
+  mit-l78/H8: {title: Confidence-gated marginal exploitation, location: "Lecture 8"}
+  mit-l78/H9: {title: Shared policy conditioned on seat and phase, location: "Lecture 7"}

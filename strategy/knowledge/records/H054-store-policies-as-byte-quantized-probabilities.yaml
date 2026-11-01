@@ -1,0 +1,70 @@
+id: H054
+title: Store policies as byte-quantized probabilities
+kind: method
+status: proposed
+cluster: deployment
+sources:
+- source: pluribus-2019
+  location: competition size limit; blueprint design
+  digest_records: [cfr/H8]
+  transfer_caveat: >-
+    Six-max 100bb cash with real-time search far beyond 1 ms and 100 MB; multiplayer strength
+    is empirical.
+situation: Millions of information-set probabilities must fit one artifact.
+eligible_opportunity: Every stored policy row.
+observable_inputs: [policy_table_key, policy_distribution]
+training_signals: [teacher_distribution]
+intervention: Store each row as unsigned bytes summing to 255, with sparse int8 response deltas.
+baseline: Float32 probabilities.
+mechanism: About fourfold smaller storage and faster lookup with little loss.
+exceptions:
+- >-
+  Tiny-probability actions can disappear; renormalisation and illegal-action masking magnify error.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Storage format is generic.
+source_numbers:
+- value: 255
+  context: Byte total per row
+  use: analytic
+parameters:
+- name: row_total
+  basis: analytic
+  default: 255
+  derivation: Largest total representable in one unsigned byte per action
+experiment:
+  id: E017
+  primary_metric: teacher_student_kl
+  minimum_effect:
+    value: 0.02
+    unit: nats_per_decision
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 3
+  effect: 1
+  transfer: 3
+  readiness: 1
+  power: 3
+  risk: 3
+  rule_uncertainty: 1
+  leakage: 0
+  complexity: 1
+  rationale: Cheap to measure KL; guards the size limit.
+owner: M8
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H053, I017]

@@ -1,0 +1,33 @@
+schema: knowledge.invariant-test/v1
+id: T024
+title: Side-pot and effective-stack feature accounting
+kind: invariant_test
+records: [I024]
+owner_workstream: M3-A
+target: stack features (proposed strategy/features) against arena settlement
+test_location: tests/strategy/features/test_side_pots.py (proposed)
+status: specified
+implemented_by: []
+primary_metric: fixture_pass
+minimum_effect:
+  value: 1.0
+  unit: pass_fraction
+  basis: analytic
+partitions:
+  fixtures: deterministic
+  final_holdout: excluded
+cases:
+- name: three-way all-in
+  given:
+    stacks: [100, 300, 500]
+    all_in: all
+  expect:
+    main_pot: 300
+    side_pot: 400
+    returned: 200
+properties:
+- effective stack versus each opponent equals min of total chips
+- >-
+  feature side pots equal engine settlement for every enumerated all-in pattern up to four players
+mutations:
+- computing one global effective stack must fail

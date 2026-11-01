@@ -1,0 +1,63 @@
+id: H057
+title: Range advantage sets c-bet frequency, nut advantage sets size
+kind: strategy
+status: proposed
+cluster: postflop_flop
+sources:
+- source: gtow-cbet-sizing
+  location: C-bet sizing, overview
+  digest_records: [gtow/H01]
+  transfer_caveat: Heads-up 100bb cash NLHE solver outputs without ICM.
+situation: Heads-up flop after hero was the preflop aggressor.
+eligible_opportunity: Heads-up flop decision for the preflop raiser facing a check or acting first.
+observable_inputs: [range_advantage, nut_advantage, spr, position, board_texture_class]
+training_signals: []
+intervention: >-
+  Drive betting frequency from average range advantage and bet size from top-of-range (nut) advantage,
+  as separate inputs.
+baseline: One combined board-strength score for both.
+mechanism: >-
+  Average strength and ownership of the strongest hands affect different parts of the strategy.
+exceptions:
+- Shallow all-in geometry, multiway pots, or a high ICM risk premium.
+variant_scope:
+  transfer: variant_specific
+  variants: [nlhe]
+  notes: Solver evidence is heads-up 100bb NLHE; advantage measures need per-variant range tables.
+source_numbers: []
+parameters: []
+experiment:
+  id: E033
+  primary_metric: slice_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 1
+  effect: 1
+  transfer: 1
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Heads-up deep flops are uncommon in short turbo SNGs.
+owner: M5
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H058, H059, H060]

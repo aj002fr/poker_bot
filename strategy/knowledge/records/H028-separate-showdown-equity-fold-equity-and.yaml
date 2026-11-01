@@ -1,0 +1,68 @@
+id: H028
+title: Separate showdown equity, fold equity and continuation value
+kind: strategy
+status: proposed
+cluster: value_model
+sources:
+- source: mop
+  location: ch. 8, pp. 85-93
+  digest_records: [mop/H10]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+situation: Draws, bluff opportunities and future betting.
+eligible_opportunity: Any non-terminal decision with future streets.
+observable_inputs:
+- equity_vs_range
+- all_fold_probability
+- streets_remaining
+- spr
+- legal_actions
+training_signals: [rollout_return]
+intervention: >-
+  Use separate value heads or features for showdown equity, fold equity and continuation value.
+baseline: One value head.
+mechanism: >-
+  Raw equity omits realisation and future leverage; decomposition gives each part its own signal.
+exceptions: [Terminal all-ins with no side action.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Value structure is generic.
+source_numbers: []
+parameters: []
+experiment:
+  id: E024
+  primary_metric: exact_state_point_regret
+  minimum_effect:
+    value: 0.01
+    unit: pool_fraction
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 1
+  transfer: 3
+  readiness: 1
+  power: 2
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 3
+  rationale: Architectural; needs the learner and deeper rollouts.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H032]

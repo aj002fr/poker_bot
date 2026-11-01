@@ -1,0 +1,71 @@
+id: H031
+title: Model implied odds with a payment curve
+kind: strategy
+status: proposed
+cluster: equity
+sources:
+- source: harrington-v1
+  location: Part Four, pp. 57-58
+  digest_records: [harrington/H09]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Immediate odds are slightly insufficient for a draw with future streets.
+eligible_opportunity: >-
+  Call decision with a draw before the last street where direct odds fall short of break-even.
+observable_inputs:
+- effective_stack_by_opponent
+- streets_remaining
+- draw_visibility
+- size_response_curve
+- marginal_point_value
+- pot_odds
+training_signals: []
+intervention: >-
+  Continue only when the probability-weighted future payment learned per opponent closes the deficit.
+baseline: Direct pot odds only.
+mechanism: >-
+  Future winnings are neither guaranteed nor unlimited; they depend on stack, visibility and the
+  opponent's call curve.
+exceptions: [All-in decisions have no implied value.]
+variant_scope:
+  transfer: family
+  variants: [nlhe, short_deck, plo]
+  notes: Big-bet concept; visibility depends on the variant.
+source_numbers: []
+parameters: []
+experiment:
+  id: E026
+  primary_metric: exact_state_point_regret
+  minimum_effect:
+    value: 0.01
+    unit: pool_fraction
+    basis: plan_gate
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 1
+  reach: 1
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Low reach in short-stacked turbo play.
+owner: M3-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H030, H033]

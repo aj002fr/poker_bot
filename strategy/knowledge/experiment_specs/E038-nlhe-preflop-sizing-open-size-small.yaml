@@ -1,0 +1,102 @@
+schema: knowledge.experiment/v1
+id: E038
+title: 'NLHE preflop sizing: open size, small-blind limps, speculative depth, deep premiums'
+kind: factorial
+mode: discovery
+records: [H016, H017, H018, H019]
+question: >-
+  Do smaller first-in opens, small-blind limping by depth, depth-gated speculative calls and small
+  raises with deep premiums improve preflop points under the real point vector?
+arms:
+- name: fixed_chart
+  role: control
+  description: >-
+    Single open size, raise-or-fold small blind, depth-blind speculation, jams with deep premiums
+    allowed.
+  toggles:
+    open_size: fixed
+    sb_limp: 'off'
+    speculative_depth: 'off'
+    deep_premium: jam_allowed
+- name: swept
+  role: treatment
+  description: Open size swept, limp option, depth-gated speculation, small-raise preference.
+  toggles:
+    open_size: swept
+    sb_limp: 'on'
+    speculative_depth: 'on'
+    deep_premium: small_raise
+factors:
+- name: open size
+  toggle: open_size
+  records_tested: [H016]
+- name: small-blind limp
+  toggle: sb_limp
+  records_tested: [H017]
+- name: speculative depth
+  toggle: speculative_depth
+  records_tested: [H018]
+- name: deep premium
+  toggle: deep_premium
+  records_tested: [H019]
+toggles:
+  open_size: [fixed, swept]
+  sb_limp: ['off', 'on']
+  speculative_depth: ['off', 'on']
+  deep_premium: [jam_allowed, small_raise]
+lineups:
+  train:
+    population: train
+    families: all train families
+    checkpoints: frozen only
+  evaluate:
+    population: validation
+    families: all validation families plus the six arena style anchors
+    candidate_seats_per_table: 1
+variants:
+  primary: [nlhe]
+  rehearsal: []
+seeds:
+  namespace: knowledge/E038
+  pilot_blocks: 100
+  rotation: every entrant through all eight seats
+  streams: separate environment and per-seat policy RNG streams (common random numbers)
+design:
+  unit: paired seed/lineup/rotation block
+  interval: paired t 95%; cluster bootstrap over blocks when skewed
+  sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
+  multiplicity: Holm across the M1-M3 discovery screen
+  note: fractional factorial over four factors
+primary_metric: slice_point_delta
+minimum_effect:
+  value: 0.004
+  unit: pool_fraction_per_sng
+  basis: provisional
+metrics: [mean_point_delta]
+slices: [effective depth bucket, position, blind versus blind]
+guardrails:
+- >-
+  worst_family_point_delta not below -0.01 pool fraction per SNG (provisional; plan open decision
+  2)
+- zero illegal actions, timeouts and fallback actions on the deployed path
+- decision latency p99 and p99.9 within the sandbox budget
+partitions:
+  fit: train
+  screen: validation/screen
+  confirm: validation/confirm
+  final_holdout: excluded
+budget:
+  cpu_core_hours: 150
+gates:
+  promote: >-
+    screen: 95% interval excludes 0 in the favourable direction after Holm; confirm: same on validation/confirm
+    with the effect at least the minimum effect
+  reject: 95% interval on the screen excludes the minimum effect in the favourable direction
+  execution:
+    illegal_actions: 0
+    timeouts: 0
+    decision_latency_p99_ms: 1.0
+    artifact_mb_max: 100
+blocked_by: [M3-B baseline, legal sizing confirmed]
+status: blocked
+result_artifact: null

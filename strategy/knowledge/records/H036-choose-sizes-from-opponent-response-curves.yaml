@@ -1,0 +1,71 @@
+id: H036
+title: Choose sizes from opponent response curves
+kind: strategy
+status: proposed
+cluster: beliefs
+sources:
+- source: harrington-v1
+  location: Part Three pp. 48-55; Part Six pp. 127-130
+  digest_records: [harrington/H17]
+  transfer_caveat: >-
+    Live nine/ten-handed NLHE with chip-EV reasoning, no ICM and no hand cap; frequencies and
+    sizes are era-specific.
+situation: Choosing an open, isolation, probe or value size.
+eligible_opportunity: Any bet or raise decision with at least two legal sizes.
+observable_inputs:
+- size_response_curve
+- opponent_posterior
+- posterior_effective_sample_size
+- legal_size_bounds
+- pot
+training_signals: []
+intervention: >-
+  Select the size that maximises points under the opponent's estimated fold/call/raise curve by
+  size, shrunk to the population.
+baseline: Fixed pot fractions per node type.
+mechanism: >-
+  The cheapest sufficient size, or the size most often called by worse hands, can beat any fixed
+  fraction.
+exceptions:
+- Sparse data needs heavy population shrinkage.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Generic for big-bet games; limit games have no size choice.
+source_numbers: []
+parameters: []
+experiment:
+  id: E031
+  primary_metric: mean_point_delta
+  minimum_effect:
+    value: 0.004
+    unit: pool_fraction_per_sng
+    basis: provisional
+  partitions:
+    fit: train
+    screen: validation/screen
+    confirm: validation/confirm
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  objective: 2
+  reach: 2
+  effect: 1
+  transfer: 2
+  readiness: 1
+  power: 1
+  risk: 1
+  rule_uncertainty: 0
+  leakage: 0
+  complexity: 2
+  rationale: Needs good beliefs first; sparse evidence limits the gain.
+owner: M7
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from 1 digest hypotheses deduplicated by mechanism; wording paraphrased.
+related: [H034]

@@ -1,0 +1,60 @@
+id: I016
+title: PHH Pluribus import reproduces published counts
+kind: invariant
+status: proposed
+cluster: invariant_data
+sources:
+- source: phh-dataset
+  location: data digest section A (corpus facts, PokerKit parsing, import plan validation)
+  digest_sections:
+  - data-and-rules.md §A Verified Pluribus facts
+  - data-and-rules.md §A Does the arena's PokerKit parse the records?
+  transfer_caveat: >-
+    Six-max 100bb cash NLHE actions sampled from one mixed strategy; CC BY 4.0 attribution required.
+situation: Importing the PHH Pluribus subset.
+eligible_opportunity: Every import run.
+observable_inputs: [action_history]
+training_signals: []
+intervention: >-
+  10,000 of 10,000 files load and replay; 166,698 source actions; 15,169 Pluribus decisions; 9,992
+  integer final-stack matches plus 8 declared half-chip files, all matching under rational arithmetic.
+baseline: Unchecked import.
+mechanism: Published, independently verified corpus counts.
+exceptions:
+- A new corpus version needs new pinned counts.
+variant_scope:
+  transfer: variant_specific
+  variants: [nlhe]
+  notes: NLHE corpus.
+source_numbers:
+- value: 166698
+  context: Source action records
+  use: analytic
+- value: 15169
+  context: Pluribus strategic actions
+  use: analytic
+parameters: []
+experiment:
+  id: T016
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Gate for any PHH use.
+owner: M7
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H038, H047]

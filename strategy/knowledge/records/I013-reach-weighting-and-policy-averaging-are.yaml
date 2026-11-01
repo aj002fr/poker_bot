@@ -1,0 +1,51 @@
+id: I013
+title: Reach weighting and policy averaging are correct
+kind: invariant
+status: proposed
+cluster: invariant_learning
+sources:
+- source: neller-lanctot-cfr
+  location: CFR tutorial, regret and average-strategy updates (cfr digest section 1)
+  digest_sections:
+  - cfr-pluribus-papers.md §1 Neller and Lanctot
+  transfer_caveat: Two-player zero-sum convergence results do not extend to eight players.
+situation: CFR updates.
+eligible_opportunity: Every trainer release.
+observable_inputs: [policy_distribution]
+training_signals: [reach_probabilities, regret_estimates]
+intervention: >-
+  Counterfactual values weight by opponent and chance reach; the average strategy weights by the
+  player's own reach; deliberately broken variants must fail the oracle tests.
+baseline: Untested trainer.
+mechanism: Definition of CFR.
+exceptions: [None.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Trainer-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: T013
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Most common silent CFR bug.
+owner: M2-B
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [I012]

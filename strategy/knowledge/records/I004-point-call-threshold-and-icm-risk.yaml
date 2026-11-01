@@ -1,0 +1,60 @@
+id: I004
+title: Point call threshold and ICM risk premium
+kind: invariant
+status: proposed
+cluster: invariant_math
+sources:
+- source: mop
+  location: ch. 28, pp. 338-342
+  digest_sections: [mathematics-of-poker.md §4 H04]
+  transfer_caveat: >-
+    Toy-game solutions are exact only under their stated assumptions; hold'em charts and the doubling-up
+    model do not transfer to an eight-bot points SNG.
+- source: mit-15s50
+  location: Lectures 5-6 notes, ICM-adjusted call thresholds
+  digest_sections:
+  - mit-notes/mit-lectures-5-6-tournament-economics.md bubble and stack-role policy
+  transfer_caveat: >-
+    Hold'em charts, M zones and cash-game statistics are examples; Lecture 4 explicitly ignores
+    ICM.
+situation: A terminal all-in call priced in official points.
+eligible_opportunity: Every point-threshold computation.
+observable_inputs: [stack_vector, point_vector, point_call_threshold, icm_risk_premium]
+training_signals: []
+intervention: >-
+  q*_point = (U_fold - U_lose)/(U_win - U_lose); U_lose <= U_fold <= U_win; the premium q*_point
+  - q*_chip is zero for affine utilities, winner-take-all and two survivors, and positive in concave
+  ladders; bystander relabelling changes nothing.
+baseline: Chip pot odds.
+mechanism: Indifference in expected points rather than chips.
+exceptions: [Requires U_win > U_lose.]
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Scorer arithmetic.
+source_numbers: []
+parameters: []
+experiment:
+  id: T004
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: The core of H003; must be exact before any experiment uses it.
+owner: M2-C
+implementation:
+  module: strategy.math.points
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [H003, I005]

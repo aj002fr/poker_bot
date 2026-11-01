@@ -1,0 +1,52 @@
+id: I006
+title: Point conservation and symmetric copies
+kind: invariant
+status: proposed
+cluster: invariant_scoring
+sources:
+- source: neller-lanctot-cfr
+  location: cfr digest section 3, full-tournament row
+  digest_sections:
+  - cfr-pluribus-papers.md §3 verification ladder
+  transfer_caveat: Two-player zero-sum convergence results do not extend to eight players.
+situation: Complete simulated SNGs.
+eligible_opportunity: Every completed table.
+observable_inputs: [point_vector]
+training_signals: [terminal_points]
+intervention: >-
+  Each table's awarded points sum exactly to the pool S; eight identical copies with rotated seats
+  average S/8 each within the interval.
+baseline: Unchecked simulator.
+mechanism: Conservation and symmetry of the scoring.
+exceptions:
+- Ties and split pots must still conserve points.
+variant_scope:
+  transfer: generic
+  variants: [all]
+  notes: Format-level.
+source_numbers: []
+parameters: []
+experiment:
+  id: T006
+  primary_metric: fixture_pass
+  minimum_effect:
+    value: 1.0
+    unit: pass_fraction
+    basis: analytic
+  partitions:
+    fixtures: deterministic
+    final_holdout: excluded
+  result_artifact: null
+triage:
+  mandatory: true
+  rationale: Detects scorer, seat and RNG bias before any A/B.
+owner: M1-C
+implementation:
+  module: null
+  version_hash: null
+decision_log:
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: Created from digest sections without numbered hypotheses; wording paraphrased.
+related: [I005, I022]
