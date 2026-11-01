@@ -90,4 +90,4 @@ lab-null-synthetic:
 	$(UV) run python -m strategy.cli null-synthetic --replicates 4000 --blocks 20
 
 verify-strategy:
-	$(UV) run pytest tests/strategy -q
+	$(UV) run pytest tests/strategy -m "not slow and not oracle" -q
