@@ -20,20 +20,23 @@ db-down:
 dev-postgres: db-up
 	ARENA_STORE=postgres UV=$(UV) ./scripts/dev.sh
 
-# Solver tests are not collected unless numba is installed; verify-strategy runs them.
+# Solver test modules (anything importing numba, strategy.solve or strategy.games) are not
+# collected unless numba is installed; verify-strategy runs them.
 verify-fast:
 	$(UV) run pytest -m "not release and not slow and not oracle" -q
 
 # The offline solvers need numba from the opt-in `train` group (no Intel-macOS wheels).
+# ARENA_REQUIRE_NUMBA=1 makes pytest fail at startup instead of dropping the solver tests.
 TRAIN = --group train
+REQUIRE_NUMBA = ARENA_REQUIRE_NUMBA=1
 
 # Stage 2 solver gates at full resolution, long ES-MCCFR runs and sampled-vs-full agreement.
 verify-solve-slow:
-	$(UV) run $(TRAIN) pytest -m slow tests/strategy -q
+	$(REQUIRE_NUMBA) $(UV) run $(TRAIN) pytest -m slow tests/strategy -q
 
 # Kuhn/Leduc cross-checks against OpenSpiel (dev-only dependency group).
 verify-oracle:
-	$(UV) run $(TRAIN) --group oracle pytest -m oracle tests/strategy -q
+	$(REQUIRE_NUMBA) $(UV) run $(TRAIN) --group oracle pytest -m oracle tests/strategy -q
 
 gates-stage2:
 	$(UV) run $(TRAIN) python -m strategy.games.fixtures --resolution 200
@@ -94,4 +97,4 @@ lab-null-synthetic:
 	$(UV) run python -m strategy.cli null-synthetic --replicates 4000 --blocks 20
 
 verify-strategy:
-	$(UV) run $(TRAIN) pytest tests/strategy -m "not slow and not oracle" -q
+	$(REQUIRE_NUMBA) $(UV) run $(TRAIN) pytest tests/strategy -m "not slow and not oracle" -q

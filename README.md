@@ -78,8 +78,11 @@ minimizer and mutation checks are described in `docs/release-verification.md`.
 
 The offline solvers (`strategy/solve`) need numba, which is in the opt-in `train` group:
 `make setup` leaves it out, so the arena installs anywhere, including Intel Macs where
-numba has no wheels. The targets below add it on demand (`uv run --group train`), and
-`make verify-fast` skips the solver test modules when numba is missing. OpenSpiel is a
+numba has no wheels. The targets below add it on demand (`uv run --group train`).
+Without numba, pytest does not collect any test module that imports numba, `strategy.solve`
+or `strategy.games`, directly or through a repository module (`tests/conftest.py`), so
+`make verify-fast` stays green. With `ARENA_REQUIRE_NUMBA=1`, set by the solver targets and
+the release `fast` gate, a missing numba stops pytest with a usage error. OpenSpiel is a
 dev-only oracle in the `oracle` group; nothing outside `tests/strategy/oracle` and
 `tests/strategy/test_openspiel_oracle.py` imports it.
 
