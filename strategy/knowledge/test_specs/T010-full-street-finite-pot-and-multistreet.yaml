@@ -4,10 +4,12 @@ title: Full-street, finite-pot and multistreet toy games
 kind: invariant_test
 records: [I010]
 owner_workstream: M2-A
-target: toy-game solver and trajectory trainer (strategy/solvers, proposed)
-test_location: tests/strategy/solvers/test_multistreet.py (proposed)
-status: specified
-implemented_by: []
+target: strategy.games fixture registry, solved by strategy.solve (CFR family and ES-MCCFR)
+test_location: tests/strategy/test_fixture_gates.py, tests/strategy/test_mutations.py
+status: implemented
+implemented_by:
+- tests/strategy/test_fixture_gates.py::test_fixture_gates
+- tests/strategy/test_mutations.py::test_broken_variant_is_caught
 primary_metric: fixture_pass
 minimum_effect:
   value: 1.0

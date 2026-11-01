@@ -4,10 +4,12 @@ title: Three-player dry side-pot game
 kind: invariant_test
 records: [I011]
 owner_workstream: M2-A
-target: multiway evaluator (strategy/solvers, proposed)
-test_location: tests/strategy/solvers/test_dry_side_pot.py (proposed)
-status: specified
-implemented_by: []
+target: strategy.games fixture registry (three-player dry side pot), solved by strategy.solve
+test_location: tests/strategy/test_fixture_gates.py, tests/strategy/test_mutations.py
+status: implemented
+implemented_by:
+- tests/strategy/test_fixture_gates.py::test_fixture_gates
+- tests/strategy/test_mutations.py::test_broken_variant_is_caught
 primary_metric: fixture_pass
 minimum_effect:
   value: 1.0

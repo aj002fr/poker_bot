@@ -166,14 +166,14 @@ Dropped plan rows and where they now rank:
 | I004 | Point call threshold and ICM risk premium | T004 | implemented |
 | I005 | ICM scorer and cap allocation invariants | T005 | implemented |
 | I006 | Point conservation and symmetric copies | T006 | specified |
-| I007 | Half-street toy games reproduce known solutions | T007 | specified |
-| I008 | Jam-or-fold toy games reproduce known solutions | T008 | specified |
-| I009 | AKQ games reproduce known solutions | T009 | specified |
-| I010 | Full-street and multistreet toy games reproduce known solutions | T010 | specified |
-| I011 | Three-player dry side-pot game reproduces known thresholds | T011 | specified |
-| I012 | CFR implementations match OpenSpiel oracles | T012 | specified |
-| I013 | Reach weighting and policy averaging are correct | T013 | specified |
-| I014 | Sampled and full traversal agree on tiny games | T014 | specified |
+| I007 | Half-street toy games reproduce known solutions | T007 | implemented |
+| I008 | Jam-or-fold toy games reproduce known solutions | T008 | implemented |
+| I009 | AKQ games reproduce known solutions | T009 | implemented |
+| I010 | Full-street and multistreet toy games reproduce known solutions | T010 | implemented |
+| I011 | Three-player dry side-pot game reproduces known thresholds | T011 | implemented |
+| I012 | CFR implementations match OpenSpiel oracles | T012 | implemented |
+| I013 | Reach weighting and policy averaging are correct | T013 | implemented |
+| I014 | Sampled and full traversal agree on tiny games | T014 | implemented |
 | I015 | Decision-time rows contain only information-set data | T015 | specified |
 | I016 | PHH Pluribus import reproduces published counts | T016 | specified |
 | I017 | Mixed sampling and byte tables are exact | T017 | specified |

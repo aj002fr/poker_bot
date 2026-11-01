@@ -42,11 +42,15 @@ triage:
   rationale: Ladder gate before any blueprint run.
 owner: M2-B
 implementation:
-  module: null
+  module: strategy.solve.cfr
   version_hash: null
 decision_log:
 - date: '2026-11-01'
   status: proposed
   by: M1-B knowledge worker (bc-eb9e72a7)
   note: Created from digest sections without numbered hypotheses; wording paraphrased.
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: T012 is covered by the Stage 2 fixture, oracle and mutation tests in strategy.solve.cfr.
 related: [I013, I014, H042]

@@ -43,11 +43,15 @@ triage:
   rationale: Only fixtures with private-card dependence.
 owner: M2-A
 implementation:
-  module: null
+  module: strategy.games.fixtures
   version_hash: null
 decision_log:
 - date: '2026-11-01'
   status: proposed
   by: M1-B knowledge worker (bc-eb9e72a7)
   note: Created from digest sections without numbered hypotheses; wording paraphrased.
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: T009 is covered by the Stage 2 fixture, oracle and mutation tests in strategy.games.fixtures.
 related: [I007]

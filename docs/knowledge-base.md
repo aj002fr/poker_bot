@@ -29,7 +29,7 @@ not inside a deployed bot.
 | Strategy and method records (`H001`–`H072`) | 72 |
 | Invariant records (`I001`–`I024`) | 24 |
 | Experiment specs (`E001`–`E039`) | 39 |
-| Invariant test specs (`T001`–`T024`) | 24 (5 implemented, 19 specified) |
+| Invariant test specs (`T001`–`T024`) | 24 (13 implemented, 11 specified) |
 
 The 148 digest hypotheses were deduplicated by mechanism. Several books often describe
 the same lever, for example "call all-ins against the point threshold, not chip pot
@@ -281,14 +281,14 @@ and at least one mutation the tests must catch.
 | T004 | Point call threshold and ICM risk premium | M2-C | implemented | `tests/strategy/math/test_points.py` |
 | T005 | ICM scorer and cap allocation invariants | M1-A | implemented | `tests/strategy/math/test_icm_invariants.py` |
 | T006 | Point conservation and symmetric copies | M1-C | specified | `tests/strategy/evaluation/test_point_conservation.py` |
-| T007 | Half-street toy games reproduce known solutions | M2-A | specified | `tests/strategy/solvers/test_half_street.py` |
-| T008 | Jam-or-fold toy games reproduce known solutions | M2-A | specified | `tests/strategy/solvers/test_jam_fold.py` |
-| T009 | AKQ games reproduce known solutions | M2-A | specified | `tests/strategy/solvers/test_akq.py` |
-| T010 | Full-street and multistreet toy games | M2-A | specified | `tests/strategy/solvers/test_multistreet.py` |
-| T011 | Three-player dry side-pot thresholds | M2-A | specified | `tests/strategy/solvers/test_dry_side_pot.py` |
-| T012 | CFR implementations match OpenSpiel oracles | M2-B | specified | `tests/strategy/learning/test_cfr_oracles.py` |
-| T013 | Reach weighting and policy averaging | M2-B | specified | `tests/strategy/learning/test_cfr_updates.py` |
-| T014 | Sampled and full traversal agree on tiny games | M2-B | specified | `tests/strategy/learning/test_sampling.py` |
+| T007 | Half-street toy games reproduce known solutions | M2-A | implemented | `tests/strategy/test_fixture_gates.py`, `test_mutations.py` |
+| T008 | Jam-or-fold toy games reproduce known solutions | M2-A | implemented | `tests/strategy/test_fixture_gates.py`, `test_mutations.py` |
+| T009 | AKQ games reproduce known solutions | M2-A | implemented | `tests/strategy/test_fixture_gates.py`, `test_reach_and_card_removal.py` |
+| T010 | Full-street and multistreet toy games | M2-A | implemented | `tests/strategy/test_fixture_gates.py`, `test_mutations.py` |
+| T011 | Three-player dry side-pot thresholds | M2-A | implemented | `tests/strategy/test_fixture_gates.py`, `test_mutations.py` |
+| T012 | CFR implementations match OpenSpiel oracles | M2-B | implemented | `tests/strategy/test_openspiel_oracle.py`, `test_regret_matching.py`, `test_sampling.py` |
+| T013 | Reach weighting and policy averaging | M2-B | implemented | `tests/strategy/test_averaging.py`, `test_reach_and_card_removal.py`, `test_mutations.py` |
+| T014 | Sampled and full traversal agree on tiny games | M2-B | implemented | `tests/strategy/test_sampling.py`, `test_fixture_gates.py` |
 | T015 | Decision-time rows contain only information-set data | M3-A | specified | `tests/strategy/features/test_no_leakage.py` |
 | T016 | PHH Pluribus import reproduces published counts | M7 | specified | `tests/strategy/data/test_phh_import.py` (release marker) |
 | T017 | Mixed sampling and byte tables are exact | M8 | specified | `tests/strategy/runtime/test_byte_tables.py` |
@@ -299,6 +299,14 @@ and at least one mutation the tests must catch.
 | T022 | Paired evaluation keeps streams coupled; null A/B is honest | M1-C | specified | `tests/strategy/evaluation/test_pairing.py` |
 | T023 | Off-tree translation is deterministic and boundary-safe | M5 | specified | `tests/strategy/abstraction/test_translation.py` |
 | T024 | Side-pot and effective-stack features match the engine | M3-A | specified | `tests/strategy/features/test_side_pots.py` |
+
+The Stage 2 solver work (`strategy.games` and `strategy.solve`) covers T007–T014. Their
+fixture registry reproduces each toy-game case in these specs, and `test_mutations.py`
+breaks the solver in the ways these specs list.
+
+The feature and belief layers may already cover parts of T021 and T024
+(`tests/strategy/test_features_state.py` checks opportunity context, side pots and
+coverage). They stay `specified` until someone checks their cases against those tests.
 
 When you implement a specified test, follow these steps:
 

@@ -1803,35 +1803,35 @@ mandatory_tests:
 - id: I007
   title: Half-street toy games reproduce known solutions
   test_spec: T007
-  test_status: specified
+  test_status: implemented
 - id: I008
   title: Jam-or-fold toy games reproduce known solutions
   test_spec: T008
-  test_status: specified
+  test_status: implemented
 - id: I009
   title: AKQ games reproduce known solutions
   test_spec: T009
-  test_status: specified
+  test_status: implemented
 - id: I010
   title: Full-street and multistreet toy games reproduce known solutions
   test_spec: T010
-  test_status: specified
+  test_status: implemented
 - id: I011
   title: Three-player dry side-pot game reproduces known thresholds
   test_spec: T011
-  test_status: specified
+  test_status: implemented
 - id: I012
   title: CFR implementations match OpenSpiel oracles
   test_spec: T012
-  test_status: specified
+  test_status: implemented
 - id: I013
   title: Reach weighting and policy averaging are correct
   test_spec: T013
-  test_status: specified
+  test_status: implemented
 - id: I014
   title: Sampled and full traversal agree on tiny games
   test_spec: T014
-  test_status: specified
+  test_status: implemented
 - id: I015
   title: Decision-time rows contain only information-set data
   test_spec: T015

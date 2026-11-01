@@ -42,11 +42,15 @@ triage:
   rationale: Guards H043 and H048.
 owner: M2-B
 implementation:
-  module: null
+  module: strategy.solve.mccfr
   version_hash: null
 decision_log:
 - date: '2026-11-01'
   status: proposed
   by: M1-B knowledge worker (bc-eb9e72a7)
   note: Created from digest sections without numbered hypotheses; wording paraphrased.
+- date: '2026-11-01'
+  status: proposed
+  by: M1-B knowledge worker (bc-eb9e72a7)
+  note: T014 is covered by the Stage 2 fixture, oracle and mutation tests in strategy.solve.mccfr.
 related: [I012, H043]

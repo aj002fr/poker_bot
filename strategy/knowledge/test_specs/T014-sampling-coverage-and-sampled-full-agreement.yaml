@@ -4,10 +4,13 @@ title: Sampling coverage and sampled/full agreement
 kind: invariant_test
 records: [I014]
 owner_workstream: M2-B
-target: MCCFR samplers (proposed)
-test_location: tests/strategy/learning/test_sampling.py (proposed)
-status: specified
-implemented_by: []
+target: strategy.solve.mccfr samplers
+test_location: tests/strategy/test_sampling.py, tests/strategy/test_fixture_gates.py
+status: implemented
+implemented_by:
+- tests/strategy/test_sampling.py::test_sampled_regrets_are_unbiased
+- tests/strategy/test_sampling.py::test_biased_sampling_variants_are_detected
+- tests/strategy/test_fixture_gates.py::test_sampled_and_full_traversal_agree
 primary_metric: fixture_pass
 minimum_effect:
   value: 1.0

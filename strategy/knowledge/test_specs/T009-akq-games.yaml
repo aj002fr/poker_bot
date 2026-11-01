@@ -4,10 +4,13 @@ title: AKQ games
 kind: invariant_test
 records: [I009]
 owner_workstream: M2-A
-target: toy-game solver with card removal (strategy/solvers, proposed)
-test_location: tests/strategy/solvers/test_akq.py (proposed)
-status: specified
-implemented_by: []
+target: strategy.games.akq through the fixture registry, solved by strategy.solve
+test_location: tests/strategy/test_fixture_gates.py, tests/strategy/test_reach_and_card_removal.py
+status: implemented
+implemented_by:
+- tests/strategy/test_fixture_gates.py::test_fixture_gates
+- tests/strategy/test_reach_and_card_removal.py::test_akq_card_removal
+- tests/strategy/test_reach_and_card_removal.py::test_akq_dealt_with_replacement_fails_its_gate
 primary_metric: fixture_pass
 minimum_effect:
   value: 1.0

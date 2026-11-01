@@ -4,10 +4,15 @@ title: CFR family matches OpenSpiel oracles
 kind: invariant_test
 records: [I012]
 owner_workstream: M2-B
-target: strategy CFR, CFR+, linear and MCCFR trainers (proposed)
-test_location: tests/strategy/learning/test_cfr_oracles.py (proposed)
-status: specified
-implemented_by: []
+target: strategy.solve.cfr and strategy.solve.mccfr against the pinned OpenSpiel oracle
+test_location: tests/strategy/test_openspiel_oracle.py, tests/strategy/test_regret_matching.py, tests/strategy/test_sampling.py
+status: implemented
+implemented_by:
+- tests/strategy/test_openspiel_oracle.py::test_average_policies_match_openspiel_iterate_by_iterate
+- tests/strategy/test_openspiel_oracle.py::test_nash_conv_matches_openspiel
+- tests/strategy/test_regret_matching.py::test_selfplay_average_converges_while_last_iterate_does_not
+- tests/strategy/test_regret_matching.py::test_average_external_regret_respects_the_regret_matching_bound
+- tests/strategy/test_sampling.py::test_long_es_run_on_leduc
 primary_metric: fixture_pass
 minimum_effect:
   value: 1.0
