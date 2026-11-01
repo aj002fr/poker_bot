@@ -122,5 +122,6 @@ value-fit:
 	for r in $(ENDGAME_RULESETS); do $(UV) run python -m strategy.value.model fit --ruleset $$r || exit 1; done
 
 lab-endgame:
-	for s in endgame-points-vs-chips endgame-points-vs-chart endgame-points-vs-chips-shortdeck endgame-points-vs-none; do \
+	for s in endgame-points-vs-chips endgame-points-vs-chart endgame-points-vs-chips-shortdeck endgame-points-vs-none \
+		endgame-points-vs-chips-confirm; do \
 		$(UV) run python -m strategy.cli experiment $$s --jobs $(LAB_JOBS) || exit 1; done

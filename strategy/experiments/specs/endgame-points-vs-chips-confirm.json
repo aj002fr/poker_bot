@@ -1,0 +1,33 @@
+{
+  "experiment_id": "endgame-points-vs-chips-confirm",
+  "title": "Point-aware vs chip-EV push/fold tables, larger confirmation run (NLHE, full 8-player SNGs)",
+  "description": "Same arms as endgame-points-vs-chips with fresh seeds, 16 validation lineups and four times the blocks. Declared before running: the discovery run was inconclusive with a negative point estimate (-0.36, MDE 0.79), so the question is only the sign; min_effect 0 means B must beat A with the interval excluding zero.",
+  "stage": "confirmation",
+  "min_effect": 0.0,
+  "interval": "paired_t",
+  "arms": {
+    "A": {
+      "policy": "strategy/endgame/bots/chips.py"
+    },
+    "B": {
+      "policy": "strategy/endgame/bots/points.py"
+    }
+  },
+  "variants": [
+    "practice_nlhe"
+  ],
+  "table": {
+    "players": 8,
+    "starting_stack": 2000,
+    "hand_cap": 200
+  },
+  "population": {
+    "source": "strategy.population:PopulationSource",
+    "partition": "validation",
+    "lineups_per_variant": 16
+  },
+  "blocks_per_lineup": 50,
+  "base_seed": "endgame-points-vs-chips-confirm-v1",
+  "isolation": "in_process",
+  "bootstrap_resamples": 2000
+}
