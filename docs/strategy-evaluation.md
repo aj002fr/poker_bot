@@ -201,6 +201,19 @@ whose interval lies above zero, must be consistent with `alpha/2` (binomial
 p ≥ 0.01). An extra cell runs the same salt in both arms, and every block difference
 must be exactly 0.
 
+Measured on this VM (8 CPUs, in-process, stub population):
+
+| spec | blocks | full-sample B − A (95% paired t) | paired t false gains | two-sided rejections: paired t, bootstrap | exact coupling | wall time |
+|---|---|---|---|---|---|---|
+| `null-aa-nlhe` (6 players, cap 50) | 1200 | +0.077 [−0.228, 0.382] | 4/100 (p = 0.24) | 6.0%, 11.0% | identical | 6.5 min |
+| `null-aa-variants` (4 players, cap 40, 3 variants) | 720 | −0.634 [−1.385, 0.117] | 1/60 (p = 0.78) | 6.7%, 16.7% | identical | 2 min |
+
+The paired t interval holds its declared rate. The percentile cluster bootstrap is
+too liberal at 12 blocks per replicate, so `paired_t` stays the default decision
+interval. Use the bootstrap only as a robustness check, or for runs with many more
+blocks. Pairing narrows the interval: the unpaired Welch interval on tables was about
+1.6 times as wide in the NLHE run (10.4 against 6.7 points).
+
 ## Commands
 
 | command | what it does |
