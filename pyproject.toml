@@ -24,13 +24,14 @@ dev = [
 oracle = [
     "open-spiel==2.0.2",
 ]
-# Offline training kernels (strategy/solve); not needed to run bots.
+# Offline training kernels (strategy/solve); not needed to run bots. Opt-in because
+# numba/llvmlite ship no Intel-macOS wheels; the solver make targets add `--group train`.
 train = [
     "numba==0.68.1",
 ]
 
 [tool.uv]
-default-groups = ["dev", "train"]
+default-groups = ["dev"]
 
 [build-system]
 requires = ["hatchling"]

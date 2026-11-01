@@ -76,11 +76,15 @@ make cli-demo      # one seeded 6-player NLHE tournament
 Release verification (spec sections 12 and 13), its gates, checkpoints, failing-seed
 minimizer and mutation checks are described in `docs/release-verification.md`.
 
-The offline solvers (`strategy/solve`, numba in the default `train` group) have their own
-targets. OpenSpiel is a dev-only oracle in the `oracle` group; nothing outside
-`tests/strategy/oracle` and `tests/strategy/test_openspiel_oracle.py` imports it.
+The offline solvers (`strategy/solve`) need numba, which is in the opt-in `train` group:
+`make setup` leaves it out, so the arena installs anywhere, including Intel Macs where
+numba has no wheels. The targets below add it on demand (`uv run --group train`), and
+`make verify-fast` skips the solver test modules when numba is missing. OpenSpiel is a
+dev-only oracle in the `oracle` group; nothing outside `tests/strategy/oracle` and
+`tests/strategy/test_openspiel_oracle.py` imports it.
 
 ```bash
+make verify-strategy    # every fast strategy test, solver tests included
 make gates-stage2       # every Stage 2 fixture gate at n = 200 as a Markdown table
 make verify-solve-slow  # full-resolution gates, ES-MCCFR agreement over seeds, long Leduc runs
 make verify-oracle      # live Kuhn/Leduc cross-checks against OpenSpiel 2.0.2

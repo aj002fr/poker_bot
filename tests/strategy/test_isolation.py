@@ -52,3 +52,4 @@ def test_oracle_and_training_packages_are_not_runtime_dependencies():
     groups = project["dependency-groups"]
     assert any(dep.startswith("open-spiel") for dep in groups["oracle"])
     assert "oracle" not in project["tool"]["uv"]["default-groups"]
+    assert "train" not in project["tool"]["uv"]["default-groups"]

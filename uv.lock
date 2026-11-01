@@ -46,7 +46,6 @@ wheels = [
 name = "arena"
 version = "0.1.0"
 source = { editable = "." }
-default-groups = ["dev", "train"]
 dependencies = [
     { name = "fastapi" },
     { name = "numpy" },
