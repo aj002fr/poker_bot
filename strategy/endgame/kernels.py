@@ -10,7 +10,9 @@ depend on thread scheduling.
 from __future__ import annotations
 
 import numpy as np
-from numba import njit, prange
+from numba import njit, prange, set_num_threads
+
+__all__ = ["evaluate7", "evaluate_many", "heads_up_cells", "set_num_threads", "three_way_cells"]
 
 # Category ids as in strategy.features.cards.
 HIGH_CARD, PAIR, TWO_PAIR, TRIPS, STRAIGHT, FLUSH, FULL_HOUSE, QUADS, STRAIGHT_FLUSH = range(9)

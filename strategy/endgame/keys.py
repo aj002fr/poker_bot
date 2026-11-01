@@ -93,7 +93,8 @@ def pressure(stacks: Sequence[int], hero: int, villain: int, prizes: Sequence[fl
     """ICM risk premium of an all-in for ``min(hero, villain)`` chips between two players.
 
     ``q = (U_fold - U_lose) / (U_win - U_lose)`` is the equity the hero needs to prefer the
-    all-in to keeping its stack, with points from :func:`icm_player`; chip EV needs 0.5.
+    all-in to keeping its stack, with points from :func:`icm_player` (a busted hero takes
+    the last live place); chip EV needs 0.5.
     """
     e = min(stacks[hero], stacks[villain])
     if e <= 0:
@@ -106,7 +107,11 @@ def pressure(stacks: Sequence[int], hero: int, villain: int, prizes: Sequence[fl
     lose[villain] += e
     u_fold = icm_player(stacks, hero, prizes)
     u_win = icm_player(win, hero, prizes)
-    u_lose = icm_player(lose, hero, prizes)
+    if lose[hero] > 0:
+        u_lose = icm_player(lose, hero, prizes)
+    else:
+        live = sum(1 for s in stacks if s > 0)
+        u_lose = float(prizes[live - 1]) if live <= len(prizes) else 0.0
     span = u_win - u_lose
     if span <= 1e-12:
         return 0.0

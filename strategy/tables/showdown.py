@@ -151,9 +151,9 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--out", help="output directory (default: strategy/tables/data)")
     a = ap.parse_args(argv)
     if a.jobs:
-        import numba
+        from strategy.endgame import kernels
 
-        numba.set_num_threads(a.jobs)
+        kernels.set_num_threads(a.jobs)
     params = {k: getattr(a, k) for k in DEFAULTS}
     data = build(a.ruleset, **params)
     seconds = data.pop("_seconds")

@@ -2,7 +2,7 @@
 
 Offline twins of :mod:`arena.tournament.scoring` and the arena's pot rules, written
 for speed (vectorised ICM over many stack vectors) and checked against the arena
-implementations by ``tests/strategy/test_endgame_points.py``:
+implementations by ``tests/strategy/test_endgame.py``:
 
 * :func:`icm_batch` equals ``arena.tournament.scoring.icm`` (Malmuth-Harville).
 * :func:`eliminations` follows ``Standings.record_eliminations``: busted players are
@@ -11,7 +11,7 @@ implementations by ``tests/strategy/test_endgame_points.py``:
   showdown players only, odd chips one each in ``odd_order`` (clockwise from the first
   seat after the button), uncalled excess returned.
 
-The decision-time twin of ICM is :func:`strategy.endgame.keys.icm_values`.
+The decision-time twin of ICM is :func:`strategy.endgame.keys.icm_player`.
 """
 
 from __future__ import annotations

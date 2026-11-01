@@ -98,3 +98,29 @@ lab-null-synthetic:
 
 verify-strategy:
 	$(REQUIRE_NUMBA) $(UV) run $(TRAIN) pytest tests/strategy -m "not slow and not oracle" -q
+
+# Stage 3 endgame (docs: strategy/tables/README.md). Heavy: about 30 minutes on 8 cores.
+.PHONY: tables-showdown tables-endgame gates-endgame value-rollouts value-fit lab-endgame
+ENDGAME_RULESETS ?= practice_nlhe uncertainty_shortdeck
+ENDGAME_JOBS ?= $(JOBS)
+
+# Only the showdown generator needs numba (the evaluator kernel); everything else runs without it.
+tables-showdown:
+	for r in $(ENDGAME_RULESETS); do $(UV) run $(TRAIN) python -m strategy.tables.showdown --ruleset $$r --jobs $(ENDGAME_JOBS) || exit 1; done
+
+tables-endgame:
+	for r in $(ENDGAME_RULESETS); do for m in points chips chart; do \
+		$(UV) run python -m strategy.tables.endgame --ruleset $$r --mode $$m --jobs $(ENDGAME_JOBS) || exit 1; done; done
+
+gates-endgame:
+	$(UV) run python -m strategy.endgame.gates --jobs $(ENDGAME_JOBS)
+
+value-rollouts:
+	for r in $(ENDGAME_RULESETS); do $(UV) run python -m strategy.value.model rollouts --ruleset $$r --jobs $(ENDGAME_JOBS) || exit 1; done
+
+value-fit:
+	for r in $(ENDGAME_RULESETS); do $(UV) run python -m strategy.value.model fit --ruleset $$r || exit 1; done
+
+lab-endgame:
+	for s in endgame-points-vs-chips endgame-points-vs-chart endgame-points-vs-chips-shortdeck endgame-points-vs-none; do \
+		$(UV) run python -m strategy.cli experiment $$s --jobs $(LAB_JOBS) || exit 1; done
