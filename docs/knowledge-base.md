@@ -11,8 +11,15 @@ Everything here is our own paraphrase. Records cite a chapter or page location a
 how the source's setting differs from ours, which is an eight-bot points SNG with a hand
 cap. They never reproduce book text, charts or tables.
 
+The knowledge base sits above the strategy lab described in
+[strategy-evaluation.md](strategy-evaluation.md). Records say what to test, and the lab's
+runnable experiment specs and manifests produce the evidence.
+
 `strategy/math/` holds the exact arithmetic that the records and tests rely on. It uses
-`Fraction` arithmetic and has property tests.
+`Fraction` arithmetic and has property tests. `strategy.math.odds` uses only the
+standard library. `strategy.math.points` calls the arena ICM scorer, so under the lab's
+decision-time boundary it is offline code, used for training labels, tables and tests,
+not inside a deployed bot.
 
 ## Counts
 
@@ -149,6 +156,7 @@ A test checks that no source number in the repository resolves to a default toda
   unit.
 - An `implemented` test spec names its tests as `path::test_name`, those functions exist,
   and the record names its implementation module.
+- Every runnable spec under `run_specs` matches its design (see below).
 - The index is current (`index.md is stale; run …` otherwise).
 
 ## Experiment specs
@@ -165,16 +173,43 @@ Each spec (`knowledge.experiment/v1`) contains:
   across the discovery screen);
 - the primary metric and minimum effect, secondary metrics, slices and guardrails;
 - the partitions, a CPU budget and gates;
-- `blocked_by`, `status` and `result_artifact`.
+- `run_specs`, `blocked_by`, `status` and `result_artifact`.
 
 Minimum effects are labelled `provisional` (the plan has not fixed the points minimum
 effect yet), `plan_gate` (taken from a plan acceptance gate) or `analytic`. The points
 default is 0.004 pool fraction per SNG, provisional. Update that one value when the plan
 fixes it.
 
-These specs are plain YAML written ahead of the experiment-manifest schema in
-`strategy/experiments/`. When that schema lands, the specs and `schema.py` will be
-adapted to it. The record-to-spec link stays the same.
+### Design specs and runnable specs
+
+A knowledge spec is a research design. It can have several arms or factors, and it
+records what has to exist before it can run. The runnable unit is a
+`strategy.experiments` spec (JSON, see [strategy-evaluation.md](strategy-evaluation.md)).
+Each runnable spec is one A/B pair of concrete policy artifacts with a seed, a block
+count and an absolute `min_effect` in points. That spec materializes an immutable
+manifest. A design is executed by listing its runnable specs under `run_specs`, either as
+ids in `strategy/experiments/specs/` or as repository paths. A factorial design usually
+needs one runnable spec per comparison. Lint checks each link:
+
+- The runnable spec loads and validates.
+- Its `hypothesis_id` is the experiment id or one of the experiment's records.
+- It measures the same primary metric. The knowledge metric `mean_point_difference` is
+  the same quantity as the runnable `mean_point_difference`, expressed as a fraction of
+  the point pool.
+- Its kind is `ab`, or `null_calibration` for `null_simulation` designs.
+- It plays only declared variants: `nlhe` is `practice_nlhe`, `short_deck` is
+  `uncertainty_shortdeck` and `plo` is `uncertainty_plo4`.
+- It never uses the final holdout.
+- Its `min_effect` is at least the declared minimum effect times that table's point
+  pool. With the default 50/30/20 payouts the pool is 100 points, so the provisional
+  0.004 becomes 0.4 points per SNG.
+
+A design marked `ready`, `running` or `complete` must list at least one runnable spec.
+When a run concludes, its `report.json` under
+`artifacts/lab/<experiment_id>/<manifest_id>/` becomes the record's
+`experiment.result_artifact`. No design lists a runnable spec today. Every one is waiting
+on policies that do not exist yet (the learners, solvers and feature layers named in its
+`blocked_by`).
 
 ## Triage
 

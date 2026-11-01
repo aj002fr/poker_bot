@@ -1,3 +1,4 @@
+import json
 import shutil
 from pathlib import Path
 
@@ -255,6 +256,71 @@ def test_arm_toggles_must_use_declared_levels(kb_dir):
 
     _edit(_one(kb_dir / "experiment_specs", "E001"), change)
     assert "is not a declared level" in _errors(kb_dir)
+
+
+def _run_spec(directory: Path, **overrides) -> Path:
+    spec = {
+        "experiment_id": "e001-points-vs-chips-screen",
+        "title": "E001 screen",
+        "hypothesis_id": "H001",
+        "stage": "discovery",
+        "min_effect": 0.4,
+        "arms": {"A": {"policy": "style:station"}, "B": {"policy": "baseline:nlhe_heuristic"}},
+        "variants": ["practice_nlhe"],
+        "population": {"partition": "validation"},
+        "blocks_per_lineup": 8,
+        "base_seed": "knowledge/E001",
+    } | overrides
+    path = directory / f"{spec['experiment_id']}.json"
+    path.write_text(json.dumps(spec))
+    return path
+
+
+def _link_run_spec(kb_dir: Path, path: Path) -> None:
+    def change(spec):
+        spec["run_specs"] = [str(path)]
+
+    _edit(_one(kb_dir / "experiment_specs", "E001"), change)
+
+
+def test_a_matching_runnable_spec_links_cleanly(kb_dir, tmp_path):
+    _link_run_spec(kb_dir, _run_spec(tmp_path))
+    assert _errors(kb_dir) == ""
+
+
+def test_runnable_spec_must_name_the_hypothesis_and_meet_the_minimum_effect(kb_dir, tmp_path):
+    _link_run_spec(kb_dir, _run_spec(tmp_path, hypothesis_id="H999", min_effect=0.1,
+                                     variants=["practice_nlhe", "uncertainty_plo4"]))
+    errors = _errors(kb_dir)
+    assert "hypothesis_id 'H999', which names neither E001" in errors
+    assert "below the declared minimum effect (0.004 x 100-point pool = 0.4)" in errors
+
+
+def test_runnable_spec_cannot_play_undeclared_variants_or_the_holdout(kb_dir, tmp_path):
+    def change(spec):
+        spec["variants"]["rehearsal"] = []
+
+    _edit(_one(kb_dir / "experiment_specs", "E001"), change)
+    _link_run_spec(kb_dir, _run_spec(tmp_path, stage="final_holdout",
+                                     population={"partition": "holdout"},
+                                     variants=["uncertainty_shortdeck"]))
+    errors = _errors(kb_dir)
+    assert "plays uncertainty_shortdeck, which E001 does not declare" in errors
+    assert "uses the final holdout" in errors
+
+
+def test_missing_runnable_spec_is_reported(kb_dir, tmp_path):
+    _link_run_spec(kb_dir, tmp_path / "nope.json")
+    assert "could not be loaded" in _errors(kb_dir)
+
+
+def test_ready_experiments_need_a_runnable_spec(kb_dir):
+    def change(spec):
+        spec["status"] = "ready"
+        spec["blocked_by"] = []
+
+    _edit(_one(kb_dir / "experiment_specs", "E001"), change)
+    assert "status ready needs at least one entry in `run_specs`" in _errors(kb_dir)
 
 
 def test_stale_index_is_detected(kb_dir):

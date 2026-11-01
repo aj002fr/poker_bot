@@ -116,7 +116,7 @@ features:
   solver_trace: {group: offline, observable: false}
 
 metrics:
-  mean_point_delta: {unit: pool_fraction_per_sng, note: paired-block difference in official points divided by the total point pool}
+  mean_point_difference: {unit: pool_fraction_per_sng, note: "the strategy.experiments primary metric (paired-block B - A in official points) divided by the total point pool; runnable specs state min_effect in points, i.e. value x pool"}
   worst_family_point_delta: {unit: pool_fraction_per_sng}
   slice_point_delta: {unit: pool_fraction_per_sng, note: paired difference restricted to a predeclared slice}
   exact_state_point_regret: {unit: pool_fraction, note: oracle regret of the chosen mixed action on enumerated states}

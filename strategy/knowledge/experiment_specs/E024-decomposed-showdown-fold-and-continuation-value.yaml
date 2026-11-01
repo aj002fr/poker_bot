@@ -50,7 +50,7 @@ minimum_effect:
   value: 0.01
   unit: pool_fraction
   basis: plan_gate
-metrics: [mean_point_delta]
+metrics: [mean_point_difference]
 slices: [draws, bluff opportunities, street]
 guardrails:
 - >-
@@ -75,6 +75,7 @@ gates:
     timeouts: 0
     decision_latency_p99_ms: 1.0
     artifact_mb_max: 100
+run_specs: []
 blocked_by: [M3-B learner, rollout evaluator]
 status: blocked
 result_artifact: null

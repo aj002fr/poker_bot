@@ -14,6 +14,10 @@ Beyond per-document schema checks (``strategy.knowledge.schema``) this enforces:
 * no parameter default equals a source number unless that number is analytic, so an
   untested book or article figure cannot silently become behaviour;
 * implemented test specs point at test functions that exist;
+* every runnable ``strategy.experiments`` spec an experiment lists under ``run_specs``
+  loads, names the experiment or one of its records as ``hypothesis_id``, measures
+  the same primary metric, plays only declared variants, stays off the final holdout,
+  and uses a ``min_effect`` (points) no smaller than the declared minimum effect;
 * the generated triage index is up to date.
 """
 
@@ -60,6 +64,45 @@ def _check_test_node(node: str) -> str | None:
     if f"def {name.split('[')[0]}(" not in file.read_text(encoding="utf-8"):
         return f"implemented_by test {name} is not defined in {path}"
     return None
+
+
+def _check_run_spec(spec: dict[str, Any], entry: str) -> list[str]:
+    """Problems linking a knowledge experiment to one runnable ``strategy.experiments`` spec."""
+    from strategy.experiments.schema import load_spec
+
+    target: str | Path = entry
+    if entry.endswith(".json"):
+        target = Path(entry) if Path(entry).is_absolute() else REPO_ROOT / entry
+    try:
+        run = load_spec(target)
+    except Exception as exc:  # noqa: BLE001 - any load failure is a lint error
+        return [f"run spec {entry} could not be loaded: {exc}".splitlines()[0]]
+
+    problems = []
+    if run.hypothesis_id not in [*spec["records"], spec["id"]]:
+        problems.append(f"run spec {entry} has hypothesis_id {run.hypothesis_id!r}, "
+                        f"which names neither {spec['id']} nor one of its records")
+    if spec["primary_metric"] != run.primary_metric:
+        problems.append(f"run spec {entry} measures {run.primary_metric}, "
+                        f"not the primary metric {spec['primary_metric']}")
+    expected_kind = "null_calibration" if spec["kind"] == "null_simulation" else "ab"
+    if run.kind != expected_kind:
+        problems.append(f"run spec {entry} is kind {run.kind}; expected {expected_kind}")
+    if run.stage == "final_holdout":
+        problems.append(f"run spec {entry} uses the final holdout, which experiments never do")
+    allowed = {schema.VARIANT_RULESETS.get(v) for v in
+               [*spec["variants"]["primary"], *spec["variants"].get("rehearsal", [])]}
+    for ruleset in run.variants:
+        if ruleset not in allowed:
+            problems.append(f"run spec {entry} plays {ruleset}, which {spec['id']} does not declare")
+    effect = spec["minimum_effect"]
+    if effect["unit"] == "pool_fraction_per_sng":
+        pool = max(sum(run.table.config(v).resolved_payouts) for v in run.variants)
+        needed = effect["value"] * pool
+        if run.min_effect < needed - 1e-9:
+            problems.append(f"run spec {entry} has min_effect {run.min_effect} points, below the "
+                            f"declared minimum effect ({effect['value']} x {pool}-point pool = {needed:g})")
+    return problems
 
 
 def lint(kb: KnowledgeBase | None = None, *, check_index: bool = True) -> list[str]:
@@ -199,6 +242,9 @@ def lint(kb: KnowledgeBase | None = None, *, check_index: bool = True) -> list[s
                                   f"{rec.data['experiment']['id']}")
                 if (rec.data["kind"] == "invariant") != (kind == "test"):
                     errors.append(f"{label}: {rid} is the wrong record kind for this spec")
+            if kind == "experiment":
+                for entry in spec["run_specs"]:
+                    errors.extend(f"{label}: {p}" for p in _check_run_spec(spec, entry))
             if kind == "test":
                 for node in spec["implemented_by"]:
                     problem = _check_test_node(node)

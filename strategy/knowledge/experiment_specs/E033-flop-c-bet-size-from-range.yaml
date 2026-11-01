@@ -85,7 +85,7 @@ minimum_effect:
   value: 0.004
   unit: pool_fraction_per_sng
   basis: provisional
-metrics: [mean_point_delta, approximate_response_loss]
+metrics: [mean_point_difference, approximate_response_loss]
 slices: [heads-up flops, board texture class, SPR bucket]
 guardrails:
 - >-
@@ -110,6 +110,7 @@ gates:
     timeouts: 0
     decision_latency_p99_ms: 1.0
     artifact_mb_max: 100
+run_specs: []
 blocked_by: [M5 blueprint, E014 buckets]
 status: blocked
 result_artifact: null

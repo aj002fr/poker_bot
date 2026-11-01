@@ -84,7 +84,7 @@ minimum_effect:
   value: 0.004
   unit: pool_fraction_per_sng
   basis: provisional
-metrics: [mean_point_delta]
+metrics: [mean_point_difference]
 slices:
 - states entered at 3-8 big blinds
 - three- to five-handed
@@ -114,6 +114,7 @@ gates:
     timeouts: 0
     decision_latency_p99_ms: 1.0
     artifact_mb_max: 100
+run_specs: []
 blocked_by: [M3-A feature layer, M3-B learner]
 status: blocked
 result_artifact: null

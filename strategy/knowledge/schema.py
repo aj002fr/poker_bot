@@ -3,9 +3,10 @@
 Three document types live under ``strategy/knowledge``:
 
 * hypothesis records (``records/*.yaml``): one paraphrased, testable claim each;
-* experiment specs (``experiment_specs/E###.yaml``): reproducible tests of strategy
-  and method records, written against the fields ``strategy/experiments`` manifests use
-  (lineups, seeds, variants, toggles, budget, metrics, gates);
+* experiment specs (``experiment_specs/E###.yaml``): the research design for testing
+  strategy and method records (arms, factors, lineups, slices, guardrails, gates).
+  Each design is executed by one or more runnable ``strategy.experiments`` specs
+  (one A/B pair each), which it lists under ``run_specs``;
 * invariant test specs (``test_specs/T###.yaml``): mandatory correctness tests that
   bypass strategy ranking.
 
@@ -46,6 +47,13 @@ EXPERIMENT_KINDS = (
 )
 EXPERIMENT_MODES = ("discovery", "confirmation")
 EXPERIMENT_STATUSES = ("specified", "ready", "running", "complete", "blocked")
+RUNNABLE_STATUSES = ("ready", "running", "complete")
+VARIANT_RULESETS = {
+    "nlhe": "practice_nlhe",
+    "short_deck": "uncertainty_shortdeck",
+    "plo": "uncertainty_plo4",
+}
+"""Knowledge variant names and the arena ruleset ids runnable specs use for them."""
 TEST_SPEC_STATUSES = ("specified", "implemented")
 MINIMUM_EFFECT_BASES = ("provisional", "plan_gate", "analytic")
 ARM_ROLES = ("control", "treatment")
@@ -86,7 +94,7 @@ EXPERIMENT_FIELDS = (
     "schema", "id", "title", "kind", "mode", "records", "question", "arms", "factors",
     "toggles", "lineups", "variants", "seeds", "design", "primary_metric",
     "minimum_effect", "metrics", "slices", "guardrails", "partitions", "budget", "gates",
-    "blocked_by", "status", "result_artifact",
+    "run_specs", "blocked_by", "status", "result_artifact",
 )  # fmt: skip
 TEST_SPEC_FIELDS = (
     "schema", "id", "title", "kind", "records", "owner_workstream", "target",
@@ -416,6 +424,9 @@ def validate_experiment(doc: Any, label: str) -> list[str]:
     c.text_list(d.get("slices"), "slices", nonempty=False)
     c.text_list(d.get("guardrails"), "guardrails")
     c.text_list(d.get("blocked_by"), "blocked_by", nonempty=False)
+    run_specs = c.text_list(d.get("run_specs"), "run_specs", nonempty=False)
+    if d.get("status") in RUNNABLE_STATUSES and not run_specs:
+        c.fail(f"status {d.get('status')} needs at least one entry in `run_specs`")
     _partitions(c, d.get("partitions"), EXPERIMENT_PARTITIONS, "partitions")
     budget = c.mapping(d.get("budget"), "budget")
     if not is_number(budget.get("cpu_core_hours")):

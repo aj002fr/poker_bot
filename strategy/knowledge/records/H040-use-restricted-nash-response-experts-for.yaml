@@ -36,7 +36,7 @@ parameters:
     values: [0.0, 0.25, 0.5, 0.75, 1.0]
 experiment:
   id: E012
-  primary_metric: mean_point_delta
+  primary_metric: mean_point_difference
   minimum_effect:
     value: 0.004
     unit: pool_fraction_per_sng

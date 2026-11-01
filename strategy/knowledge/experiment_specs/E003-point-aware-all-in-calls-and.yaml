@@ -71,7 +71,7 @@ minimum_effect:
   value: 0.01
   unit: pool_fraction
   basis: plan_gate
-metrics: [mean_point_delta, slice_point_delta]
+metrics: [mean_point_difference, slice_point_delta]
 slices:
 - survivor_count
 - hero_stack_rank
@@ -102,6 +102,7 @@ gates:
     timeouts: 0
     decision_latency_p99_ms: 1.0
     artifact_mb_max: 100
+run_specs: []
 blocked_by: [M2-C scenario/ICM invariant suite]
 status: blocked
 result_artifact: null

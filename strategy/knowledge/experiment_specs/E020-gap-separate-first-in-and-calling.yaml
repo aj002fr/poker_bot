@@ -43,7 +43,7 @@ design:
   interval: paired t 95%; cluster bootstrap over blocks when skewed
   sample_size: N ~ 7.84 sigma_D^2 / delta^2 from a pilot of 100 blocks; no peeking
   multiplicity: Holm across the M1-M3 discovery screen
-primary_metric: mean_point_delta
+primary_metric: mean_point_difference
 minimum_effect:
   value: 0.004
   unit: pool_fraction_per_sng
@@ -73,6 +73,7 @@ gates:
     timeouts: 0
     decision_latency_p99_ms: 1.0
     artifact_mb_max: 100
+run_specs: []
 blocked_by: [M3-B parameterized baseline]
 status: blocked
 result_artifact: null

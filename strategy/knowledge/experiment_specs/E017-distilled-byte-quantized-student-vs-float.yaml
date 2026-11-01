@@ -69,7 +69,7 @@ minimum_effect:
   value: 0.02
   unit: nats_per_decision
   basis: provisional
-metrics: [mean_point_delta, approximate_response_loss]
+metrics: [mean_point_difference, approximate_response_loss]
 slices:
 - low-probability actions (teacher p < 0.05)
 - street
@@ -99,6 +99,7 @@ gates:
     timeouts: 0
     decision_latency_p99_ms: 1.0
     artifact_mb_max: 100
+run_specs: []
 blocked_by: [M8 distillation, T017 byte-table tests]
 status: blocked
 result_artifact: null

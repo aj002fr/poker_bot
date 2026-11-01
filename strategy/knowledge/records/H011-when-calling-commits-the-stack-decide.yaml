@@ -68,7 +68,7 @@ parameters:
     also: continuous learned gate
 experiment:
   id: E006
-  primary_metric: mean_point_delta
+  primary_metric: mean_point_difference
   minimum_effect:
     value: 0.004
     unit: pool_fraction_per_sng

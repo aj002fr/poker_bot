@@ -48,7 +48,7 @@ minimum_effect:
   value: 0.004
   unit: pool_fraction_per_sng
   basis: provisional
-metrics: [mean_point_delta, worst_family_point_delta]
+metrics: [mean_point_difference, worst_family_point_delta]
 slices: [frozen checkpoints, held-out families]
 guardrails:
 - >-
@@ -73,6 +73,7 @@ gates:
     timeouts: 0
     decision_latency_p99_ms: 1.0
     artifact_mb_max: 100
+run_specs: []
 blocked_by: [M2-B CFR implementations, M5 abstraction]
 status: blocked
 result_artifact: null

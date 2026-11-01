@@ -63,7 +63,7 @@ minimum_effect:
   value: 0.004
   unit: pool_fraction_per_sng
   basis: provisional
-metrics: [mean_point_delta]
+metrics: [mean_point_difference]
 slices: [multi-street bluff lines, trap-heavy families, multiway check-downs]
 guardrails:
 - multi-street EV accounting tests (T003) pass
@@ -89,6 +89,7 @@ gates:
     timeouts: 0
     decision_latency_p99_ms: 1.0
     artifact_mb_max: 100
+run_specs: []
 blocked_by: [M5 blueprint, E011 beliefs]
 status: blocked
 result_artifact: null
