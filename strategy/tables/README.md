@@ -26,6 +26,13 @@ utility, the value function and the per-state solver diagnostics (`diag_*`: the
 largest unilateral deviation gain of every solved state). PLO4 is pot-limit, so the
 generators reject it (`UnsupportedVariant`) instead of reusing hold'em assets.
 
+Measured on full SNGs against the validation population (`make lab-endgame`): every
+push/fold layer beats none, but the point-aware tables have not beaten the chip-EV or
+chart tables (NLHE confirmation run: +0.06 points, 95% interval [-0.23, 0.35]; short
+deck discovery run: -0.69 [-1.32, -0.06]). They are equilibrium tables; against
+equilibrium opponents they lose 2.5-3x less than chip-EV tables in the point game
+(`gates-endgame`, table audit), but the population does not play equilibrium.
+
 Files live in `strategy/tables/data/` as gzip-compressed canonical JSON:
 `{"provenance": {...}, "data": {...}}`. Override the directory with `STRATEGY_TABLES_DIR`.
 
