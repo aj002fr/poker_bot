@@ -97,6 +97,15 @@ def test_tiny_search_persists_everything_and_resumes(tmp_path):
     with pytest.raises(RuntimeError, match="different search"):
         run_search(SearchConfig(**{**cfg.__dict__, "seed": "other"}), root=tmp_path, jobs=1, log=lambda s: None)
 
+    prior = json.loads((run / "state.json").read_text())
+    cont = SearchConfig(**{**cfg.__dict__, "run_id": "tiny-cont", "challenger": "mean", "resume_from": str(run),
+                           "seed": "tiny-cont"})
+    run2 = run_search(cont, root=tmp_path, jobs=1, log=lambda s: None)
+    g = json.loads((run2 / "generations.jsonl").read_text().splitlines()[0])
+    first = json.loads((run2 / "evaluations.jsonl").read_text().splitlines()[0])
+    assert g["challenger_role"] == "mean"
+    assert first["role"] == "incumbent" and first["vector_hash"] == prior["incumbent_hash"]
+
 
 def test_phase_equity_adds_up_to_official_points(tmp_path):
     from strategy.search import validate as v

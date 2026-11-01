@@ -54,6 +54,10 @@ class SearchConfig:
     sigma_floor: float = 0.02
     smoothing: float = 0.6
     accept_t: float = 1.28
+    challenger: str = "best"
+    """Which vector the confirmation tests: ``best`` (the top-scoring vector of the
+    generation) or ``mean`` (the distribution mean, whose selection score is unbiased
+    because it was fixed before the generation's tables were drawn)."""
     mirror_rate: float = 0.15
     source: str = DEFAULT_SOURCE
     partition: str = "train"
@@ -66,8 +70,12 @@ class SearchConfig:
     """Initial incumbent and mean (defaults: the hand-written control)."""
     frozen: list[str] = field(default_factory=list)
     """Parameter names held at their start value."""
+    resume_from: str | None = None
+    """Another run directory: start from its incumbent and search distribution."""
 
     def __post_init__(self) -> None:
+        if self.challenger not in ("best", "mean"):
+            raise ValueError("challenger must be best or mean")
         if self.algorithm not in ("cem", "cmaes"):
             raise ValueError("algorithm must be cem or cmaes")
         if self.population < 4 or self.population % 2:
@@ -279,12 +287,18 @@ def run_search(cfg: SearchConfig, *, root: Path = DEFAULT_RUN_ROOT, jobs: int | 
     free = np.array([0.0 if n in cfg.frozen else 1.0 for n in SPACE.names])
     strat: CEM | CMAES = (CEM if cfg.algorithm == "cem" else CMAES)(z0, cfg.init_sigma, cfg, free)
     state = store.load_state()
-    if state is None:
-        gen0, incumbent, inc_hash = 0, _round(start), None
+    if state is None and cfg.resume_from:
+        prior = json.loads((Path(cfg.resume_from) / "state.json").read_text(encoding="ascii"))
+        prev_cfg = json.loads((Path(cfg.resume_from) / "config.json").read_text(encoding="ascii"))
+        if prev_cfg["space_hash"] != SPACE.space_hash() or prev_cfg["config"]["algorithm"] != cfg.algorithm:
+            raise RuntimeError(f"{cfg.resume_from} searched a different space or algorithm")
+        strat.load(prior["strategy"])
+        gen0, incumbent = 0, prior["incumbent"]
+    elif state is None:
+        gen0, incumbent = 0, _round(start)
     else:
         gen0, incumbent = state["next_gen"], state["incumbent"]
         strat.load(state["strategy"])
-        inc_hash = state["incumbent_hash"]
     inc_hash = store.vector(incumbent)
     tconf = cfg.table_config()
     with Evaluator(tconf, jobs) as ev:
@@ -312,7 +326,7 @@ def run_search(cfg: SearchConfig, *, root: Path = DEFAULT_RUN_ROOT, jobs: int | 
                                                    "points": [x["points"] for x in r], "summary": s})
             scores = [s["mean"] for s in summaries[2:]]
             strat.tell(z, scores)
-            best = 1 + int(np.argmax([s["mean"] for s in summaries[1:]]))
+            best = 1 if cfg.challenger == "mean" else 1 + int(np.argmax([s["mean"] for s in summaries[1:]]))
             challenger, ch_hash = vectors[best], hashes[best]
             decision: dict[str, Any] = {"challenger_role": roles[best], "challenger_hash": ch_hash,
                                         "select_vs_incumbent": paired(res[0], res[best])}
