@@ -27,7 +27,10 @@ responses score more tournament points than (a) the point-aware equilibrium tabl
 Table files the runs use (SHA-256 prefix of the `.npz`; experiment manifests pin the
 bot files, not the tables). This list was written before the runs but missed the
 pre-registration commit `c30fd99`, so it was committed afterwards. The table files
-themselves are in `c30fd99` and their hashes match.
+themselves are in `c30fd99` and their hashes match. `c30fd99` (committed
+2026-11-02 00:32 UTC, pushed before the first run at 00:32:40) is kept as the tag
+`prereg-endgame-response`; rebasing onto main turned it into `ea66c63`, with the same
+code, tables and specs.
 
 | table | sha256 |
 | --- | --- |
