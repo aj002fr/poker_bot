@@ -2420,3 +2420,390 @@ textarea:focus-visible {
     margin-bottom: 4px;
   }
 }
+
+/* study mode: predict Pluribus */
+
+.pstudy {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pstudy-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.pstudy-head .lede {
+  max-width: 72ch;
+  margin-bottom: 0;
+}
+
+.pstudy-head a {
+  color: inherit;
+}
+
+.pstudy-score {
+  flex: none;
+  min-width: 190px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.pstudy-score .btn {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.pstudy-score-big {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.pstudy-grid {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 320px;
+  grid-template-areas: 'picker main side';
+  gap: 14px;
+  align-items: start;
+}
+
+.pstudy-main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pstudy-side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pstudy-picker {
+  grid-area: picker;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  min-width: 0;
+}
+
+.pstudy-h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.pstudy-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.pstudy-title .pstudy-h2 {
+  margin: 0;
+}
+
+.pstudy-loading {
+  min-height: 200px;
+}
+
+.pstudy-prompt,
+.pstudy-reveal,
+.pstudy-end {
+  padding: 16px;
+  border-color: var(--ink);
+}
+
+.pstudy-reveal p,
+.pstudy-end p {
+  margin: 0 0 10px;
+}
+
+.pstudy-match {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.pstudy-verdict .seat-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+.pstudy-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pstudy-raises {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+}
+
+.pstudy-opt {
+  min-width: 96px;
+  height: auto;
+  min-height: 40px;
+  padding: 6px 12px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  line-height: 1.2;
+}
+
+.pstudy-size {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.pstudy-sub {
+  margin: 12px 0 6px;
+}
+
+.pstudy-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pstudy-step {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.pstudy-spot {
+  padding: 14px;
+  font-size: 14px;
+}
+
+.pstudy-wait p {
+  margin: 0;
+}
+
+.pstudy-hand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.pstudy-facts {
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pstudy-facts div {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.pstudy-facts dt {
+  color: var(--ink-3);
+  font-size: 12px;
+  padding-top: 2px;
+}
+
+.pstudy-facts dd {
+  margin: 0;
+}
+
+.pstudy-odds {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.pstudy-odds p {
+  margin: 8px 0 0;
+}
+
+.pstudy-meter {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+}
+
+.pstudy-meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 5px;
+  background: var(--accent);
+}
+
+.pstudy-meter-mark {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+}
+
+.pstudy-log {
+  max-height: 320px;
+}
+
+.pstudy-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: auto;
+}
+
+.pstudy-filters button {
+  height: 30px;
+  white-space: nowrap;
+  padding: 0 6px;
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.pstudy-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.pstudy-item {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 6px;
+}
+
+.pstudy-item:hover {
+  border-color: var(--ink-2);
+}
+
+.pstudy-item-on {
+  border-color: var(--ink);
+  background: var(--paper-2);
+}
+
+.pstudy-item-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pstudy-item-meta {
+  grid-column: 1;
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pstudy-item-done {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.pstudy-credit {
+  margin: 0;
+  font-size: 11px;
+}
+
+.pstudy-steps {
+  padding-left: 18px;
+  margin: 0 0 14px;
+}
+
+.pstudy-steps li {
+  margin-bottom: 6px;
+}
+
+.pstudy-card p {
+  max-width: 80ch;
+}
+
+@media (max-width: 1280px) {
+  .pstudy-grid {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-areas:
+      'main side'
+      'picker side';
+  }
+}
+
+@media (max-width: 900px) {
+  .pstudy-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'main'
+      'side'
+      'picker';
+  }
+  .pstudy-head {
+    flex-direction: column;
+  }
+  .pstudy-score {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+  }
+  .pstudy-score .btn {
+    margin: 0 0 0 auto;
+  }
+  .pstudy-list {
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pstudy-prompt,
+  .pstudy-reveal,
+  .pstudy-end {
+    padding: 12px;
+  }
+  .pstudy-options .pstudy-opt {
+    flex: 1 1 30%;
+    min-width: 0;
+  }
+  .pstudy-raises {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pstudy-controls .btn {
+    flex: 1 1 45%;
+  }
+  .pstudy-step {
+    margin-left: 0;
+  }
+}

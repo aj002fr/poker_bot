@@ -16,6 +16,7 @@ import { Results } from './screens/Results'
 import { RunReport } from './screens/RunReport'
 import { RunsScreen } from './screens/Runs'
 import { Setup, formatFailure } from './screens/Setup'
+import { StudyScreen } from './screens/Study'
 import { TableScreen } from './screens/TableScreen'
 
 function useHashRoute(): [string, (path: string) => void] {
@@ -137,6 +138,9 @@ function Header({ route, navigate }: { route: string; navigate: (p: string) => v
         <a href="#/learn" aria-current={route === '/learn' ? 'page' : undefined}>
           Learn
         </a>
+        <a href="#/learn/pluribus" aria-current={route.startsWith('/learn/pluribus') ? 'page' : undefined}>
+          Study Pluribus
+        </a>
         <a href="#/runs" aria-current={route.startsWith('/runs') ? 'page' : undefined}>
           Batch runs
         </a>
@@ -245,6 +249,8 @@ export default function App() {
         <ReplayScreen key={replay[1]} tableId={replay[1]} navigate={navigate} />
       ) : run ? (
         <RunReport key={run[1]} runId={run[1]} />
+      ) : route === '/learn/pluribus' || route.startsWith('/learn/pluribus/') ? (
+        <StudyScreen route={route} navigate={navigate} />
       ) : route === '/learn' ? (
         <LearnScreen navigate={navigate} />
       ) : route === '/runs' ? (

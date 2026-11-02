@@ -19,7 +19,10 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `${uv} run uvicorn --factory arena.api.app:create_app --host 127.0.0.1 --port ${API_PORT}`,
+      // Study mode reads a pack built from the committed Pluribus fixture.
+      command:
+        `${uv} run python -m strategy.data.study --source fixture --out artifacts/e2e-study/pluribus-sample && ` +
+        `${uv} run uvicorn --factory arena.api.app:create_app --host 127.0.0.1 --port ${API_PORT}`,
       cwd: '..',
       url: `http://127.0.0.1:${API_PORT}/health`,
       // Deterministic clock: human deadlines move only through POST /__test__/clock/advance.
@@ -29,6 +32,7 @@ export default defineConfig({
         ARENA_HAND_PAUSE_MS: '0',
         ARENA_OPERATOR_TOKEN: 'e2e-operator-token',
         ARENA_ALLOWED_ORIGINS: `http://127.0.0.1:${WEB_PORT}`,
+        ARENA_STUDY_DIR: 'artifacts/e2e-study',
       },
       reuseExistingServer: false,
     },

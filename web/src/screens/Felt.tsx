@@ -59,6 +59,7 @@ function Seat({
   won,
   position,
   stats,
+  name,
 }: {
   view: TableView
   player: PlayerView
@@ -70,6 +71,7 @@ function Seat({
   won?: number
   position?: PositionLabel
   stats?: SeatStats
+  name?: string
 }) {
   const hero = player.seat === view.hero_seat
   const cards = seatCards(view, player, revealed)
@@ -77,7 +79,7 @@ function Seat({
   const classes = ['seat', `seat-st-${player.status}`, active && 'seat-active', hero && 'seat-hero', won && 'seat-won']
     .filter(Boolean)
     .join(' ')
-  const who = hero ? 'You' : seatWho(info)
+  const who = hero ? 'You' : name ?? seatWho(info)
   return (
     <div
       className={classes}
@@ -139,6 +141,7 @@ export function Felt({
   label = 'Table',
   seatLabels,
   stats,
+  names,
 }: {
   view: TableView
   seats: SeatInfo[]
@@ -148,6 +151,7 @@ export function Felt({
   label?: string
   seatLabels?: Record<string, { label: PositionLabel }>
   stats?: Record<string, SeatStats>
+  names?: Record<number, string>
 }) {
   const positions = useSeatPositions(view.seats, view.hero_seat)
   const info = Object.fromEntries(seats.map((s) => [s.seat, s]))
@@ -168,6 +172,7 @@ export function Felt({
           won={winners?.[p.seat]}
           position={seatLabels?.[String(p.seat)]?.label}
           stats={stats?.[String(p.seat)]}
+          name={names?.[p.seat]}
         />
       ))}
       {view.players

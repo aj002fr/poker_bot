@@ -44,6 +44,7 @@ export const COACH_KEY = 'arena:learn:coach'
 export const SEEN_POSITIONS_KEY = 'arena:learn:seen-positions'
 export const PROGRESS_KEY = 'arena:learn:progress'
 export const LEARN_TABLES_KEY = 'arena:learn:tables'
+export const STUDY_SCORE_KEY = 'arena:learn:pluribus-score'
 
 export const readStored = read
 export const writeStored = write

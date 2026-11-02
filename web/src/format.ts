@@ -51,21 +51,26 @@ export function seatName(seat: number, seats: SeatInfo[] | undefined) {
 }
 
 /** Readable lines for a hand's public events. The first postflop raise_to on a street reads "bets". */
-export function describeEvents(events: PublicEvent[], seats?: SeatInfo[]) {
+export function describeEvents(events: PublicEvent[], seats?: SeatInfo[], nameOf?: (seat: number) => string) {
   const out: { seq: number; text: string; type: string }[] = []
   let opened = false
   for (const e of events) {
     if (e.type === 'BoardDealt') opened = false
-    const text = describeEvent(e, seats, opened)
+    const text = describeEvent(e, seats, opened, nameOf)
     if (e.type === 'ActionApplied' && e.data.action?.type === 'raise_to') opened = true
     if (text) out.push({ seq: e.seq, text, type: e.type })
   }
   return out
 }
 
-function describeEvent(e: PublicEvent, seats: SeatInfo[] | undefined, streetOpened: boolean): string | null {
+function describeEvent(
+  e: PublicEvent,
+  seats: SeatInfo[] | undefined,
+  streetOpened: boolean,
+  nameOf?: (seat: number) => string,
+): string | null {
   const d = e.data
-  const who = (s: number) => seatName(s, seats)
+  const who = (s: number) => nameOf?.(s) ?? seatName(s, seats)
   switch (e.type) {
     case 'HandStarted':
       return `Hand ${d.hand_number} · blinds ${chips(d.small_blind)}/${chips(d.big_blind)}`

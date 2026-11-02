@@ -3,6 +3,7 @@ import { ApiFailure, api, createAndJoin, loadCredentials, useStyles, type Create
 import { GLOSSARY } from '../learn/glossary'
 import { RANKINGS } from '../learn/HandRankings'
 import { rememberLearnTable, useProgress } from '../learn/progress'
+import { totals, useStudyScore } from '../learn/studyScore'
 import { range } from '../learn/styles'
 import type { StyleMode } from '../types'
 import { formatFailure } from './Setup'
@@ -92,6 +93,8 @@ export function stepBody(step: Step): CreateBody {
 export function LearnScreen({ navigate }: { navigate: (p: string) => void }) {
   const catalog = useStyles()
   const [progress] = useProgress()
+  const [score] = useStudyScore()
+  const studied = totals(score)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const done = STEPS.filter((s) => progress.steps[s.id]?.done).length
@@ -130,6 +133,26 @@ export function LearnScreen({ navigate }: { navigate: (p: string) => void }) {
       </section>
 
       {error && <p className="error">{error}</p>}
+
+      <section className="panel learn-step pstudy-card" data-testid="learn-study">
+        <div className="step-head">
+          <h2 className="step-title">Study mode: predict Pluribus</h2>
+          {studied.decisions > 0 && (
+            <span className="seat-badge seat-badge-won">
+              {studied.action} of {studied.decisions} matched
+            </span>
+          )}
+        </div>
+        <p>
+          Replay real six-player hands played by Pluribus, the AI that beat top professionals. The hand pauses at each of its decisions: you
+          choose an action and a size, then see what Pluribus did, with the pot odds and equity for that spot.
+        </p>
+        <div className="step-actions">
+          <a className="btn btn-primary" href="#/learn/pluribus">
+            {studied.decisions > 0 ? 'Keep studying' : 'Start studying'}
+          </a>
+        </div>
+      </section>
 
       <ol className="learn-steps">
         {STEPS.map((step, i) => {

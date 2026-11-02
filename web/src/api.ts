@@ -9,6 +9,10 @@ import type {
   RunBrief,
   RunView,
   Snapshot,
+  StudyFilter,
+  StudyHand,
+  StudyHandPage,
+  StudyPack,
   StyleMode,
   StylesCatalog,
 } from './types'
@@ -162,6 +166,13 @@ export const api = {
     }),
   styles: () => request<StylesCatalog>('/styles'),
   aids: (tableId: string, seatToken: string) => request<Aids>(`/tables/${tableId}/aids`, { token: seatToken }),
+  studyPacks: () => request<{ packs: StudyPack[] }>('/study/packs'),
+  studyHands: (pack: string, filter: StudyFilter, offset: number, limit: number) =>
+    request<StudyHandPage>(
+      `/study/packs/${encodeURIComponent(pack)}/hands?filter=${filter}&offset=${offset}&limit=${limit}`,
+    ),
+  studyHand: (pack: string, hand: string) =>
+    request<StudyHand>(`/study/packs/${encodeURIComponent(pack)}/hands/${encodeURIComponent(hand)}`),
 }
 
 /** Creates a table; when it has a human seat, this tab claims the first one. */

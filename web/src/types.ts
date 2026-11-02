@@ -413,3 +413,118 @@ export type Action =
   | { type: 'check' }
   | { type: 'call' }
   | { type: 'raise_to'; amount: number }
+
+export type StudyFilter = 'all' | 'postflop' | 'showdown' | 'big_pot'
+export type StudyKind = 'fold' | 'check' | 'call' | 'raise'
+
+export interface StudyPack {
+  id: string
+  title: string
+  hero: string
+  ruleset_id: string
+  hands: number
+  decisions: number
+  transform: string
+  caveat: string
+  filters: Record<StudyFilter, number>
+  dataset: { citation: string; licence: string; repo: string; commit: string; paper_doi: string; dataset_doi: string }
+}
+
+export interface StudyHandSummary {
+  id: string
+  title: string
+  position: PositionLabel
+  hand: string
+  decisions: number
+  last_street: Street
+  showdown: boolean
+  pot_bb: number
+  net_bb: number
+}
+
+export interface StudyHandPage {
+  pack: string
+  filter: StudyFilter
+  total: number
+  offset: number
+  hands: StudyHandSummary[]
+}
+
+export interface StudyFrame {
+  kind: 'deal' | 'action' | 'hand_end'
+  seq: number
+  street: Street | null
+  actor_seat: number | null
+  board: string[]
+  pot_total: number
+  settled_pot: number
+  current_bet_to: number
+  pots: PotView[]
+  players: (Omit<PlayerView, 'shown_cards'> & { shown_cards?: string[] })[]
+}
+
+export interface StudyOption {
+  key: string
+  kind: StudyKind
+  amount: number | null
+  size?: string
+  fraction?: number
+  bet?: boolean
+}
+
+export interface StudySpot {
+  position: PositionLabel
+  in_position: boolean
+  facing: string
+  pot: number
+  to_call: number
+  pot_odds: number
+  pot_bb: number
+  stack_bb: number
+  effective_bb: number
+  spr: number
+  opponents: number
+  behind: number
+  raises: number
+  hand: string
+  preflop_percentile: number
+  equity: number
+  equity_source: 'table' | 'parent' | 'prior'
+  made: string | null
+  outs: number
+  draws: string[]
+  board: string[]
+}
+
+export interface StudyDecision {
+  frame: number
+  street: Street
+  options: StudyOption[]
+  pluribus: { kind: StudyKind; amount: number | null; option: string; exact?: boolean; fraction?: number; size?: string }
+  spot: StudySpot
+}
+
+export interface StudyHand {
+  id: string
+  title: string
+  ruleset_id: string
+  blinds: { small_blind: number; big_blind: number }
+  hero_seat: number
+  hero_name: string
+  button_seat: number
+  small_blind_seat: number | null
+  big_blind_seat: number | null
+  seats: { seat: number; name: string; position: PositionLabel; start_stack: number }[]
+  hole_cards: string[]
+  frames: StudyFrame[]
+  events: PublicEvent[]
+  decisions: StudyDecision[]
+  result: {
+    final_stacks: Record<string, number>
+    net: Record<string, number>
+    hole_cards: Record<string, string[]>
+    board: string[]
+    showdown: number[]
+    notes: string[]
+  }
+}
