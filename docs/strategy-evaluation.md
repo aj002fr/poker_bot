@@ -241,6 +241,26 @@ cgroup v2 `cpu.max` quota, and counts physical cores rather than SMT threads.
 `python -m strategy.cli capacity` prints it. `--jobs` above the safe count is allowed
 with a warning; the timeout integrity gate catches the result.
 
+**The floor at 1 job is host stalls.** Six sandboxed calling stations (16 µs
+decisions), one table at a time, timed out on 0.035% of 360,000 decisions. With the
+pool quiesced so no worker started during a table, the rate was 0.039%. Two spinning
+monitor processes saw 4–6 stalls of at least 1 ms per minute, and 8–13 of at least
+500 µs, with nothing else running. A timeout needs a stall of about 780 µs or more on
+the parent's or the worker's vCPU within the decision window, and at that stall rate
+the expected timeout rate is about 0.03%.
+
+The harness adds three things, none of them a source of stalls:
+
+- **Fixed overhead.** About 220 µs at the median: 110 µs for the worker to parse the
+  observation, and 95 µs for serialization and the pipe.
+- **Parent GC pauses.** Gen2 collections in the harness process take 30–50 ms. They
+  rarely land between dispatch and receive: 1–4 of 264 timeouts.
+- **Worker start-ups.** They matter only when jobs share cores.
+
+Timer reads (kvm-clock) cost 45 ns. Neither process sleeps on the critical path: the
+parent spins, and the worker spins after a wake notice. The guest has no cpufreq
+governor or cpuidle driver to tune.
+
 ### Null A/B calibration
 
 Arms A and B are the same artifact. A **salted** arm wraps the bot so that
@@ -252,18 +272,35 @@ whose interval lies above zero, must be consistent with `alpha/2` (binomial
 p ≥ 0.01). An extra cell runs the same salt in both arms, and every block difference
 must be exactly 0.
 
-Measured on this VM (8 CPUs, in-process, stub population):
+Measured on this VM (8 CPUs). The in-process runs use the stub population at the
+in-process default of 7 jobs. The sandboxed run uses the registry at the safe default
+of 1 job.
 
 | spec | blocks | full-sample B − A (95% paired t) | paired t false gains | two-sided rejections: paired t, bootstrap | exact coupling | wall time |
 |---|---|---|---|---|---|---|
-| `null-aa-nlhe` (6 players, cap 50) | 1200 | +0.077 [−0.228, 0.382] | 4/100 (p = 0.24) | 6.0%, 11.0% | identical | 6.5 min |
-| `null-aa-variants` (4 players, cap 40, 3 variants) | 720 | −0.634 [−1.385, 0.117] | 1/60 (p = 0.78) | 6.7%, 16.7% | identical | 2 min |
+| `null-aa-nlhe` (6 players, cap 50) | 1200 | +0.077 [−0.228, 0.382] | 4/100 (p = 0.24) | 6.0%, 13.0% | identical | 7 min |
+| `null-aa-variants` (4 players, cap 40, 3 variants) | 720 | −0.634 [−1.385, 0.117] | 1/60 (p = 0.78) | 6.7%, 15.0% | identical | 2 min |
+| `null-aa-sandbox` (6 players, cap 50, sandboxed, registry) | 400 | −0.055 [−0.428, 0.318] | 0/50 (p = 1.0) | 2.0%, 24.0% | identical on 8 of 12 tables; 4 had a timeout | 82 min |
+
+Run directories: `artifacts/lab/null-aa-nlhe/m_adeeb5bfbae46f1155d45ee6a9b1b6c2`,
+`null-aa-variants/m_b9825ab6f2e5cc540ddbe8ffb365173b` and
+`null-aa-sandbox/m_63d904e9230af8c3fb657977696865d5`. The in-process points match the
+runs made before the timeout gate existed, digit for digit. Their manifest ids changed
+because the gate fields are part of the spec, and the bootstrap column moved because
+its resampling seed is the manifest id.
+
+In the sandboxed run the deadline held. Over every seat, 0.054% (arm A) and 0.038%
+(arm B) of about 756,000 decisions per arm timed out, and no single entrant exceeded
+0.08%. The candidate's end-to-end p99 was 0.46 ms. Exact coupling compares only
+tables without a timeout in either arm, because a forced fold in one arm alone is a
+legitimate divergence.
 
 The paired t interval holds its declared rate. The percentile cluster bootstrap is
-too liberal at 12 blocks per replicate, so `paired_t` stays the default decision
-interval. Use the bootstrap only as a robustness check, or for runs with many more
-blocks. Pairing narrows the interval: the unpaired Welch interval on tables was about
-1.6 times as wide in the NLHE run (10.4 against 6.7 points).
+too liberal with few blocks per replicate (12 in the in-process runs, 4 in the
+sandboxed one), so `paired_t` stays the default decision interval. Use the bootstrap
+only as a robustness check, or for runs with many more blocks. Pairing narrows the
+interval: the unpaired Welch interval on tables was about 1.6 times as wide in the
+NLHE run (10.4 against 6.7 points).
 
 ## Commands
 

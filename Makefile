@@ -133,7 +133,7 @@ value-fit:
 lab-endgame:
 	for s in endgame-points-vs-chips endgame-points-vs-chart endgame-points-vs-chips-shortdeck endgame-points-vs-none \
 		endgame-points-vs-chips-confirm; do \
-		$(UV) run python -m strategy.cli experiment $$s --jobs $(LAB_JOBS) || exit 1; done
+		$(UV) run python -m strategy.cli experiment $$s $(LAB_JOBS_FLAG) || exit 1; done
 
 # Baseline policy search (Stage 1 B/D; docs/baseline-policy.md). Long runs: never in CI.
 # Runs land in artifacts/search/<run_id>/ and resume where they stopped. nlhe-cem-v2 starts from
@@ -160,12 +160,12 @@ package-baseline:
 # Paired promotion check on the validation partition (in-process; official points; phases.json added).
 validate-baseline:
 	$(UV) run python -m strategy.search.validate baseline-validation-nlhe --candidate $(BASELINE_CANDIDATE) \
-		--jobs $(LAB_JOBS)
+		--jobs $(or $(LAB_JOBS),$(SEARCH_JOBS))
 
 # Rehearsal: the same NLHE-searched vector on short deck and PLO4 (no claims, discovery stage).
 validate-baseline-variants:
 	$(UV) run python -m strategy.search.validate baseline-rehearsal-variants --candidate $(BASELINE_CANDIDATE) \
-		--jobs $(LAB_JOBS)
+		--jobs $(or $(LAB_JOBS),$(SEARCH_JOBS))
 
 # The packaged bot through the real sandbox worker, one table at a time (run on an otherwise idle machine).
 gate-baseline: package-baseline
