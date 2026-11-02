@@ -23,6 +23,12 @@ Infrastructure failures and reruns (spec section 9.2)
     invalidate a table. The rerun decision looks only at those infrastructure
     events, never at results, and every attempt is reported.
 
+Host control and timeout replay (opt-in)
+    ``run_benchmark(control=..., control_every=k)`` interleaves tables seated
+    entirely with a no-op control bot, so a run measures its own host-stall rate;
+    ``timeout_inputs`` replays timed-out explicit-state decisions after each table.
+    Neither changes the schedule, the seeds or the scores of the main tables.
+
 Isolation
     ``sandbox`` (default) runs every seat in a pooled, sandboxed worker under the
     1 ms deadline. ``in_process`` calls the bots directly: a diagnostic mode for
@@ -53,15 +59,18 @@ from pydantic import Field, StrictInt, StrictStr
 
 from arena.agents.sdk import BotInfo, TableInfo, load_bot, require_supported
 from arena.agents.worker import (
+    REPLAY_BUDGET_NS,
     AgentLoadError,
     Artifact,
     InProcessSeat,
     SeatAgent,
+    TimeoutRecord,
     WorkerPool,
     WorkerSeat,
     WorkerStartError,
     artifact_hash,
     play_table,
+    replay_decision,
 )
 from arena.benchmark.manifest import (
     RunManifest,
@@ -150,6 +159,8 @@ class Assignment:
     seed: str
     seats: dict[int, int]
     """seat -> entrant index"""
+    control: bool = False
+    """An interleaved host-control table (see :func:`run_benchmark`); no history is saved."""
 
     @property
     def table_id(self) -> str:
@@ -167,6 +178,27 @@ def schedule(config: TournamentConfig, n_entrants: int, blocks: int, base_seed: 
         for r in range(len(seats)):
             mapping = {seats[(i + r) % len(seats)]: i for i in range(n_entrants)}
             out.append(Assignment(len(out), b, r, seed, dict(sorted(mapping.items()))))
+    return out
+
+
+def interleave_controls(config: TournamentConfig, plan: Sequence[Assignment], control_entrant: int, every: int,
+                        base_seed: str) -> list[Assignment]:
+    """Insert a control table (every seat held by ``control_entrant``) after every
+    ``every`` tables of ``plan``, and one before the first, so the control samples the
+    host across the whole run. Control tables get their own seeds and indices after
+    the plan's."""
+    if every < 1:
+        return list(plan)
+    n = 1 + len(plan) // every
+    seeds = derive_seeds(f"{base_seed}|host-control", n)
+    seats = {s: control_entrant for s in config.resolved_seats}
+    out: list[Assignment] = []
+    k = 0
+    for i, a in enumerate(plan):
+        if i % every == 0:
+            out.append(Assignment(len(plan) + k, -1, 0, seeds[k], dict(seats), control=True))
+            k += 1
+        out.append(a)
     return out
 
 
@@ -215,6 +247,9 @@ class TableResult:
     invalid_reason: str | None = None
     """One of :data:`INFRASTRUCTURE_CAUSES` when infrastructure invalidated this attempt."""
     infrastructure: list[dict[str, Any]] = field(default_factory=list)
+    timeouts: dict[int, list[dict[str, Any]]] = field(default_factory=dict)
+    """entrant -> :meth:`TimeoutRecord.as_dict` per timeout, with ``seat`` and, for
+    replayed explicit-state decisions, ``replay`` (see :class:`TableRunner`)."""
 
     @property
     def state_lost(self) -> list[int]:
@@ -275,15 +310,25 @@ class _InjectedFaults:
 
 
 class TableRunner:
-    """Plays assignments in one process. Owns a worker pool in sandbox mode."""
+    """Plays assignments in one process. Owns a worker pool in sandbox mode.
+
+    With ``timeout_inputs=N`` each sandboxed explicit-state seat keeps the inputs of
+    its first N timeouts per table, and after the table each of those decisions is
+    replayed ``replay_repeats`` times in a fresh worker
+    (:func:`arena.agents.worker.replay_decision`). The replay never affects the
+    table's result; it only labels the timeout record.
+    """
 
     def __init__(self, config: TournamentConfig, entrants: Sequence[Entrant], *, isolation: Isolation = "sandbox",
-                 budget_ns: int | None = None, history_dir: Path | None = None, pool_size: int | None = None) -> None:
+                 budget_ns: int | None = None, history_dir: Path | None = None, pool_size: int | None = None,
+                 timeout_inputs: int = 0, replay_repeats: int = 3) -> None:
         self.config = config
         self.entrants = list(entrants)
         self.isolation = isolation
         self.budget_ns = budget_ns or config.bot_budget_ns
         self.history_dir = history_dir
+        self.timeout_inputs = timeout_inputs
+        self.replay_repeats = replay_repeats
         self.pool_size = pool_size or len(config.resolved_seats) + 2
         self.pool: WorkerPool | None = None
         self.artifacts: list[Artifact] = []
@@ -315,7 +360,8 @@ class TableRunner:
             if self.pool is None:
                 self._start_pool()
             assert self.pool is not None
-            return WorkerSeat(seat, self.artifacts[entrant], info, self.pool.acquire, budget_ns=self.budget_ns)
+            return WorkerSeat(seat, self.artifacts[entrant], info, self.pool.acquire, budget_ns=self.budget_ns,
+                              timeout_inputs=self.timeout_inputs)
         art = self.artifacts[entrant]
         bot, bot_info = load_bot(art.entry, module_name=f"arena_inproc_{entrant}_{seat}")
         return InProcessSeat(seat, bot, bot_info, info, art.sha256)
@@ -351,20 +397,23 @@ class TableRunner:
             for agent in agents.values():
                 agent.close()
         for seat, agent in agents.items():
+            # One entrant may hold several seats (control tables), so stats add up.
             e, st = a.seats[seat], agent.stats
-            result.decisions[e] = st.decisions
-            result.fallbacks[e] = dict(st.fallbacks)
-            result.restarts[e] = [(r.decision_index, r.cause, r.restored) for r in st.restarts]
-            result.late_discarded[e] = st.late_discarded
-            result.max_state_bytes[e] = st.max_state_bytes
-            result.e2e_ns[e] = array("q", st.e2e_ns).tobytes()
-            result.worker_wall_ns[e] = array("q", st.worker_wall_ns).tobytes()
-            result.worker_cpu_ns[e] = array("q", st.worker_cpu_ns).tobytes()
+            result.decisions[e] = result.decisions.get(e, 0) + st.decisions
+            result.fallbacks[e] = dict(Counter(result.fallbacks.get(e, {})) + Counter(st.fallbacks))
+            result.restarts.setdefault(e, []).extend((r.decision_index, r.cause, r.restored) for r in st.restarts)
+            result.late_discarded[e] = result.late_discarded.get(e, 0) + st.late_discarded
+            result.max_state_bytes[e] = max(result.max_state_bytes.get(e, 0), st.max_state_bytes)
+            result.e2e_ns[e] = result.e2e_ns.get(e, b"") + array("q", st.e2e_ns).tobytes()
+            result.worker_wall_ns[e] = result.worker_wall_ns.get(e, b"") + array("q", st.worker_wall_ns).tobytes()
+            result.worker_cpu_ns[e] = result.worker_cpu_ns.get(e, b"") + array("q", st.worker_cpu_ns).tobytes()
             result.infrastructure += [{"entrant": e, "seat": seat, "decision": i, "event": ev}
                                       for i, ev in st.infrastructure]
+            result.timeouts.setdefault(e, []).extend(
+                {**rec.as_dict(), "seat": seat, **self._replay(agent, e, rec)} for rec in st.timeouts)
             if result.invalid_reason is None:
                 result.invalid_reason = _seat_invalidation(st)
-        if self.history_dir is not None and table is not None and result.error is None:
+        if self.history_dir is not None and table is not None and result.error is None and not a.control:
             target = self.history_dir if result.invalid_reason is None else (
                 self.history_dir / "invalid" / f"a{attempt}")
             try:
@@ -378,16 +427,27 @@ class TableRunner:
         result.wall_s = time.perf_counter() - t0
         return result
 
+    def _replay(self, agent: SeatAgent, entrant: int, rec: TimeoutRecord) -> dict[str, Any]:
+        if not rec.replayable or self.pool is None or not isinstance(agent, WorkerSeat):
+            return {}
+        assert rec.observation is not None and rec.committed is not None
+        try:
+            runs = replay_decision(self.pool.acquire, self.artifacts[entrant], agent.table_info, rec.observation,
+                                   rec.committed, repeats=self.replay_repeats)
+        except Exception as exc:  # a replay that cannot run leaves the timeout unclassified
+            return {"replay": {"error": f"{type(exc).__name__}: {exc}"[:500]}}
+        return {"replay": {"budget_ns": REPLAY_BUDGET_NS, "runs": runs}}
+
 
 _RUNNER: TableRunner | None = None
 
 
 def _job_init(config_json: str, entrants: list[Entrant], isolation: Isolation, budget_ns: int,
-              history_dir: str | None) -> None:
+              history_dir: str | None, timeout_inputs: int = 0) -> None:
     global _RUNNER
     config = TournamentConfig.model_validate_json(config_json)
     _RUNNER = TableRunner(config, entrants, isolation=isolation, budget_ns=budget_ns,
-                          history_dir=Path(history_dir) if history_dir else None)
+                          history_dir=Path(history_dir) if history_dir else None, timeout_inputs=timeout_inputs)
 
 
 def _job_run(a: Assignment, attempt: int = 1, fault: str | None = None) -> TableResult:
@@ -625,6 +685,31 @@ def summarize(results: Sequence[TableResult], entrants: Sequence[Entrant], infos
     }
 
 
+def control_summary(attempts: Sequence[TableResult], entrant: int, control: Entrant, info: BotInfo, every: int,
+                    budget_ns: int) -> dict[str, Any]:
+    """Host-stall measurement from the interleaved control tables (every attempt)."""
+    decisions = sum(r.decisions.get(entrant, 0) for r in attempts)
+    timeouts = sum(r.fallbacks.get(entrant, {}).get("timeout", 0) for r in attempts)
+    e2e = [x for r in attempts for x in array("q", r.e2e_ns.get(entrant, b""))]
+    wall = [x for r in attempts for x in array("q", r.worker_wall_ns.get(entrant, b""))]
+    cpu = [x for r in attempts for x in array("q", r.worker_cpu_ns.get(entrant, b""))]
+    outcomes: Counter = Counter(t["outcome"] for r in attempts for t in r.timeouts.get(entrant, []))
+    return {
+        "name": control.name,
+        "bot_name": info.name,
+        "artifact_sha256": artifact_hash(control.path),
+        "every_tables": every,
+        "tables": len(attempts),
+        "tables_valid": sum(1 for r in attempts if r.valid),
+        "decisions": decisions,
+        "timeout_fallbacks": timeouts,
+        "timeout_rate": timeouts / decisions if decisions else None,
+        "timeout_outcomes": dict(sorted(outcomes.items())),
+        "fallback_total": sum(sum(r.fallbacks.get(entrant, {}).values()) for r in attempts),
+        "timing": timing_summary(e2e, wall, cpu, budget_ns),
+    }
+
+
 # ------------------------------------------------------------------ manifest
 
 
@@ -667,6 +752,8 @@ class BenchmarkRun:
     out_dir: Path | None
     attempts: list[TableResult] = field(default_factory=list)
     """Every attempt, including those invalidated by infrastructure and rerun."""
+    control: list[TableResult] = field(default_factory=list)
+    """Every attempt of the interleaved control tables (empty without ``control``)."""
 
 
 def run_benchmark(
@@ -683,11 +770,22 @@ def run_benchmark(
     run_id: str | None = None,
     progress: Callable[[int, int, TableResult], None] | None = None,
     retry_policy: RetryPolicy | None = None,
+    control: Entrant | None = None,
+    control_every: int = 0,
+    timeout_inputs: int = 0,
     _faults: Mapping[tuple[int, int], str] | None = None,
 ) -> BenchmarkRun:
     """Run the benchmark. ``progress`` is called once per scheduled table, with its
     final attempt. ``_faults`` maps (assignment index, attempt) to an injected
-    infrastructure fault and exists for tests only."""
+    infrastructure fault and exists for tests only.
+
+    With ``control`` and ``control_every=k``, a control table seated entirely with
+    ``control`` (normally a no-op bot) is played before the first table and after
+    every k tables, in the same job processes, so its timeouts measure the host's
+    stall rate during the run (:func:`interleave_controls`). Control tables never
+    enter the scores; they are returned in :attr:`BenchmarkRun.control` and
+    summarised under ``summary["control"]``. ``timeout_inputs`` turns on timeout
+    replay (:class:`TableRunner`)."""
     budget_ns = budget_ns or config.bot_budget_ns
     infos = inspect_entrants(config, entrants, isolation)
     plan = schedule(config, len(entrants), blocks, base_seed)
@@ -697,18 +795,40 @@ def run_benchmark(
         domain="arena-benchmark-id-v1")[:12]
     history_dir = (out_dir / "tables") if (out_dir is not None and save_histories) else None
     policy = retry_policy or RetryPolicy()
-    results, attempts = _play_with_retries(
-        plan, policy,
-        make_runner=lambda: TableRunner(config, entrants, isolation=isolation, budget_ns=budget_ns,
-                                        history_dir=history_dir),
+    seated = list(entrants)
+    full_plan: list[Assignment] = plan
+    control_info: list[BotInfo] = []
+    if control is not None and control_every > 0:
+        control_info = inspect_entrants(config, [control], isolation)
+        seated.append(control)
+        full_plan = interleave_controls(config, plan, len(entrants), control_every, base_seed)
+    main_done = 0
+
+    def on_table(_done: int, _total: int, r: TableResult) -> None:
+        nonlocal main_done
+        if r.index < len(plan) and progress is not None:
+            main_done += 1
+            progress(main_done, len(plan), r)
+
+    played, played_attempts = _play_with_retries(
+        full_plan, policy,
+        make_runner=lambda: TableRunner(config, seated, isolation=isolation, budget_ns=budget_ns,
+                                        history_dir=history_dir, timeout_inputs=timeout_inputs),
         jobs=jobs,
-        job_initargs=(config.model_dump_json(), list(entrants), isolation, budget_ns,
-                      str(history_dir) if history_dir else None),
+        job_initargs=(config.model_dump_json(), seated, isolation, budget_ns,
+                      str(history_dir) if history_dir else None, timeout_inputs),
         faults=_faults or {},
-        progress=progress,
+        progress=on_table,
     )
+    results = [r for r in played if r.index < len(plan)]
+    attempts = [r for r in played_attempts if r.index < len(plan)]
+    control_attempts = [r for r in played_attempts if r.index >= len(plan)]
     summary = json.loads(canonical_json(summarize(results, entrants, infos, budget_ns, base_seed,
                                                   attempts=attempts)))
+    if control_info:
+        assert control is not None
+        summary["control"] = json.loads(canonical_json(
+            control_summary(control_attempts, len(entrants), control, control_info[0], control_every, budget_ns)))
     competitive = isolation == "sandbox" and budget_ns == config.bot_budget_ns
     seats = config.resolved_seats
     seat_points = {s: 0.0 for s in seats}
@@ -772,7 +892,7 @@ def run_benchmark(
         private = out_dir / "private"
         private.mkdir(exist_ok=True)
         (private / "seeds.json").write_text(canonical_json({"run_id": run_id, "seeds": seeds}) + "\n", encoding="ascii")
-    return BenchmarkRun(manifest, results, out_dir, attempts)
+    return BenchmarkRun(manifest, results, out_dir, attempts, control_attempts)
 
 
 def _failure_text(r: TableResult) -> str:
@@ -792,7 +912,9 @@ __all__ = [
     "TableResult",
     "TableRunner",
     "bootstrap_interval",
+    "control_summary",
     "inspect_entrants",
+    "interleave_controls",
     "run_benchmark",
     "schedule",
     "summarize",

@@ -246,12 +246,12 @@ def _print_benchmark(run, focus: list[int]) -> None:
     print("practice assumptions; not official Sequoia rules. Results against baselines say little about strength.")
 
 
-def _default_jobs() -> int:
-    """About one table per four CPUs: a table loop, its acting worker and replacement
-    worker start-up each need a CPU, and oversubscription shows up as timeouts."""
-    import os
+def _default_jobs(isolation: str) -> int:
+    """One sandboxed table per four physical cores, one core kept for this process
+    (:mod:`arena.benchmark.capacity`): oversubscription shows up as timeouts."""
+    from arena.benchmark.capacity import safe_jobs
 
-    return max(1, min(4, (os.cpu_count() or 4) // 4))
+    return safe_jobs(isolation)
 
 
 def _run_benchmark_cli(args: argparse.Namespace, entrants, focus: list[int]) -> int:
@@ -272,10 +272,11 @@ def _run_benchmark_cli(args: argparse.Namespace, entrants, focus: list[int]) -> 
         if not args.quiet and (done % step == 0 or done == total):
             print(f"   {done}/{total} tables", file=sys.stderr, flush=True)
 
+    isolation = "in_process" if args.in_process else "sandbox"
     try:
         run = run_benchmark(config=config, entrants=entrants, blocks=blocks, base_seed=str(args.seed),
-                            isolation="in_process" if args.in_process else "sandbox",
-                            budget_ns=args.budget_ns, jobs=args.jobs, out_dir=out,
+                            isolation=isolation, budget_ns=args.budget_ns, jobs=args.jobs or _default_jobs(isolation),
+                            out_dir=out,
                             save_histories=args.save_histories, progress=progress)
     except UnsupportedRuleset as exc:
         print(f"rejected before the table started: {exc}", file=sys.stderr)
@@ -366,7 +367,8 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--stack", type=int, default=2000)
         p.add_argument("--seed", default="1")
         p.add_argument("--tables", type=int, default=tables, help="rounded up to whole seed blocks of --players")
-        p.add_argument("--jobs", type=int, default=_default_jobs(), help="tables played in parallel")
+        p.add_argument("--jobs", type=int, default=None,
+                       help="tables played in parallel (default: one per 4 physical cores, one core reserved)")
         p.add_argument("--in-process", action="store_true", help="diagnostic: no sandbox, no enforced deadline")
         p.add_argument("--budget-ns", type=int, default=None, help="diagnostic budget (labelled not competitive)")
         p.add_argument("--out", default=None, help="write manifest.json (and private seeds) to this directory")

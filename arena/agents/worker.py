@@ -23,6 +23,23 @@ Commit rule
     worker is told which reply was committed in the next request; restores receive
     the parent's copy of the committed state.
 
+Timeout records
+    Every timeout appends a :class:`TimeoutRecord` to ``SeatStats.timeouts``: the
+    parent-observed round trip and, once the late reply has been drained, the
+    worker's own parse, decide and CPU times for that request. With
+    ``timeout_inputs=N`` an explicit-state seat also keeps the request's observation
+    and committed state for its first N timeouts, so :func:`replay_decision` can
+    replay the exact decision in a fresh worker and tell a slow bot from a stalled
+    host.
+
+Parent garbage collection
+    The parent's collector is disabled from dispatch until the reply is read (or the
+    deadline passes), so a collection in the harness process never counts against a
+    bot; :func:`play_table` also freezes the heap that exists when a table starts, so
+    collections during the table only scan objects the table created. It unfreezes
+    on return, which releases everything frozen, including anything frozen before
+    the call.
+
 Everything that touches time goes through :class:`Clock`, and the seat logic talks
 to workers through :class:`Channel`, so tests drive it with :class:`FakeClock`
 and scripted channels.
@@ -31,6 +48,7 @@ and scripted channels.
 from __future__ import annotations
 
 import fcntl
+import gc
 import hashlib
 import json
 import os
@@ -457,6 +475,43 @@ class Decision:
 
 
 @dataclass
+class TimeoutRecord:
+    """One timed-out decision, with whatever the parent learned about it afterwards."""
+
+    decision_index: int
+    seq: int
+    budget_ns: int
+    e2e_ns: int
+    """Parent-observed time from dispatch to the timeout verdict."""
+    outcome: str = "unsettled"
+    """``late_reply`` (the reply arrived after the deadline), ``unresponsive`` (no reply
+    within the stale grace; the worker was replaced), ``worker_crash``, or
+    ``unsettled`` (the table ended before the seat was asked again)."""
+    late_by_ns: int | None = None
+    reply_kind: str | None = None
+    """``action`` or ``error`` for a late reply."""
+    worker_parse_ns: int | None = None
+    worker_wall_ns: int | None = None
+    worker_cpu_ns: int | None = None
+    observation: bytes | None = None
+    """The request's observation JSON (only with ``timeout_inputs``, explicit state)."""
+    committed: bytes | None = None
+    """The committed state the worker decided from (with ``observation``)."""
+    deadline_ns: int = 0
+    """Clock value of the deadline (not reported)."""
+
+    @property
+    def replayable(self) -> bool:
+        return self.observation is not None and self.committed is not None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"decision_index": self.decision_index, "seq": self.seq, "budget_ns": self.budget_ns,
+                "e2e_ns": self.e2e_ns, "outcome": self.outcome, "late_by_ns": self.late_by_ns,
+                "reply_kind": self.reply_kind, "worker_parse_ns": self.worker_parse_ns,
+                "worker_wall_ns": self.worker_wall_ns, "worker_cpu_ns": self.worker_cpu_ns}
+
+
+@dataclass
 class Restart:
     decision_index: int
     cause: str
@@ -474,6 +529,7 @@ class SeatStats:
     e2e_ns: list[int] = field(default_factory=list)
     worker_wall_ns: list[int] = field(default_factory=list)
     worker_cpu_ns: list[int] = field(default_factory=list)
+    timeouts: list[TimeoutRecord] = field(default_factory=list)
     infrastructure: list[tuple[int, str]] = field(default_factory=list)
     """(decision index, event) for failures that were not the bot's doing:
     ``worker_start_failed`` (no worker could be started) or the cause given to
@@ -528,8 +584,11 @@ class WorkerSeat:
         load_timeout_ns: int = DEFAULT_LOAD_TIMEOUT_NS,
         max_restarts: int = DEFAULT_MAX_RESTARTS,
         spin_ns: int | None = None,
+        timeout_inputs: int = 0,
     ) -> None:
         self.seat = seat
+        self.timeout_inputs = timeout_inputs
+        self._open_timeout: TimeoutRecord | None = None
         self.artifact = artifact
         self.artifact_sha256 = artifact.sha256
         self.table_info = table_info
@@ -648,19 +707,35 @@ class WorkerSeat:
     def _settle_stale(self) -> None:
         if self.stale_seq is None or self.channel is None:
             return
+        record, self._open_timeout = self._open_timeout, None
         deadline = self.clock.now_ns() + self.stale_grace_ns
         try:
             while True:
                 frame = self.channel.recv(deadline)
                 if frame is None:
+                    if record is not None:
+                        record.outcome = "unresponsive"
                     self._replace("unresponsive")
                     return
                 self.stats.late_discarded += 1
                 if frame.meta.get("seq") == self.stale_seq:
+                    if record is not None:
+                        _note_reply(record, frame)
                     self.stale_seq = None
                     return
         except (ChannelClosed, FrameError):
+            if record is not None:
+                record.outcome = "worker_crash"
             self._replace("worker_crash")
+
+    def _record_timeout(self, seq: int, e2e_ns: int, deadline_ns: int, payload: bytes,
+                        committed: bytes) -> TimeoutRecord:
+        record = TimeoutRecord(self.stats.decisions - 1, seq, self.budget_ns, e2e_ns, deadline_ns=deadline_ns)
+        kept = sum(1 for r in self.stats.timeouts if r.replayable)
+        if kept < self.timeout_inputs and self.info is not None and self.info.state_mode == "explicit":
+            record.observation, record.committed = payload, committed
+        self.stats.timeouts.append(record)
+        return record
 
     def prepare(self) -> None:
         """Called when this seat is to act, before the observation is built.
@@ -687,26 +762,35 @@ class WorkerSeat:
         assert channel is not None
         self.seq += 1
         seq = self.seq
-        dispatched = self.clock.now_ns()
-        deadline = dispatched + self.budget_ns
-        payload = observation.model_dump_json().encode()
-        meta = json.dumps({"t": "decide", "seq": seq, "commit": self.commit_seq}, separators=(",", ":")).encode()
+        committed = self.committed
+        gc_enabled = gc.isenabled()
+        gc.disable()
         try:
-            channel.send(encode_frame(meta, payload))
-            while True:
-                frame = channel.recv(deadline, spin_ns=self.spin_ns)
-                if frame is None or frame.meta.get("seq") == seq:
-                    break
-                self.stats.late_discarded += 1
-        except ChannelClosed:
-            self._replace_later()
-            return Decision(None, "worker_crash", e2e_ns=self.clock.now_ns() - dispatched)
-        except FrameError as exc:
-            self._replace_later()
-            return Decision(None, exc.code, e2e_ns=self.clock.now_ns() - dispatched)
+            dispatched = self.clock.now_ns()
+            deadline = dispatched + self.budget_ns
+            payload = observation.model_dump_json().encode()
+            meta = json.dumps({"t": "decide", "seq": seq, "commit": self.commit_seq}, separators=(",", ":")).encode()
+            try:
+                channel.send(encode_frame(meta, payload))
+                while True:
+                    frame = channel.recv(deadline, spin_ns=self.spin_ns)
+                    if frame is None or frame.meta.get("seq") == seq:
+                        break
+                    self.stats.late_discarded += 1
+            except ChannelClosed:
+                self._replace_later()
+                return Decision(None, "worker_crash", e2e_ns=self.clock.now_ns() - dispatched)
+            except FrameError as exc:
+                self._replace_later()
+                return Decision(None, exc.code, e2e_ns=self.clock.now_ns() - dispatched)
+        finally:
+            if gc_enabled:
+                gc.enable()
         if frame is None:
             self.stale_seq = seq
-            return Decision(None, "timeout", e2e_ns=self.clock.now_ns() - dispatched)
+            e2e = self.clock.now_ns() - dispatched
+            self._open_timeout = self._record_timeout(seq, e2e, deadline, payload, committed)
+            return Decision(None, "timeout", e2e_ns=e2e)
         e2e = frame.received_ns - dispatched
         m = frame.meta
         timing = {k: m.get(k) if isinstance(m.get(k), int) else None for k in ("wall_ns", "cpu_ns", "parse_ns")}
@@ -715,6 +799,7 @@ class WorkerSeat:
         if not on_time(frame.received_ns, deadline):
             decision.fallback = "timeout"
             decision.rejected = {"late_by_ns": frame.received_ns - deadline}
+            _note_reply(self._record_timeout(seq, e2e, deadline, payload, committed), frame)
             return decision
         if m.get("t") == "error":
             code = m.get("code")
@@ -756,6 +841,45 @@ class WorkerSeat:
             self._discard(self.channel)
             self.channel = None
         return "".join(self.logs)[:LOG_KEEP_BYTES]
+
+
+def _note_reply(record: TimeoutRecord, frame: ReceivedFrame) -> None:
+    m = frame.meta
+    record.outcome = "late_reply"
+    record.late_by_ns = frame.received_ns - record.deadline_ns
+    record.reply_kind = str(m.get("t"))
+    record.worker_parse_ns, record.worker_wall_ns, record.worker_cpu_ns = (
+        m.get(k) if isinstance(m.get(k), int) else None for k in ("parse_ns", "wall_ns", "cpu_ns"))
+
+
+REPLAY_BUDGET_NS = 100_000_000
+
+
+def replay_decision(spawn: Callable[[], Channel], artifact: Artifact, table_info: TableInfo, observation: bytes,
+                    committed: bytes, *, repeats: int = 3, budget_ns: int = REPLAY_BUDGET_NS,
+                    clock: Clock | None = None) -> list[dict[str, Any]]:
+    """Replay one explicit-state decision ``repeats`` times in a fresh worker.
+
+    The worker is restored from ``committed`` and asked the same request each time;
+    nothing is committed between repeats, so every repeat decides from the same
+    state. Returns the worker-reported times per repeat (``fallback`` is ``timeout``
+    when even ``budget_ns`` was not enough).
+    """
+    seat = WorkerSeat(table_info.hero_seat, artifact, table_info, spawn, clock=clock, budget_ns=budget_ns)
+    seat.committed = _checked_state(committed)
+    obs = Observation.model_validate_json(observation)
+    out: list[dict[str, Any]] = []
+    try:
+        seat.channel = seat._load(restore=True)
+        for _ in range(repeats):
+            seat.prepare()
+            d = seat.decide(obs)
+            seat.reject()
+            out.append({"fallback": d.fallback, "e2e_ns": d.e2e_ns, "worker_parse_ns": d.worker_parse_ns,
+                        "worker_wall_ns": d.worker_wall_ns, "worker_cpu_ns": d.worker_cpu_ns})
+    finally:
+        seat.close()
+    return out
 
 
 def _checked_state(blob: bytes) -> bytes:
@@ -879,36 +1003,40 @@ def play_table(
         pass
     t0 = time.perf_counter()
     index = 0
-    while not table.complete:
-        seat = table.actor_seat
-        agent = agents[seat]
-        if before_decision is not None:
-            before_decision(index, seat)
-        agent.prepare()
-        obs = observation(table, seat)
-        decision = agent.decide(obs)
-        receipt = None
-        if decision.fallback is None:
-            try:
-                receipt = table.submit(seat, decision.action, hand_id=obs.hand_id, decision_id=obs.decision_id,
-                                       expected_state_version=obs.state_version)
-            except ActionRejected as exc:
-                decision.fallback = exc.code
-                decision.rejected = {"action": _small(decision.action)}
-        if receipt is not None:
-            agent.accept()
-        else:
-            agent.reject()
-            agent.stats.fallbacks[decision.fallback] += 1
-            table.apply_fallback(seat, decision.fallback, decision.rejected)
-        st = agent.stats
-        if decision.e2e_ns is not None:
-            st.e2e_ns.append(decision.e2e_ns)
-        if decision.worker_wall_ns is not None:
-            st.worker_wall_ns.append(decision.worker_wall_ns)
-        if decision.worker_cpu_ns is not None:
-            st.worker_cpu_ns.append(decision.worker_cpu_ns)
-        if on_decision is not None:
-            on_decision(seat, decision, table)
-        index += 1
+    gc.freeze()
+    try:
+        while not table.complete:
+            seat = table.actor_seat
+            agent = agents[seat]
+            if before_decision is not None:
+                before_decision(index, seat)
+            agent.prepare()
+            obs = observation(table, seat)
+            decision = agent.decide(obs)
+            receipt = None
+            if decision.fallback is None:
+                try:
+                    receipt = table.submit(seat, decision.action, hand_id=obs.hand_id, decision_id=obs.decision_id,
+                                           expected_state_version=obs.state_version)
+                except ActionRejected as exc:
+                    decision.fallback = exc.code
+                    decision.rejected = {"action": _small(decision.action)}
+            if receipt is not None:
+                agent.accept()
+            else:
+                agent.reject()
+                agent.stats.fallbacks[decision.fallback] += 1
+                table.apply_fallback(seat, decision.fallback, decision.rejected)
+            st = agent.stats
+            if decision.e2e_ns is not None:
+                st.e2e_ns.append(decision.e2e_ns)
+            if decision.worker_wall_ns is not None:
+                st.worker_wall_ns.append(decision.worker_wall_ns)
+            if decision.worker_cpu_ns is not None:
+                st.worker_cpu_ns.append(decision.worker_cpu_ns)
+            if on_decision is not None:
+                on_decision(seat, decision, table)
+            index += 1
+    finally:
+        gc.unfreeze()
     return TableRun(table=table, seats=dict(agents), wall_s=time.perf_counter() - t0)
