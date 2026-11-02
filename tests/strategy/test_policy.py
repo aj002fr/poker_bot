@@ -42,6 +42,14 @@ def test_parameter_space():
     assert vector_hash(d) != vector_hash(d | {"jam_bb": d["jam_bb"] + 0.5})
 
 
+def test_promoted_vectors_are_complete_and_in_bounds():
+    for path in sorted((ROOT / "strategy/policy/vectors").glob("*.json")):
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        assert set(raw["params"]) == {p.name for p in SPACE.params}, path.name
+        assert SPACE.complete(raw["params"]) == raw["params"], path.name
+        assert vector_hash(raw["params"]) == raw["vector_hash"], path.name
+
+
 class CheckingBot(RuntimeBot):
     """The runtime plus, at every real decision, a legalization fuzz of random intents."""
 

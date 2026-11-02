@@ -134,7 +134,8 @@ lab-endgame:
 SEARCH_CONFIG ?= strategy/search/configs/nlhe-cem-v2.json
 SEARCH_RUN ?= artifacts/search/nlhe-cem-v2
 SEARCH_JOBS ?= $(shell n=$$(nproc 2>/dev/null || echo 4); echo $$((n > 1 ? n - 1 : 1)))
-BASELINE_CANDIDATE ?= $(SEARCH_RUN)/incumbent.json
+# The promoted vector (provenance inside). Use BASELINE_CANDIDATE=$(SEARCH_RUN)/incumbent.json for a new run.
+BASELINE_CANDIDATE ?= strategy/policy/vectors/nlhe-v2.json
 GATE_DECISIONS ?= 50000
 
 search-baseline:
