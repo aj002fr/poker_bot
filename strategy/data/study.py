@@ -111,7 +111,7 @@ def spot(d: Decision, f: DecisionFeatures, position: str) -> dict[str, Any]:
     board = []
     if d.street != "preflop":
         t = c.texture
-        board.append("wet" if t.dynamic >= 0.4 else "dry")
+        board.append("many draws" if t.dynamic >= 0.4 else "few draws")
         if t.paired:
             board.append("paired")
         if t.flush_possible:
