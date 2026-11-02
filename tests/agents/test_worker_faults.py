@@ -16,6 +16,11 @@ GOOD = ["calling_station", "calling_station"]
 # Healthy seats may still miss the 1 ms deadline through VM jitter; that is the only
 # fallback they may record.
 JITTER_OK = {None, "timeout"}
+# Tests that assert a fault's exact cause give every seat this budget: the cause is only
+# known from the reply, and under load a fault's reply (raising and formatting an
+# exception, a failed 4 GiB allocation) can miss 1 ms, which is then correctly a
+# timeout. The deadline itself is covered by the loop, slow-reply and crash tests.
+CAUSE_BUDGET_NS = 50_000_000
 
 
 def _number(decision_id: str) -> int:
@@ -34,7 +39,7 @@ def _fallback_events(table, seat: int) -> list[dict]:
 
 
 def test_illegal_action_falls_back_every_time(pool):
-    played = play_sandboxed(pool, ["illegal_bot", *GOOD])
+    played = play_sandboxed(pool, ["illegal_bot", *GOOD], budget_ns=CAUSE_BUDGET_NS)
     assert played.table.complete
     recs = played.seat_records(0)
     assert recs and all(f == "illegal_action" for _, f in recs)
@@ -48,13 +53,13 @@ def test_illegal_action_falls_back_every_time(pool):
 
 
 def test_invalid_schema_falls_back(pool):
-    played = play_sandboxed(pool, ["invalid_schema_bot", *GOOD])
+    played = play_sandboxed(pool, ["invalid_schema_bot", *GOOD], budget_ns=CAUSE_BUDGET_NS)
     assert {f for _, f in played.seat_records(0)} == {"invalid_schema"}
     _assert_others_clean(played)
 
 
 def test_bot_exception_consumes_only_that_decision(pool):
-    played = play_sandboxed(pool, ["raising_bot", *GOOD])
+    played = play_sandboxed(pool, ["raising_bot", *GOOD], budget_ns=CAUSE_BUDGET_NS)
     for decision_id, fallback in played.seat_records(0):
         if _number(decision_id) % 3 == 0:
             assert fallback == "bot_exception"
@@ -117,7 +122,7 @@ def test_late_reply_is_discarded_and_state_not_committed(pool):
 
 
 def test_oversized_state_is_rejected_at_the_cap(pool):
-    played = play_sandboxed(pool, ["oversized_state_bot", *GOOD])
+    played = play_sandboxed(pool, ["oversized_state_bot", *GOOD], budget_ns=CAUSE_BUDGET_NS)
     for decision_id, fallback in played.seat_records(0):
         if _number(decision_id) % 2 == 0:
             assert fallback == "state_too_large"
@@ -130,7 +135,7 @@ def test_oversized_state_is_rejected_at_the_cap(pool):
 
 
 def test_oversized_output_is_rejected_and_worker_replaced(pool):
-    played = play_sandboxed(pool, ["oversized_output_bot", *GOOD])
+    played = play_sandboxed(pool, ["oversized_output_bot", *GOOD], budget_ns=CAUSE_BUDGET_NS)
     recs = played.seat_records(0)
     assert recs and {f for _, f in recs} == {"oversized_output"}
     assert len(played.seats[0].stats.restarts) >= len(recs) - 1
@@ -138,14 +143,14 @@ def test_oversized_output_is_rejected_and_worker_replaced(pool):
 
 
 def test_forged_frames_are_rejected(pool):
-    played = play_sandboxed(pool, ["forged_frame_bot", *GOOD])
+    played = play_sandboxed(pool, ["forged_frame_bot", *GOOD], budget_ns=CAUSE_BUDGET_NS)
     for decision_id, fallback in played.seat_records(0):
         assert fallback == ("invalid_output" if _number(decision_id) % 2 else "oversized_output")
     _assert_others_clean(played)
 
 
 def test_memory_limit_turns_into_a_fallback(pool):
-    played = play_sandboxed(pool, ["memory_bot", *GOOD])
+    played = play_sandboxed(pool, ["memory_bot", *GOOD], budget_ns=CAUSE_BUDGET_NS)
     recs = played.seat_records(0)
     assert recs and {f for _, f in recs} == {"bot_memory_error"}
     assert played.seats[0].stats.restarts == []
@@ -153,7 +158,7 @@ def test_memory_limit_turns_into_a_fallback(pool):
 
 
 def test_output_spam_is_capped_and_does_not_block(pool):
-    played = play_sandboxed(pool, ["spam_bot", *GOOD], budget_ns=50_000_000)
+    played = play_sandboxed(pool, ["spam_bot", *GOOD], budget_ns=CAUSE_BUDGET_NS)
     assert {f for _, f in played.seat_records(0)} <= JITTER_OK
     assert played.seats[0].stats.restarts == []
 
