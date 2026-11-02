@@ -72,7 +72,7 @@ def capture(bundle: Path, out: Path, *, tables: int, ruleset_id: str = "practice
     return n
 
 
-def replay(bundle: Path, capture_path: Path, mode: str) -> dict[str, Any]:
+def replay(bundle: Path, capture_path: Path, mode: str, only: int | None = None) -> dict[str, Any]:
     """Runs in a fresh interpreter (see :func:`main`); returns timing and GC records."""
     import resource
 
@@ -93,6 +93,8 @@ def replay(bundle: Path, capture_path: Path, mode: str) -> dict[str, Any]:
 
     gc.callbacks.append(on_gc)
     rows = [json.loads(line) for line in capture_path.read_text(encoding="utf-8").splitlines()]
+    if only is not None:
+        rows = [rows[only]]
     wall: list[int] = []
     parse: list[int] = []
     gc_in_decide: list[int] = []
@@ -150,6 +152,28 @@ def summarize(r: dict[str, Any]) -> dict[str, Any]:
             "rss_growth_kb": r["rss_growth_kb"]}
 
 
+def _fresh(bundle: Path, cap: Path, tables: int) -> dict[str, Any]:
+    """``worker`` mode with one new interpreter per table, as the sandbox runs it."""
+    from strategy.policy.gate import quantiles
+
+    wall: list[int] = []
+    gcd: list[int] = []
+    where: list[tuple[int, int]] = []
+    for t in range(tables):
+        res = subprocess.run([sys.executable, "-m", "strategy.policy.bench", "--bundle", str(bundle), "--replay",
+                              str(bundle), str(cap), f"worker:{t}"], capture_output=True, text=True,
+                             cwd=tempfile.gettempdir(), check=True)
+        r = json.loads(res.stdout.strip().splitlines()[-1])
+        wall += r["wall"]
+        gcd += r["gc_in_decide"]
+        where += [(t, i) for i in range(len(r["wall"]))]
+    order = sorted(range(len(wall)), key=wall.__getitem__)[-8:]
+    return {"mode": "fresh", "decisions": len(wall), "decide_wall": quantiles(wall),
+            "slow_decisions": sum(1 for x in wall if x > 500_000),
+            "slow_with_gc": sum(1 for x, g in zip(wall, gcd) if x > 500_000 and g > 0),
+            "slowest": [[*where[i], wall[i] / 1000, gcd[i] / 1000] for i in order]}
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m strategy.policy.bench")
     p.add_argument("--bundle", required=True)
@@ -160,7 +184,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--replay", nargs=3, metavar=("BUNDLE", "CAPTURE", "MODE"), help=argparse.SUPPRESS)
     args = p.parse_args(argv)
     if args.replay:
-        print(json.dumps(summarize(replay(Path(args.replay[0]), Path(args.replay[1]), args.replay[2]))))
+        mode, _, only = args.replay[2].partition(":")
+        r = replay(Path(args.replay[0]), Path(args.replay[1]), mode, int(only) if only else None)
+        print(json.dumps(summarize(r) if not only else {"wall": r["wall"], "gc_in_decide": r["gc_in_decide"]}))
         return 0
     bundle = Path(args.bundle).resolve()
     out: dict[str, Any] = {"bundle": str(bundle), "ruleset_id": args.ruleset, "tables": args.tables, "modes": {}}
@@ -168,6 +194,9 @@ def main(argv: list[str] | None = None) -> int:
         cap = Path(tmp) / "capture.jsonl"
         out["captured_decisions"] = capture(bundle, cap, tables=args.tables, ruleset_id=args.ruleset)
         for mode in args.gc:
+            if mode == "fresh":
+                out["modes"][mode] = _fresh(bundle, cap, out["tables"])
+                continue
             res = subprocess.run([sys.executable, "-m", "strategy.policy.bench", "--bundle", str(bundle),
                                   "--replay", str(bundle), str(cap), mode], capture_output=True, text=True,
                                  cwd=tempfile.gettempdir(), check=True)

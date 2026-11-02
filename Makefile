@@ -127,11 +127,12 @@ lab-endgame:
 		$(UV) run python -m strategy.cli experiment $$s --jobs $(LAB_JOBS) || exit 1; done
 
 # Baseline policy search (Stage 1 B/D; docs/baseline-policy.md). Long runs: never in CI.
-# Runs land in artifacts/search/<run_id>/ and resume where they stopped.
+# Runs land in artifacts/search/<run_id>/ and resume where they stopped. nlhe-cem-v2 starts from
+# nlhe-cem-v1's state, so run SEARCH_CONFIG=strategy/search/configs/nlhe-cem.json first.
 .PHONY: search-baseline search-status package-baseline validate-baseline validate-baseline-variants gate-baseline \
-	bench-policy
-SEARCH_CONFIG ?= strategy/search/configs/nlhe-cem.json
-SEARCH_RUN ?= artifacts/search/nlhe-cem-v1
+	gate-control bench-policy
+SEARCH_CONFIG ?= strategy/search/configs/nlhe-cem-v2.json
+SEARCH_RUN ?= artifacts/search/nlhe-cem-v2
 SEARCH_JOBS ?= $(shell n=$$(nproc 2>/dev/null || echo 4); echo $$((n > 1 ? n - 1 : 1)))
 BASELINE_CANDIDATE ?= $(SEARCH_RUN)/incumbent.json
 GATE_DECISIONS ?= 50000
@@ -160,6 +161,11 @@ validate-baseline-variants:
 gate-baseline: package-baseline
 	$(UV) run python -m strategy.policy.gate --bundle artifacts/bots/baseline-candidate --decisions $(GATE_DECISIONS) \
 		--out artifacts/gate/baseline-candidate.json
+
+# The same gate with a trivial bot: the machine's own timeout floor.
+gate-control:
+	$(UV) run python -m strategy.policy.gate --bundle arena/agents/baselines/calling_station.py \
+		--decisions $(GATE_DECISIONS) --out artifacts/gate/control-calling-station.json
 
 bench-policy: package-baseline
 	$(UV) run python -m strategy.policy.bench --bundle artifacts/bots/baseline-candidate --tables 60 \

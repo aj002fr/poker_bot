@@ -59,7 +59,8 @@ The defaults are the **hand-written control**. The search only changes numbers.
 `RuntimeBot` is the only path that plays: in search, validation, the gate and
 submission.
 
-- **Committed state** is under 300 bytes: the policy seed, the draw counter, the
+- **Committed state** is at most about 260 bytes (255 measured over 50k gate
+  decisions): the policy seed, the draw counter, the
   decision count, the last counted event `seq`, the fallback count, and the
   per-opponent counters.
 - **Restore.** A restarted worker rebuilds its memory from that state plus the hand's
@@ -82,8 +83,9 @@ submission.
 ## Search (`python -m strategy.search`)
 
 ```bash
-make search-baseline            # strategy/search/configs/nlhe-cem.json, resumable
-make search-status
+make search-baseline SEARCH_CONFIG=strategy/search/configs/nlhe-cem.json   # v1, best challenger
+make search-baseline            # nlhe-cem-v2.json: resumes v1's state, mean challenger
+make search-status              # SEARCH_RUN=artifacts/search/nlhe-cem-v2 by default
 ```
 
 Each generation runs these steps:
@@ -95,9 +97,17 @@ Each generation runs these steps:
    mirrored samples all play the *same* tasks.
 3. **Update.** CEM uses the smoothed diagonal Gaussian over the elite fraction, with a
    sigma floor. `"algorithm": "cmaes"` uses standard CMA-ES instead.
-4. **Confirm.** The generation's best vector replays against the incumbent on a
-   second, fresh task set. It replaces the incumbent only when the paired gain has
-   `t >= accept_t`. Selection and confirmation never share tables.
+4. **Confirm.** A challenger replays against the incumbent on a second, fresh task
+   set. It replaces the incumbent only when the paired gain has `t >= accept_t`.
+   Selection and confirmation never share tables. The challenger is set by
+   `"challenger"`:
+   - `"mean"`: the distribution mean. Its selection score is unbiased, because the
+     mean was fixed before the generation's tables were drawn.
+   - `"best"`: the top-scoring vector. With a per-table standard deviation of about
+     22 points, the best of 16 samples is inflated by several points and rarely
+     confirms; `nlhe-cem-v1` shows this.
+
+   `"resume_from"` starts a new run from another run's incumbent and distribution.
 
 Everything is in the unit cube of `SPACE`, and `frozen` holds parameters fixed. The
 search trains only on `train`; `SearchConfig` rejects any other partition. Every
@@ -135,6 +145,7 @@ starts at `100 / players` and ends at the official points, so the changes over l
 
 ```bash
 make gate-baseline              # >= 50,000 decisions, one table at a time
+make gate-control               # same gate, calling station: the machine's timeout floor
 make bench-policy               # GC attribution by replay
 ```
 
@@ -148,13 +159,31 @@ in-process. The gate passes when all of the following hold:
 - zero internal fallbacks.
 
 It reports p50, p95, p99, p99.9 and max for both worker time and end-to-end time.
+The seat records worker time only for replies that arrive in time, so each timeout is
+listed under `misses` with the time the worker reported in its late reply. Each miss
+gets a cause:
+
+- `bot_time`: the late decision itself took more than `max(500 µs, 2 × p99.9)`;
+- `transport`: the decision was normal, so the time went to IPC or scheduling;
+- `unknown`: no late reply arrived.
 
 Run it on an otherwise idle machine. Concurrent CPU load shows up as sandbox
 timeouts while the bot's own time stays flat: on 8 CPUs with 7 search workers
 running, 60% of decisions timed out at a worker p99 of 254 µs.
 
+Even idle, this VM has a timeout floor. Its host pauses it, and the pauses show up
+as thread CPU time rather than steal time. `make gate-control` timed out on 3 of
+50,011 decisions with a calling station whose decisions take 16 µs (p50). On the
+same machine the baseline candidate timed out on 13 of 50,111 decisions, at a worker
+p99 of 241 µs and a max of 429 µs among in-time replies. The late replies split
+between `bot_time` stalls (CPU time equal to a 0.7–2.1 ms wall time on decisions
+that replay in under 350 µs) and `transport`. Neither overlaps a GC pause, and
+neither reproduces in replay.
+
 **GC.** The worker collects and freezes the heap after loading the bot, and packaged
 bots also freeze after loading the variant tables (`gc_mode="freeze"`). The decision
-path keeps no garbage cycles, so the bench sees no collection inside a decision. The
+path keeps no garbage cycles, so the bench sees no collection inside a decision.
+`--gc fresh` replays each table in a new process to show cold-start cost (the first
+decision takes 330–390 µs; the rest match the warm replay). The
 ~1.5 ms spikes in the full feature bench come from collections that rescan large
 recorded heaps, which this path does not create.
