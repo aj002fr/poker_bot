@@ -222,7 +222,7 @@ def summary(doc: dict[str, Any]) -> dict[str, Any]:
         "hand": doc["decisions"][0]["spot"]["hand"] if decisions else None,
         "decisions": len(decisions),
         "last_street": ("preflop", "flop", "turn", "river")[last],
-        "showdown": bool(doc["result"]["showdown"]),
+        "showdown": hero in doc["result"]["showdown"],
         "pot_bb": round(pot / bb, 1),
         "net_bb": round(doc["result"]["net"][str(hero)] / bb, 2),
     }

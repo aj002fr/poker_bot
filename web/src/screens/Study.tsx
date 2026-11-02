@@ -275,13 +275,20 @@ function HandEnd({
 }) {
   const net = hand.result.net[String(hand.hero_seat)] ?? 0
   const t = tally(answers)
-  const shown = hand.result.showdown.map((s) => hand.seats[s]?.name).filter(Boolean)
+  const hero = hand.hero_seat
+  const rivals = hand.result.showdown.filter((s) => s !== hero).map((s) => hand.seats[s]?.name)
+  const where = hand.result.showdown.includes(hero)
+    ? ` at showdown against ${rivals.join(' and ')}`
+    : rivals.length > 1
+      ? `; ${rivals.join(' and ')} went on to a showdown`
+      : ''
   return (
     <section className="panel pstudy-end" data-testid="study-end">
       <h2 className="pstudy-h2">Hand complete</h2>
       <p>
-        Pluribus {net > 0 ? 'won' : net < 0 ? 'lost' : 'broke even,'} {net !== 0 && <strong className="mono">{bb(Math.abs(net) / hand.blinds.big_blind)}</strong>}
-        {shown.length > 1 ? ` at a showdown between ${shown.join(' and ')}.` : ' without a showdown.'} Every player’s cards are face up now.
+        Pluribus {net > 0 ? 'won ' : net < 0 ? 'lost ' : 'broke even'}
+        {net !== 0 && <strong className="mono">{bb(Math.abs(net) / hand.blinds.big_blind)}</strong>}
+        {where}. Every player’s cards are face up now.
       </p>
       {t.decisions > 0 && (
         <p>

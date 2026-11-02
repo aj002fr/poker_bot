@@ -9,7 +9,7 @@ offline diagnostic of how often our bots choose what Pluribus chose.
 make pluribus-fetch      # pinned download into the cache, hash-checked (a few seconds)
 make pluribus-import     # validate every hand in the engine -> artifacts/phh/pluribus-import.json
 make study-sample        # 24 fixture hands -> artifacts/study/pluribus-sample (make dev does this)
-make study-pack          # all hands -> artifacts/study/pluribus (about 130 MB, a few minutes)
+make study-pack          # all hands -> artifacts/study/pluribus (150 MB, about 2 minutes)
 make pluribus-agreement  # bot vs Pluribus agreement -> artifacts/phh/pluribus-agreement.json
 ```
 
@@ -109,8 +109,8 @@ size (amounts shown in chips), then the reveal says whether you matched and what
 did. The spot panel shows pot odds against equity, with the reminder that equity against
 random hands overstates it against real ranges. At the end every hand is turned face up.
 Your score (actions matched, and sizes matched when you both raised) is kept in this
-browser. The list filters to hands that saw a flop, reached showdown, or had a pot of at
-least 20 BB.
+browser. The list filters to hands where Pluribus acted after the flop or reached
+showdown, or where the pot reached at least 20 BB.
 
 ## Agreement diagnostic
 
