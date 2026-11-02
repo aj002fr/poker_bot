@@ -1,0 +1,136 @@
+{
+ "dataset": "phh-dataset/pluribus",
+ "repo": "https://github.com/uoftcprg/phh-dataset.git",
+ "commit": "e47fbd5816372360bade4de5d712346fe1bb70f6",
+ "subdir": "data/pluribus",
+ "tree": "e0cd07e42ccae01d2ae9ca1b33ac06a5caf61580",
+ "content_sha256": "1b36ee3ddead27b2494b3e8806df0f1177655fddc78481923f18093d70d2f1c9",
+ "licence": "MIT (phh-dataset, Copyright 2024-2025 Universal, Open, Free, and Transparent Computer Poker Research Group)",
+ "licence_file": "LICENSE-phh-dataset",
+ "citation": "Brown and Sandholm (2019), Superhuman AI for multiplayer poker, Science 365(6456); hands converted to PHH by the phh-dataset project",
+ "dataset_doi": "10.5281/zenodo.10796885",
+ "paper_doi": "10.1126/science.aay2400",
+ "note": "Byte-identical copies of upstream files, chosen to cover the listed situations. The full corpus is fetched by python -m strategy.data.fetch.",
+ "files": [
+  {
+   "path": "100/0.phh",
+   "sha256": "794cf64c4225a081ab80a07ac05865e9691eca67980b0f480ba6df6ee67e2487",
+   "covers": "preflop fold"
+  },
+  {
+   "path": "100/1.phh",
+   "sha256": "4e48de5a2031e038d4bbb4d2c6127bfbcf9a91f1a369c3eaa73eaec54f2be113",
+   "covers": "preflop fold"
+  },
+  {
+   "path": "100/2.phh",
+   "sha256": "17c0ffb386d7f2876e5fad8a341ba48063e078ccf9de494e9a48c10125cb8d11",
+   "covers": "preflop fold"
+  },
+  {
+   "path": "100/10.phh",
+   "sha256": "85ce789cc9bbf1a0c1c84155deda3514d5fc87113278549be9b38a236575ae87",
+   "covers": "big blind defends"
+  },
+  {
+   "path": "100/11.phh",
+   "sha256": "4e36fc56706624111e2e340084f249aa30e8abfedd0a6d82484b717b82af17cd",
+   "covers": "postflop call"
+  },
+  {
+   "path": "100/12.phh",
+   "sha256": "0ea7452656d1f1f67b0b7f929a9223af9b3e5ee7f5de0a73099109ca17836969",
+   "covers": "river"
+  },
+  {
+   "path": "100/14.phh",
+   "sha256": "e71f634759c740b8ecf4458a69c5b16529ededc89c34f2949925bd526177bda6",
+   "covers": "showdown"
+  },
+  {
+   "path": "100/17.phh",
+   "sha256": "2e5fbd24ad3c7b632ad82f6099ed8e0d80c7c019723f741bf96781c319ff0d03",
+   "covers": "postflop call"
+  },
+  {
+   "path": "100/22.phh",
+   "sha256": "4cc61937b2cc1f04de88bb00eb680580be7ec74e0fcf61f41853b5b6ddfc5de0",
+   "covers": "big blind defends"
+  },
+  {
+   "path": "100/30.phh",
+   "sha256": "fbaa52ca192453fb601e6d18e8b764b799a9fd38387fc8659059e526e6a1dfa2",
+   "covers": "3-bet"
+  },
+  {
+   "path": "100/37.phh",
+   "sha256": "7abc56b8f580319ff43e30a66de85c3eeac5943b07dd5477939b9cb3d68840d1",
+   "covers": "river"
+  },
+  {
+   "path": "100/50.phh",
+   "sha256": "34fed00b69d1d1cb7610fed8d17b8681311dbb593582d453ac2418536395c608",
+   "covers": "showdown"
+  },
+  {
+   "path": "100/52.phh",
+   "sha256": "f98f7c67cd60b0493f9c40a7093ddd0dd91fe0889fedf08679235bdee142041b",
+   "covers": "check-raise"
+  },
+  {
+   "path": "100/61.phh",
+   "sha256": "cf7b7e9c41e362d139675bd0361cf67b8561cf0600dc49d02ea40204ae70cb8f",
+   "covers": "postflop call"
+  },
+  {
+   "path": "100/64.phh",
+   "sha256": "4d6765174087eaeb0f8c19534d5d2f93b7de61ecfee44798d77c853a899dc574",
+   "covers": "river"
+  },
+  {
+   "path": "100b/82.phh",
+   "sha256": "5aa5c94082eb7672911555ad7e23ed14132e57afe5da184ba41b822666f0fcb0",
+   "covers": "3-bet"
+  },
+  {
+   "path": "100b/102.phh",
+   "sha256": "603adcec89c3acecbffdbe9390dc62b664acd9bc5e4c6c78d286cf554d98d2f6",
+   "covers": "river"
+  },
+  {
+   "path": "100b/108.phh",
+   "sha256": "cdacafeaf5ea59f54966ce00607616c38dc1d9ef2561339c73ffd1aa488448e0",
+   "covers": "showdown"
+  },
+  {
+   "path": "100b/121.phh",
+   "sha256": "e2b4f1204ca54d2ebf8f1323c911a35621c21085f557793c858db841c804137b",
+   "covers": "3-bet"
+  },
+  {
+   "path": "100b/131.phh",
+   "sha256": "c082cb5c64958503f690b5234c12dd3d8ba58a4c0d214e00d51bf90b028adb47",
+   "covers": "showdown"
+  },
+  {
+   "path": "100b/150.phh",
+   "sha256": "59cc692c1f3d609598720b4d79aa1f344646eb6cc58b10b5c6e4b76e9e2dd639",
+   "covers": "river"
+  },
+  {
+   "path": "102/0.phh",
+   "sha256": "f1ef862aaced8a475461c9973c28d7020761f9fdbe32e3634da4c9219d55ff6c",
+   "covers": "half-chip split pot"
+  },
+  {
+   "path": "104/47.phh",
+   "sha256": "0da53e84adfeb84ea63470871cc0dbfc5366edb12f0ca749f65a97b3d2deee96",
+   "covers": "preflop all-in"
+  },
+  {
+   "path": "108/238.phh",
+   "sha256": "0f70256a8e704eef76b81271677e93888a8f317359a77e214c6419ed25f85c9c",
+   "covers": "preflop all-in"
+  }
+ ]
+}
