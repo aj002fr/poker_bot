@@ -137,9 +137,17 @@ def test_same_task_same_result():
     assert a == b
 
 
+def _module_level(tree: ast.AST):
+    for node in ast.iter_child_nodes(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            yield node
+            yield from _module_level(node)
+
+
 def _imports(path: Path) -> set[str]:
+    """Imports that run on module load; lazy ones are covered by the closure test."""
     out = set()
-    for node in ast.walk(ast.parse(path.read_text())):
+    for node in _module_level(ast.parse(path.read_text())):
         if isinstance(node, ast.Import):
             out |= {a.name for a in node.names}
         elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
@@ -180,7 +188,7 @@ def test_runtime_import_closure_is_staged():
         "        agents[s].start()\n"
         "    play_table(seeded_table(c, 'closure', table_id=a.table_id), agents)\n"
         "    assert not any(ag.stats.fallbacks for ag in agents.values())\n"
-        "print(json.dumps(sorted(m for m in sys.modules if m == 'strategy' or m.startswith('strategy.'))))\n"
+        "print(json.dumps(sorted(m for m in sys.modules if m.split('.')[0] in ('strategy', 'numpy', 'numba'))))\n"
     )
     out = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, cwd=ROOT, check=True)
     loaded = set(json.loads(out.stdout))
