@@ -340,7 +340,13 @@ export function StudyScreen({ route, navigate }: { route: string; navigate: (p: 
   const pack = packs?.find((p) => p.id === routePack) ?? packs?.[0] ?? null
   const packId = pack?.id
   const listKey = packId ? `${packId}|${filter}` : ''
-  const autoHand = list?.key === listKey ? (list.hands.find((h) => !score.hands[h.id]) ?? list.hands[0])?.id : undefined
+  const firstUnplayed = list?.key === listKey ? (list.hands.find((h) => !score.hands[h.id]) ?? list.hands[0])?.id : undefined
+  // Answering records the hand in the score, which changes `firstUnplayed`; the hand on screen must not follow it.
+  const [autoPick, setAutoPick] = useState<{ key: string; id: string } | null>(null)
+  useEffect(() => {
+    if (firstUnplayed && autoPick?.key !== listKey) setAutoPick({ key: listKey, id: firstUnplayed })
+  }, [firstUnplayed, listKey, autoPick])
+  const autoHand = autoPick?.key === listKey ? autoPick.id : undefined
   const handId = (routePack === pack?.id ? routeHand : undefined) ?? autoHand
 
   useEffect(() => {

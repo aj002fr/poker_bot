@@ -54,6 +54,15 @@ test('a different pick says so and names what Pluribus did', async ({ page, requ
   await expect(page.getByTestId('study-score')).toContainText('0 of 1 actions')
 })
 
+test('from the bare study link, answering reveals on the same hand', async ({ page }) => {
+  await page.goto('/#/learn/pluribus')
+  await expect(page.getByTestId('study-prompt')).toBeVisible({ timeout: 20_000 })
+  const title = await page.getByTestId('study-hand-title').textContent()
+  await page.locator('[data-testid^="study-opt-"]').first().click()
+  await expect(page.getByTestId('study-reveal')).toBeVisible()
+  await expect(page.getByTestId('study-hand-title')).toHaveText(title!)
+})
+
 test('study mode fits 360, 768 and 1440 px', async ({ page }) => {
   for (const size of WIDTHS) {
     await page.setViewportSize(size)
