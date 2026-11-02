@@ -127,7 +127,8 @@ pluribus-agreement: pluribus-fetch
 	$(UV) run python -m strategy.data.agreement --jobs $(JOBS) --out artifacts/phh/pluribus-agreement.json
 
 # Stage 3 endgame (docs: strategy/tables/README.md). Heavy: about 30 minutes on 8 cores.
-.PHONY: tables-showdown tables-endgame gates-endgame value-rollouts value-fit lab-endgame
+.PHONY: tables-showdown tables-endgame gates-endgame value-rollouts value-fit lab-endgame tables-response \
+	tables-exploit lab-response
 ENDGAME_RULESETS ?= practice_nlhe uncertainty_shortdeck
 ENDGAME_JOBS ?= $(JOBS)
 
@@ -147,6 +148,20 @@ value-rollouts:
 
 value-fit:
 	for r in $(ENDGAME_RULESETS); do $(UV) run python -m strategy.value.model fit --ruleset $$r || exit 1; done
+
+# Population response curves from train-partition tournaments, then tables that best-respond to them.
+tables-response:
+	for r in $(ENDGAME_RULESETS); do $(UV) run python -m strategy.endgame.response collect --ruleset $$r --jobs $(ENDGAME_JOBS) && \
+		$(UV) run python -m strategy.endgame.response fit --ruleset $$r || exit 1; done
+
+tables-exploit:
+	for m in response capped; do for r in $(ENDGAME_RULESETS); do \
+		$(UV) run python -m strategy.tables.exploit --ruleset $$r --mode $$m --jobs $(ENDGAME_JOBS) || exit 1; done; done
+
+# The eight pre-registered comparisons (docs/endgame-response-preregistration.md).
+lab-response:
+	for c in response capped; do for a in points chips; do for v in "" -shortdeck; do \
+		$(UV) run python -m strategy.cli experiment endgame-$$c-vs-$$a$$v --jobs $(LAB_JOBS) || exit 1; done; done; done
 
 lab-endgame:
 	for s in endgame-points-vs-chips endgame-points-vs-chart endgame-points-vs-chips-shortdeck endgame-points-vs-none \

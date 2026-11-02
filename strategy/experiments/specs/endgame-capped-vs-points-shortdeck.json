@@ -1,0 +1,33 @@
+{
+  "experiment_id": "endgame-capped-vs-points-shortdeck",
+  "title": "Population-response push/fold tables (capped) vs the point-aware equilibrium tables (short deck, full 8-player SNGs)",
+  "description": "Pre-registered in docs/endgame-response-preregistration.md before any validation run. Arm B uses best responses to a 50/50 mixture of the curves and the point-aware equilibrium; arm A the point-aware equilibrium tables. Both share the base policy and push/fold layer limits; only the tables differ. One of eight co-primary tests (two candidates x two controls x two variants), Holm-corrected at 0.05; min_effect 0: B must beat A with the interval excluding zero. Validation partition; holdout untouched.",
+  "stage": "confirmation",
+  "min_effect": 0.0,
+  "interval": "paired_t",
+  "arms": {
+    "A": {
+      "policy": "strategy/endgame/bots/points.py"
+    },
+    "B": {
+      "policy": "strategy/endgame/bots/capped.py"
+    }
+  },
+  "variants": [
+    "uncertainty_shortdeck"
+  ],
+  "table": {
+    "players": 8,
+    "starting_stack": 2000,
+    "hand_cap": 200
+  },
+  "population": {
+    "source": "strategy.population:PopulationSource",
+    "partition": "validation",
+    "lineups_per_variant": 16
+  },
+  "blocks_per_lineup": 25,
+  "base_seed": "endgame-capped-vs-points-shortdeck-v1",
+  "isolation": "in_process",
+  "bootstrap_resamples": 2000
+}

@@ -6,6 +6,8 @@ so a paired comparison measures the tables alone:
 ``points``  point-aware tables (ICM continuation value, cap-hand ICM, eliminations);
 ``chips``   chip-EV tables over the same states and keys;
 ``chart``   a fixed chart: chip-EV, symmetric stacks, coarsest keys only;
+``response``  best responses in points to the train-partition population curves;
+``capped``  best responses to a half-curves, half-equilibrium mixture;
 ``none``    the base policy alone.
 
 The layer takes over preflop when the hand fits the push/fold abstraction
@@ -33,7 +35,7 @@ from strategy.endgame.lookup import load_table, preflop_spot
 from strategy.features.cards import capabilities, card_ints, made_hand
 from strategy.tables import store
 
-MODES = ("points", "chips", "chart", "none")
+MODES = ("points", "chips", "chart", "response", "capped", "none")
 OPEN_MAX_BB = 15.0
 BLIND_OPEN_MAX_BB = 10.0
 """Small-blind opens (only the big blind behind) use push/fold up to here: beyond it the

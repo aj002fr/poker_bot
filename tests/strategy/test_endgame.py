@@ -40,7 +40,8 @@ def test_runtime_and_generators_do_not_import_numba():
     code = ("import sys\n"
             "import strategy.endgame.bot, strategy.endgame.lookup, strategy.endgame.gates, strategy.endgame.limp\n"
             "import strategy.tables.endgame, strategy.tables.showdown, strategy.value.model\n"
-            "import strategy.endgame.bots.points, strategy.endgame.bots.chart\n"
+            "import strategy.endgame.bots.points, strategy.endgame.bots.chart, strategy.endgame.bots.response\n"
+            "import strategy.endgame.bots.capped, strategy.endgame.response, strategy.tables.exploit\n"
             "assert 'numba' not in sys.modules, sorted(m for m in sys.modules if 'numba' in m)\n")
     subprocess.run([sys.executable, "-c", code], check=True)
 
@@ -284,8 +285,9 @@ def test_npz_tables_round_trip_and_detect_tampering(tmp_path):
     store.load_arrays.cache_clear()
 
 
-ENDGAME_TABLES = [f"endgame-{m}-{r}" for r in ("practice_nlhe", "uncertainty_shortdeck")
-                  for m in ("points", "chips", "chart")] + ["showdown-practice_nlhe", "showdown-uncertainty_shortdeck"]
+RULESETS = ("practice_nlhe", "uncertainty_shortdeck")
+ENDGAME_TABLES = [f"endgame-{m}-{r}" for r in RULESETS for m in ("points", "chips", "chart", "response", "capped")] + \
+    [f"showdown-{r}" for r in RULESETS] + [f"response-{r}" for r in RULESETS]
 
 
 @pytest.mark.parametrize("name", ENDGAME_TABLES)
@@ -479,3 +481,88 @@ def test_cap_continuation_reorders_survivors_consistently(nlhe):
     # Each player's value conditions the others on its own hand class, so the sum is
     # conserved only up to the class model's card-removal approximation.
     assert got.sum() == pytest.approx(100.0, abs=0.1)
+
+
+# ----------------------------------------------------------- population response
+
+
+def _ev(seat, kind, added=0, amount=None):
+    from types import SimpleNamespace
+
+    action = {"type": kind} if amount is None else {"type": kind, "amount": amount}
+    return SimpleNamespace(type="ActionApplied", data={"seat": seat, "street": "preflop", "action": action,
+                                                       "added": added})
+
+
+def test_response_decisions_follow_the_abstraction():
+    from strategy.endgame.response import hand_decisions
+
+    # Preflop order seats 3, 4, 5 (small blind), 6 (big blind); 1000 chips each.
+    snap = Snapshot((1000, 1000, 1000, 1000), (0, 0, 50, 100), 100, PAYOUTS8, 10, 200)
+    seats = (3, 4, 5, 6)
+    members = {3, 4, 5, 6}
+    shove = [_ev(3, "fold"), _ev(4, "raise_to", 1000, 1000), _ev(5, "call", 950), _ev(6, "fold")]
+    got = hand_decisions(snap, seats, shove, members)
+    assert got == [("open", 0, None, None, 3, 0), ("open", 1, None, None, 4, 1), ("call", 2, 1, None, 5, 1),
+                   ("overcall", 3, 1, 2, 6, 0)]
+    # A non-all-in raise is recorded as "not a shove" and ends the abstraction.
+    small = [_ev(3, "raise_to", 300, 300), _ev(4, "call", 300)]
+    assert hand_decisions(snap, seats, small, members) == [("open", 0, None, None, 3, 0)]
+    # Our own seat is never recorded; folding to the big blind is not a decision.
+    folds = [_ev(3, "fold"), _ev(4, "fold"), _ev(5, "fold")]
+    assert [d[4] for d in hand_decisions(snap, seats, folds, {3, 5, 6})] == [3, 5]
+
+
+def test_logistic_fit_recovers_known_coefficients():
+    from strategy.endgame.response import fit_logistic
+
+    rng = np.random.default_rng(4)
+    x = np.hstack([np.ones((20000, 1)), rng.normal(size=(20000, 2))])
+    beta = np.array([-1.0, 2.0, -0.5])
+    y = (rng.random(20000) < 1 / (1 + np.exp(-x @ beta))).astype(float)
+    got = fit_logistic(lambda sl: x[sl], len(y), y, np.array([0.0, 1e-3, 1e-3]), chunk=7000)
+    assert np.allclose(got, beta, atol=0.08)
+
+
+def test_response_curves_come_from_training_members_only():
+    from strategy.population import PopulationSource
+    from strategy.value.rollouts import training_lineups
+
+    source = PopulationSource()
+    train = {m.policy for m in source.partition("train").eligible("practice_nlhe")}
+    other = {m.policy for part in ("validation", "holdout") for m in source.partition(part).eligible("practice_nlhe")}
+    teams = training_lineups("practice_nlhe", 8, 20, 11, fixed=("strategy/endgame/bots/points.py",))
+    assert all(set(t[1:]) <= train and not set(t) & other for t in teams)
+    for r in RULESETS:
+        prov, _ = store.load_arrays(f"response-{r}")
+        assert prov["partition"] == "train" and prov["ruleset_id"] == r
+
+
+@pytest.mark.parametrize("ruleset", RULESETS)
+def test_exploit_tables_match_the_committed_curves(ruleset):
+    curves = store.load_arrays(f"response-{ruleset}")[0]
+    for mode in ("response", "capped"):
+        prov, _ = store.load_arrays(f"endgame-{mode}-{ruleset}")
+        assert prov["response_sha256"] == curves["data_sha256"]
+        assert prov["variant_hash"] == curves["variant_hash"]
+
+
+def test_best_response_to_the_curves_beats_equilibrium_against_them(nlhe):
+    from strategy.endgame.harvest import subgame_for
+    from strategy.endgame.response import load_response, population_profile
+    from strategy.tables.exploit import responses
+
+    snap = Snapshot((900, 1400, 700, 1000), (0, 0, 50, 100), 100, PAYOUTS8, 120, 200)
+    response = load_response("practice_nlhe")
+    solver = PushFoldSolver(SubgameTree(subgame_for(snap)), nlhe)
+    pop = population_profile(solver, snap, response)
+    assert set(pop) == set(solver.decisions)
+    eq = solver.run(250).average()
+    for q in range(snap.n):
+        mine = [d for d in solver.tree.player_nodes[q]]
+        br_value, _ = solver.best_response(pop, q)
+        eq_value = solver.values({**pop, **{d: eq[d] for d in mine}})[q]
+        assert br_value >= eq_value - 1e-9
+    records, gains, _ = responses(snap, None, "response", nlhe, response)
+    assert records and all(set(np.unique(r.row)) <= {0.0, 1.0} for r in records)
+    assert min(gains) >= -1e-9

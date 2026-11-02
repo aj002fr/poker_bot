@@ -17,6 +17,9 @@ default 8-player structure, 65 heads-up). Chip-EV results are also given in big 
    loss when it plays the table instead of the exact solution, the others fixed. The
    chip-EV and chart tables are also played in the point game: the price of ignoring
    points when everyone else plays the point equilibrium.
+6. Response audit: on the same held-out states, one player plays each table (point
+   equilibrium, chip EV, population response, capped response) while the others play
+   the population curves or the point equilibrium; values relative to the point table.
 
     python -m strategy.endgame.gates --jobs 8      # writes artifacts/endgame/gates.json
 """
@@ -259,6 +262,79 @@ def audit(ruleset: str, mode: str, jobs: int, states: int = 160, table_mode: str
             "max_loss": float(max(losses)), "by_players": by_n}
 
 
+RESPONSE_TABLES = ("points", "chips", "response", "capped")
+
+
+def _response_state(args):
+    from strategy.endgame.harvest import decision_nodes, default_iterations, subgame_for
+    from strategy.endgame.keys import keys_for
+    from strategy.endgame.lookup import load_table
+    from strategy.endgame.response import load_response, population_profile
+    from strategy.endgame.showdown import load_showdown
+    from strategy.endgame.solver import PushFoldSolver
+    from strategy.endgame.subgame import SubgameTree
+
+    ruleset, snap, odd = args
+    model = load_showdown(ruleset)
+    solver = PushFoldSolver(SubgameTree(subgame_for(snap, utility="points", odd_order=odd)), model)
+    pop = population_profile(solver, snap, load_response(ruleset))
+    solver.run(default_iterations(snap.n))
+    worlds = {"population": pop, "equilibrium": solver.average()}
+    nodes = decision_nodes(solver.tree)
+    scale = snap.payouts[0]
+    out = {w: {t: [] for t in (*RESPONSE_TABLES, "best_response")} for w in worlds}
+    covered = 0
+    for q in range(snap.n):
+        mine = [x for x in nodes if x[2] == q]
+        rows = {}
+        for t in RESPONSE_TABLES:
+            table = load_table(t, ruleset)
+            sw = {}
+            for kind, node, hero, shover, caller in mine:
+                keys = keys_for(kind, snap, hero, shover, caller)
+                hits = [table.lookup(kind, keys, c) for c in range(model.h)]
+                if any(h is None for h in hits):
+                    break
+                p = np.array([h[0] for h in hits])
+                sw[node] = np.stack([1 - p, p])
+            else:
+                rows[t] = sw
+        if not mine or len(rows) < len(RESPONSE_TABLES):
+            continue
+        covered += 1
+        for w, prof in worlds.items():
+            for t, sw in rows.items():
+                out[w][t].append(float(solver.values({**prof, **sw})[q]) / scale)
+            out[w]["best_response"].append(solver.best_response(prof, q)[0] / scale)
+    return snap.n, covered, out
+
+
+def response_audit(ruleset: str, jobs: int, states: int = 160) -> dict:
+    """Each table played by one player against the population curves and against equilibrium.
+
+    Values are in normalised points relative to the point-aware equilibrium table, per
+    player and state, on held-out synthetic states (the audit seed).
+    """
+    from strategy.tables.endgame import default_config, synthetic_state
+
+    config = default_config(ruleset)
+    rng = np.random.default_rng(97)
+    tasks = []
+    while len(tasks) < states:
+        s = synthetic_state(rng, config)
+        if s is not None:
+            tasks.append((ruleset, s.snapshot, s.odd_order))
+    rows = _map(_response_state, tasks, jobs)
+    res: dict = {"states": len(rows), "players": sum(r[1] for r in rows), "unit": "normalised point"}
+    for w in ("population", "equilibrium"):
+        ref = np.concatenate([r[2][w]["points"] for r in rows])
+        res[w] = {t: {"mean_vs_points": float(np.mean(np.concatenate([r[2][w][t] for r in rows]) - ref)),
+                      "se": float(np.std(np.concatenate([r[2][w][t] for r in rows]) - ref, ddof=1)
+                                  / np.sqrt(len(ref)))}
+                  for t in (*RESPONSE_TABLES, "best_response")}
+    return res
+
+
 def _map(fn, tasks, jobs):
     if jobs > 1:
         with ProcessPoolExecutor(jobs) as ex:
@@ -270,10 +346,10 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--rulesets", nargs="+", default=["practice_nlhe", "uncertainty_shortdeck"])
     ap.add_argument("--jobs", type=int, default=8)
-    ap.add_argument("--only", nargs="+", choices=["two_player", "multiway", "pruning", "late", "audit"])
+    ap.add_argument("--only", nargs="+", choices=["two_player", "multiway", "pruning", "late", "audit", "response"])
     ap.add_argument("--out", default=str(OUT / "gates.json"))
     a = ap.parse_args(argv)
-    sections = a.only or ["two_player", "multiway", "pruning", "late", "audit"]
+    sections = a.only or ["two_player", "multiway", "pruning", "late", "audit", "response"]
     out: dict = {}
     for ruleset in a.rulesets:
         res: dict = {}
@@ -297,6 +373,9 @@ def main(argv: list[str] | None = None) -> None:
             res["audit"].update({f"{m}_table_in_points": audit(ruleset, "points", a.jobs, table_mode=m)
                                  for m in ("chips", "chart")})
             print(ruleset, "audit", json.dumps(res["audit"]), flush=True)
+        if "response" in sections:
+            res["response"] = response_audit(ruleset, a.jobs)
+            print(ruleset, "response", json.dumps(res["response"]), flush=True)
         res["seconds"] = round(time.perf_counter() - t0, 1)
         out[ruleset] = res
     path = Path(a.out)
