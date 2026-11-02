@@ -209,6 +209,11 @@ def test_evaluator_orders_and_describes_hands():
     assert hand_words(["Ah", "Kd"], [])[1] == "high_card"
 
 
+def test_evaluator_handles_quads_on_a_four_card_board():
+    assert evaluate(["Ac", "Ad", "Ah", "As"])[:2] == (7, 12)
+    assert hand_words(["Kc", "2d"], ["Ac", "Ad", "Ah", "As"])[1] == "four_of_a_kind"
+
+
 def test_draws_and_equity():
     found, outs = draws(["Ah", "Kh"], ["2h", "7h", "Qc"])
     assert [d["kind"] for d in found] == ["flush_draw"] and outs == 9

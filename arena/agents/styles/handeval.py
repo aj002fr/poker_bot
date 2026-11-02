@@ -55,7 +55,7 @@ def evaluate(cards: Sequence[str]) -> tuple[int, ...]:
     pairs = [r for r in range(12, -1, -1) if counts[r] == 2]
     if quads:
         q = quads[0]
-        return (QUADS, q, max(r for r in ranks if r != q))
+        return (QUADS, q, max((r for r in ranks if r != q), default=-1))
     if trips and (len(trips) > 1 or pairs):
         t = trips[0]
         return (FULL_HOUSE, t, max([*trips[1:], *pairs]))
