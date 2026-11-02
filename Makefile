@@ -108,6 +108,24 @@ lab-null-synthetic:
 verify-strategy:
 	$(REQUIRE_NUMBA) $(UV) run $(TRAIN) pytest tests/strategy -m "not slow and not oracle" -q
 
+# Pluribus hands (Stage 7; docs/pluribus-study.md). The corpus is cached outside git by a pinned,
+# hash-checked download; only a small fixture is committed.
+.PHONY: pluribus-fetch pluribus-import study-sample study-pack pluribus-agreement
+pluribus-fetch:
+	$(UV) run python -m strategy.data.fetch
+
+pluribus-import: pluribus-fetch
+	$(UV) run python -m strategy.data.phh_import --out artifacts/phh/pluribus-import.json
+
+study-sample:
+	$(UV) run python -m strategy.data.study --source fixture
+
+study-pack: pluribus-fetch
+	$(UV) run python -m strategy.data.study
+
+pluribus-agreement: pluribus-fetch
+	$(UV) run python -m strategy.data.agreement --jobs $(JOBS) --out artifacts/phh/pluribus-agreement.json
+
 # Stage 3 endgame (docs: strategy/tables/README.md). Heavy: about 30 minutes on 8 cores.
 .PHONY: tables-showdown tables-endgame gates-endgame value-rollouts value-fit lab-endgame
 ENDGAME_RULESETS ?= practice_nlhe uncertainty_shortdeck

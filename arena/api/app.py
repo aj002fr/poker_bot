@@ -40,6 +40,7 @@ from arena.api.operator import is_operator, operator_token_from_env
 from arena.api.replay import ReplayCache, ReplayError, check_perspective
 from arena.api.runs import RunManager, RunRejected, RunRequest
 from arena.api.seats import BotRegistrationError
+from arena.api.study import StudyLibrary, study_dir_from_env
 from arena.api.styles import styles_catalog
 from arena.domain.models import RULESET_IDS
 from arena.persistence.store import MemoryStore, Store
@@ -93,6 +94,7 @@ def create_app(
     operator_token: str | None = None,
     runs: RunManager | None = None,
     test_hooks: bool | None = None,
+    study: StudyLibrary | None = None,
 ) -> FastAPI:
     """``ARENA_FAKE_CLOCK=1`` (end-to-end tests only) swaps in a fake clock that
     advances solely through ``POST /__test__/clock/advance``."""
@@ -113,6 +115,8 @@ def create_app(
     if runs is None:
         runs = RunManager(manager.bots)
     replays = ReplayCache()
+    if study is None:
+        study = StudyLibrary(study_dir_from_env())
     if allowed_origins is None:
         extra = tuple(o for o in os.environ.get("ARENA_ALLOWED_ORIGINS", "").split(",") if o)
         allowed_origins = DEFAULT_ORIGINS + extra
@@ -196,6 +200,18 @@ def create_app(
     @app.get("/styles")
     async def styles() -> dict[str, Any]:
         return styles_catalog()
+
+    @app.get("/study/packs")
+    def study_packs() -> dict[str, Any]:
+        return {"packs": study.packs(), "compatibility_status": "practice_assumptions"}
+
+    @app.get("/study/packs/{pack_id}/hands")
+    def study_hands(pack_id: str, filter: str = "all", offset: int = 0, limit: int = 50) -> dict[str, Any]:
+        return study.hands(pack_id, filter=filter, offset=offset, limit=limit)
+
+    @app.get("/study/packs/{pack_id}/hands/{hand_id}")
+    def study_hand(pack_id: str, hand_id: str) -> dict[str, Any]:
+        return study.hand(pack_id, hand_id)
 
     @app.post("/configs/resolve")
     def resolve(body: CreateTableRequest, request: Request) -> dict[str, Any]:

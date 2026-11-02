@@ -20,6 +20,9 @@ export ARENA_OPERATOR_TOKEN
 mkdir -p artifacts
 (umask 077 && printf '%s\n' "$ARENA_OPERATOR_TOKEN" > artifacts/operator-token)
 
+# Study mode: the committed Pluribus fixture hands as a small pack (the full corpus: make study-pack).
+"$UV" run python -m strategy.data.study --source fixture || echo "warning: could not build the sample study pack"
+
 trap 'kill 0' EXIT INT TERM
 
 "$UV" run uvicorn --factory arena.api.app:create_app --host 127.0.0.1 --port "$API_PORT" &
