@@ -27,6 +27,9 @@ def _baselines(*names: str) -> list[Entrant]:
 FIELD = ("legal_random", "calling_station", "check_fold")
 
 
+EXACT_BUDGET_NS = 50_000_000
+
+
 def _run(entrants=None, *, blocks=1, seed="retry", isolation="in_process", **kw):
     entrants = entrants or _baselines(*FIELD)
     return run_benchmark(config=small_config(len(entrants)), entrants=entrants, blocks=blocks, base_seed=seed,
@@ -136,9 +139,11 @@ def test_old_manifests_without_retry_field_still_load(tmp_path):
 @needs_sandbox
 def test_infrastructure_kill_of_explicit_state_bot_is_restored_not_invalidated():
     entrants = _baselines(*FIELD)
-    clean = _run(entrants, isolation="sandbox")
+    # Exact points across two sandboxed runs: a 1 ms host-stall timeout (a forced fold
+    # in one run only) would break the comparison, so both runs get a 50 ms budget.
+    clean = _run(entrants, isolation="sandbox", budget_ns=EXACT_BUDGET_NS)
     seat = _seat_of(entrants, 0)
-    run = _run(entrants, isolation="sandbox", _faults={(0, 1): f"kill:{seat}:2"})
+    run = _run(entrants, isolation="sandbox", budget_ns=EXACT_BUDGET_NS, _faults={(0, 1): f"kill:{seat}:2"})
     s = run.manifest.summary
     assert s["attempts_total"] == 3 and s["invalid_attempts"] == []
     assert [r.points for r in run.results] == [r.points for r in clean.results]
