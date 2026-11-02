@@ -47,6 +47,8 @@ strategy/games/    Stage 2 toy games with analytic solutions (Kuhn, Leduc, AKQ, 
 strategy/endgame/  Stage 3 push/fold subgames over the full stack vector, class-vector CFR+ with
                    exact best responses, limp/min-raise gaps, table lookup, push/fold bots (bots/)
 strategy/value/    tournament rollouts and the continuation value V(s) (ICM + fitted residual)
+strategy/data/     pinned Pluribus PHH download, import through the arena engine, study packs,
+                   bot-vs-Pluribus agreement diagnostic (fixtures/: 24 upstream hands)
 examples/          template_bot.py: copy it to start a bot
 tests/agents/      fault-injection bots, sandbox probes, fake-clock deadline tests, restore
 tests/api/         API behaviour and HTTP/WebSocket leak checks
@@ -160,6 +162,13 @@ guess** panel tracks every opponent's stats with sample sizes and records your s
 guesses. When the table ends, the **Reveal** scores those guesses against each seat's
 true style and shows the evidence. `ARENA_SCREENSHOTS=/some/dir npx playwright test
 screenshots` (in `web/`) captures a walkthrough of these screens.
+
+**Study Pluribus** (next to Learn) replays real six-max hands played by Pluribus and
+pauses at each of its decisions: pick an action and a size, then see what it did, with
+pot odds, equity and the spot's features alongside and a running agreement score kept
+in this browser. `make dev` builds 24 sample hands from the committed fixture; for all
+10,000 hands run `make study-pack`, which first downloads the dataset into a cache
+outside git and checks it against a pinned hash. See [`docs/pluribus-study.md`](docs/pluribus-study.md).
 
 ## Bots
 
