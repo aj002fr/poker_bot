@@ -93,6 +93,20 @@ class ExecutionGates(_S):
     max_artifact_bytes: StrictInt | None = 100_000_000
     max_failed_tables: StrictInt | None = 0
     require_competitive: StrictBool = False
+    control_every: StrictInt = Field(4, ge=0)
+    """Sandbox runs play a no-op control table before the first table and after every
+    ``control_every`` tables of each arm, and classify timeouts against it
+    (:mod:`strategy.eval.stalls`); 0 turns the classified timeout gate off."""
+    timeout_replays_per_seat: StrictInt = Field(3, ge=0)
+    """Timed-out explicit-state decisions replayed per seat per table."""
+    max_bot_timeouts: StrictInt | None = 0
+    """Arm B fails with more bot-caused (replay-confirmed) timeouts than this."""
+    max_control_timeout_rate: StrictFloat | None = Field(0.0005, ge=0, le=1)
+    """Host ceiling: an arm whose control runs significantly above this rate is host-invalid."""
+    stall_p_min: StrictFloat = Field(0.01, gt=0, lt=1)
+    """C-test level for stall-like timeouts in excess of the control."""
+    max_reruns: StrictInt = Field(2, ge=0)
+    """Reruns of a host-invalid or stall-excess arm (same seeds; every attempt reported)."""
 
 
 class NullCalibrationSpec(_S):

@@ -112,7 +112,8 @@ def _print_summary(run_dir: Path, report: dict) -> None:
     print(f"{report['manifest']['experiment_id']}  manifest {report['manifest']['manifest_id']}  "
           f"jobs {report.get('run', {}).get('jobs', '?')}")
     if a.get("withheld"):
-        print(f"RUN INVALID, POINTS WITHHELD: {dec['reason']}", file=sys.stderr)
+        head = "RUN INVALID, POINTS WITHHELD" if dec["verdict"] == "invalid" else f"{dec['verdict'].upper()}, POINTS WITHHELD"
+        print(f"{head}: {dec['reason']}", file=sys.stderr)
         print(f"   {dec['note']}", file=sys.stderr)
         print(f"   report {run_dir / 'report.md'}")
         return
@@ -122,6 +123,11 @@ def _print_summary(run_dir: Path, report: dict) -> None:
               f"B-A {p['mean_difference']:+.3f}  {int(p['level'] * 100)}% {p['interval_method']} "
               f"[{lo:+.3f}, {hi:+.3f}]")
     print(f"   verdict {dec['verdict']}: {dec['reason']}")
+    for arm, c in (a["execution"].get("timeout_classes") or {}).items():
+        k, ctl = c["candidate"], c["control"]
+        print(f"   arm {arm} timeouts {k['timeouts']}/{k['decisions']}: bot-caused {k['classes']['bot_caused']}, "
+              f"stall-like {k['classes']['stall_like']}, unclassified {k['classes']['unclassified']}; control "
+              f"{ctl['timeouts']}/{ctl['decisions']}; reruns {c['reruns']}")
     null = report.get("null_calibration")
     if null:
         for name, r in null["methods"].items():

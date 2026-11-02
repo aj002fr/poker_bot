@@ -134,6 +134,37 @@ never treated as independent.
   **RUN INVALID: POINTS WITHHELD**; a null calibration is withheld; and
   `strategy.cli experiment` exits 3. In-process runs enforce no deadline and record
   no timeouts. Set either limit to `null` to switch it off.
+- **Classified timeout gate** (sandboxed runs, `strategy.eval.stalls`): each arm
+  plays a no-op control table (the calling station in every seat) before its first
+  table and after every `gates.control_every` (4) tables. Every timeout of the
+  candidate seat is classified:
+  - *stall-like*: the late reply shows that parse plus decide fitted the budget minus
+    the median harness overhead, or a replay of the exact decision (explicit-state
+    bots, first `gates.timeout_replays_per_seat` (3) timeouts per seat per table, 3
+    repeats in a fresh worker) has a median under half the budget;
+  - *bot-caused*: the replay median is at least half the budget, or the replay misses
+    even its 100 ms budget;
+  - *unclassified*: no late-reply evidence and no replay. These count with the
+    stall-like ones.
+
+  Arm B is strict. More than `gates.max_bot_timeouts` (0) bot-caused timeouts fail
+  the run with verdict `fail`. The points are still reported, and the arm is not
+  rerun. In each arm, the control must not run significantly above the
+  `gates.max_control_timeout_rate` host ceiling (0.05%; one-sided Poisson test at
+  0.01). Otherwise the attempt is *host-invalid*.
+
+  Stall-like and unclassified timeouts are compared with the control by a
+  conditional two-Poisson C-test. Exposure is the summed end-to-end time, and
+  p < `gates.stall_p_min` (0.01) is a *stall excess*. The exposure model ignores that
+  a slower decision needs a shorter stall to miss, so it is strict for bots that use
+  much of the budget.
+
+  A host-invalid or stall-excess arm is rerun with the same seeds under
+  `cells/<cell>/<arm>/rerun-<n>/`, up to `gates.max_reruns` (2) times. The first
+  passing attempt is used, and every attempt is listed in
+  `execution.timeout_classes`. If no attempt passes, the run is `invalid` with
+  points withheld, as for the integrity gate. `gates.control_every: 0` switches the
+  gate off. Control tables add a quarter more tables to a sandboxed run.
 - **Report**: `report.md` (concise) and `report.json` (full, including every block
   pair).
 
@@ -239,7 +270,8 @@ process. That gives 1 job on 8 cores, 3 on 16 and 7 on 32. In-process runs, whic
 enforce no deadline, use every core but one. The count honours CPU affinity and any
 cgroup v2 `cpu.max` quota, and counts physical cores rather than SMT threads.
 `python -m strategy.cli capacity` prints it. `--jobs` above the safe count is allowed
-with a warning; the timeout integrity gate catches the result.
+with a warning; the timeout integrity gate catches the result. The arena CLI
+(`arena.benchmark.capacity`) uses the same policy.
 
 **The floor at 1 job is host stalls.** Six sandboxed calling stations (16 µs
 decisions), one table at a time, timed out on 0.035% of 360,000 decisions. With the
@@ -254,7 +286,9 @@ The harness adds three things, none of them a source of stalls:
 - **Fixed overhead.** About 220 µs at the median: 110 µs for the worker to parse the
   observation, and 95 µs for serialization and the pipe.
 - **Parent GC pauses.** Gen2 collections in the harness process take 30–50 ms. They
-  rarely land between dispatch and receive: 1–4 of 264 timeouts.
+  landed between dispatch and receive on 1–4 of 264 timeouts. The arena now disables
+  the parent's collector from dispatch until the reply is read, and freezes the heap
+  per table, so none can.
 - **Worker start-ups.** They matter only when jobs share cores.
 
 Timer reads (kvm-clock) cost 45 ns. Neither process sleeps on the critical path: the

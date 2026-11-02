@@ -156,9 +156,19 @@ The SDK and runtime are described in `docs/agent-sdk.md`, and the sandbox in
   - Paired seed blocks with full seat rotation.
   - Intervals are a 95% percentile bootstrap over blocks with 2,000 resamples.
   - Points are the tournament payouts per table (100 per table).
-- **Parallel jobs.** The default is `max(1, min(4, cpu_count // 4))` (2 on this VM). With
-  3 or more jobs on 8 vCPUs, the 1 ms timeout rate jumps because parent and worker both
-  busy-poll. See the sandbox doc.
+- **Parallel jobs.** Sandboxed runs default to 1 job per 4 physical cores, after
+  reserving 1 core for the driving process (`arena.benchmark.capacity.safe_jobs`): 1 job
+  on this 8-core VM, 3 on 16, 7 on 32. It counts physical cores, not hardware
+  threads, and honours CPU affinity and cgroup quotas. In-process runs use every core
+  but one. A job keeps 2 to 3 cores busy (the busy-polling parent, the deciding
+  worker, and replacement workers starting during the first hands), so more jobs
+  raise the 1 ms timeout rate. See the sandbox doc.
+- **Host stalls.** Even at 1 job on an idle VM, a no-op bot misses the deadline on
+  about 0.04% of decisions, because the host deschedules a vCPU for a millisecond or
+  more. The strategy harness and the deployed gate classify every timeout. They
+  replay the decision and read the worker's own time from the late reply, then fail
+  bot-caused timeouts outright and test stall-like ones against interleaved no-op
+  control tables (`strategy.eval.stalls`).
 - **Infrastructure reruns (spec 9.2).** A bot-only table interrupted by infrastructure is
   marked invalid and rerun with the same seed and table ID, under an attempt ID
   `<table_id>-a<n>`. The default is up to 3 attempts in total, recorded in the manifest.

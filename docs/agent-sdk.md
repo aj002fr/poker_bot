@@ -178,9 +178,10 @@ The output gives:
 `docs/schemas/benchmark-manifest.v1.json`) and `private/seeds.json`, plus `tables/` with
 `--save-histories`. Other options:
 
-- `--jobs` sets the number of parallel table processes. The default is
-  `max(1, min(4, cpu_count // 4))`, which is 2 on an 8-vCPU VM. See the sandbox doc for
-  why more jobs is worse.
+- `--jobs` sets the number of parallel table processes. Sandboxed runs default to 1
+  job per 4 physical cores, after reserving 1 core (1 on an 8-core VM, 3 on 16).
+  In-process runs default to every core but one. See the sandbox doc for why more
+  jobs is worse.
 - `--in-process` runs the bots without the sandbox or deadline. This is only for
   trusted code and debugging, and the manifest marks such runs `competitive: false`.
 

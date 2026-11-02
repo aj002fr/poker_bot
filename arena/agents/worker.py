@@ -488,6 +488,10 @@ class TimeoutRecord:
     within the stale grace; the worker was replaced), ``worker_crash``, or
     ``unsettled`` (the table ended before the seat was asked again)."""
     late_by_ns: int | None = None
+    """How late the reply arrived; only when it was read while the parent was still waiting."""
+    drained_after_ns: int | None = None
+    """For a late reply drained at the seat's next turn: deadline to the read, an upper
+    bound on its lateness (the reply may have sat in the pipe meanwhile)."""
     reply_kind: str | None = None
     """``action`` or ``error`` for a late reply."""
     worker_parse_ns: int | None = None
@@ -507,6 +511,7 @@ class TimeoutRecord:
     def as_dict(self) -> dict[str, Any]:
         return {"decision_index": self.decision_index, "seq": self.seq, "budget_ns": self.budget_ns,
                 "e2e_ns": self.e2e_ns, "outcome": self.outcome, "late_by_ns": self.late_by_ns,
+                "drained_after_ns": self.drained_after_ns,
                 "reply_kind": self.reply_kind, "worker_parse_ns": self.worker_parse_ns,
                 "worker_wall_ns": self.worker_wall_ns, "worker_cpu_ns": self.worker_cpu_ns}
 
@@ -720,7 +725,7 @@ class WorkerSeat:
                 self.stats.late_discarded += 1
                 if frame.meta.get("seq") == self.stale_seq:
                     if record is not None:
-                        _note_reply(record, frame)
+                        _note_reply(record, frame, drained=True)
                     self.stale_seq = None
                     return
         except (ChannelClosed, FrameError):
@@ -843,10 +848,13 @@ class WorkerSeat:
         return "".join(self.logs)[:LOG_KEEP_BYTES]
 
 
-def _note_reply(record: TimeoutRecord, frame: ReceivedFrame) -> None:
+def _note_reply(record: TimeoutRecord, frame: ReceivedFrame, drained: bool = False) -> None:
     m = frame.meta
     record.outcome = "late_reply"
-    record.late_by_ns = frame.received_ns - record.deadline_ns
+    if drained:
+        record.drained_after_ns = frame.received_ns - record.deadline_ns
+    else:
+        record.late_by_ns = frame.received_ns - record.deadline_ns
     record.reply_kind = str(m.get("t"))
     record.worker_parse_ns, record.worker_wall_ns, record.worker_cpu_ns = (
         m.get(k) if isinstance(m.get(k), int) else None for k in ("parse_ns", "wall_ns", "cpu_ns"))

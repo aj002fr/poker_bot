@@ -217,3 +217,44 @@ def test_bundle_plays_in_the_real_sandbox(tmp_path):
     assert rep["internal_fallbacks"] == 0 and rep["restarts"] == 0
     assert set(rep["fallbacks"]) <= {"timeout"}  # shared CI machines may miss the 1 ms deadline
     assert rep["max_state_bytes"] < 2048
+    first = rep["attempts"][0]
+    assert first["control"]["tables"] == first["candidate"]["tables"] and first["control"]["decisions"] > 0
+    assert sum(rep["timeout_classes"].values()) == rep["fallbacks"].get("timeout", 0)
+    assert rep["selection"]["action"] in ("use", "fail", "invalid") and len(rep["attempts"]) <= 3
+
+
+def test_gate_fails_on_bot_caused_timeouts_and_reruns_stalls(monkeypatch):
+    from strategy.policy import gate
+
+    class Seat:
+        def __init__(self, timeouts):
+            self.stats = type("S", (), {"decisions": 100, "worker_wall_ns": [100_000] * 100,
+                                        "e2e_ns": [300_000] * 100, "fallbacks": {"timeout": len(timeouts)} if timeouts
+                                        else {}, "restarts": [], "late_discarded": 0, "max_state_bytes": 10})()
+            self.records = timeouts
+
+    slow = {"outcome": "late_reply", "worker_parse_ns": 0, "worker_wall_ns": 2_000_000,
+            "replay": {"runs": [{"fallback": None, "worker_wall_ns": 900_000}] * 3}}
+    stall = {"outcome": "late_reply", "worker_parse_ns": 0, "worker_wall_ns": 50_000}
+    script = []
+
+    def attempt(*_a, **_k):
+        cand, ctrl = gate._Side(), gate._Side()
+        k = script.pop(0)
+        for _ in range(500):
+            s = Seat(k)
+            cand.add("t", s, s.records)
+            c = Seat([])
+            ctrl.add("t", c, [])
+        return cand, ctrl, 0
+
+    monkeypatch.setattr(gate, "_attempt", attempt)
+    monkeypatch.setattr(gate, "load_population", lambda: None)
+    script[:] = [[slow]]
+    rep = gate.run_gate(Path("x"), min_decisions=100, log=lambda s: None)
+    assert not rep["passed"] and rep["selection"]["action"] == "fail" and len(rep["attempts"]) == 1
+    assert rep["timeout_classes"]["bot_caused"] == 500 and not rep["checks"]["bot_caused_timeouts"]
+    script[:] = [[stall] * 2, [stall] * 2, []]
+    rep = gate.run_gate(Path("x"), min_decisions=100, log=lambda s: None)
+    assert rep["passed"] and [a["verdict"] for a in rep["attempts"]] == ["stall_excess", "stall_excess", "pass"]
+    assert rep["selection"]["used"] == 2

@@ -151,21 +151,35 @@ make bench-policy               # GC attribution by replay
 
 The packaged bundle is staged and played by `arena.agents.worker.WorkerSeat`, as in a
 sandboxed tournament. Only the candidate's seat is sandboxed; opponents run
-in-process. The gate passes when all of the following hold:
+in-process. Every candidate table is followed by a **control table**: the same
+seed, seat and opponents, with the calling station sandboxed in the candidate's
+seat. The control measures the host's stall rate while the gate runs.
+
+Each candidate timeout is classified (`strategy.eval.stalls`, described in
+[strategy-evaluation.md](strategy-evaluation.md)):
+
+- *stall-like*: either the worker's own time in the late reply fitted the budget, or
+  three replays of the exact decision in a fresh worker have a median under 500 µs;
+- *bot-caused*: the replay median is 500 µs or more.
+
+The gate passes, in the attempt used, when all of the following hold:
 
 - at least 50,000 decisions;
 - worker wall time p99 below 500 µs;
-- zero arena fallbacks of any kind, zero restarts and zero late replies;
+- zero arena fallbacks other than timeouts, and zero restarts;
+- zero bot-caused timeouts;
+- stall-like timeouts within the control's rate (C-test, p ≥ 0.01), on a host whose
+  control is not significantly above the 0.05% ceiling;
 - zero internal fallbacks.
 
-It reports p50, p95, p99, p99.9 and max for both worker time and end-to-end time.
-The seat records worker time only for replies that arrive in time, so each timeout is
-listed under `misses` with the time the worker reported in its late reply. Each miss
-gets a cause:
-
-- `bot_time`: the late decision itself took more than `max(500 µs, 2 × p99.9)`;
-- `transport`: the decision was normal, so the time went to IPC or scheduling;
-- `unknown`: no late reply arrived.
+A host-invalid or stall-excess attempt is rerun with the same seeds, up to 2 times
+(`--max-reruns`). Every attempt is in the report under `attempts`, and the first
+passing one decides. A bot-caused timeout, or any other failed check, ends the gate
+with a failure. The report gives p50, p95, p99, p99.9 and max for worker time and
+end-to-end time, for the candidate and the control. The harness process's collector
+is off from dispatch until each reply is read, and its heap is frozen per table.
+`make gate-control` still runs the plain gate with the calling station as the
+candidate.
 
 Run it on an otherwise idle machine. Concurrent CPU load shows up as sandbox
 timeouts while the bot's own time stays flat: on 8 CPUs with 7 search workers
@@ -179,6 +193,23 @@ decisions, at a worker p99 of 240 µs and p99.9 of 298 µs. The late replies spl
 between `bot_time` stalls (CPU time equal to a 0.7–2.1 ms wall time on decisions
 that replay in under 350 µs) and `transport`. None overlaps a GC pause, and none
 reproduces in replay.
+
+With the classified gate (`make gate-baseline`, nlhe-v2, bundle `203360239e2a…`, idle
+VM, 9.3 min), the gate **passed on its first attempt**. Over 369 tables:
+
+- **Candidate:** 50,118 decisions with worker wall p99 267 µs, p99.9 359 µs and max
+  641 µs. End-to-end p99 was 579 µs. There were no other fallbacks, no restarts and no
+  internal fallbacks, and the maximum state was 255 bytes.
+- **Timeouts:** 34 in total, 0 bot-caused. 24 were stall-like: 9 by transport (the
+  worker's own time fitted the budget) and 15 by a fast replay (replay medians of
+  150–450 µs). The other 10 were unclassified, past the 3-replays-per-table cap in
+  tables that had a burst of timeouts.
+- **Control:** 2 timeouts in 12,876 decisions (0.016%; ceiling p = 0.99). The C-test on
+  the candidate's 34 against exposure of 17.9 s versus 3.0 s gave p = 0.094.
+
+Both rates were about 2.5 times those of the earlier runs, so the host was noisier
+that day. The first replay in a fresh worker takes about 23 ms because the tables
+load lazily; the replay median of 3 absorbs it.
 
 **GC.** The worker collects and freezes the heap after loading the bot, and packaged
 bots also freeze after loading the variant tables (`gc_mode="freeze"`). The decision

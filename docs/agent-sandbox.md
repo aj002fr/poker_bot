@@ -126,8 +126,9 @@ late. That is conservative against the bot, never in its favour. To keep that ra
   before the clock starts, carrying no game data). This hides the roughly 250 µs vCPU
   wake-up latency of this KVM guest.
 
-Baselines in sandboxed mode, 2 parallel jobs (the default here), NLHE, budget
-1,000,000 ns. Times are end to end as the parent sees them.
+Baselines in sandboxed mode, 2 parallel jobs (the old default; the current default
+is 1 job on this VM, see below), NLHE, budget 1,000,000 ns. Times are end to end as
+the parent sees them.
 
 | Run | Decisions | p50 | p95 | p99 | max | 1 ms fallbacks |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -155,14 +156,42 @@ parent and the worker). On 8 vCPUs, the 1 ms timeout rate measured in tuning was
 | 3 | 2.8% |
 | 4 | 13.6% |
 
-That is why the default is `max(1, min(4, cpu_count // 4))`. Timeout rates also rise
-when other heavy work shares the VM (for example a test run). Results from a loaded
-machine say more about the machine than about the bot. Each manifest records the
-process layout and the measured timeout rate.
+Later measurements with strategy population lineups found 0.02% at 1 job against
+0.12–0.24% at 2 jobs, pinned or not. With 2 jobs the timeouts cluster in the first
+75 decisions of each table, while replacement workers start. So the default is
+**1 job per 4 physical cores**, after reserving 1 core for the driving process
+(`arena.benchmark.capacity.safe_jobs`). That is 1 job on this 8-core VM, 3 on 16
+and 7 on 32. It counts physical cores, not SMT threads, and honours CPU affinity and
+cgroup v2 quotas. `--jobs` overrides it. Timeout rates also rise when other heavy
+work shares the VM (for example a test run). Results from a loaded machine say more
+about the machine than about the bot. Each manifest records the process layout and
+the measured timeout rate.
+
+**Host stalls and the classified timeout gate.** Even at 1 job on an idle VM, a
+calling station misses the deadline on 0.035–0.04% of decisions. The cause is the
+host: about 4–6 vCPU stalls of 1 ms or more per minute, and kvm-clock with an
+unstable TSC. The stalls barely show in steal time. Two things keep the harness
+itself out of those windows:
+
+- the parent's garbage collector is off from dispatch until the reply is read;
+- `play_table` freezes the existing heap for the duration of the table.
+
+Every timeout becomes a `TimeoutRecord` with the worker's own parse, decide and CPU
+times from the late reply. With `timeout_inputs` the observation and committed state
+are kept as well, so `replay_decision` can replay the exact decision in a fresh
+worker. `run_benchmark(control=..., control_every=k)` interleaves tables seated
+entirely with a no-op bot, so a run measures its own stall rate.
+`strategy.eval.stalls` builds the gate on top of these hooks:
+
+- bot-caused timeouts fail;
+- stall-like timeouts are tested against the control (C-test);
+- the control must stay under a 0.05% ceiling;
+- up to 2 reruns are allowed, and every attempt is reported.
 
 ## Throughput
 
 - A 6-seat sandboxed table takes about 1 s of wall time (roughly 900 decisions).
-- 240 tables with 2 jobs take about 2 minutes, which is the default for `match`.
+- 240 tables with 2 jobs take about 2 minutes (the default for `match` is 1 job on
+  this VM, about twice as long).
 - Worker start-up (namespaces, interpreter, imports, warm-up) is about 0.14 s. It runs
   in a background pool, off the table's critical path.

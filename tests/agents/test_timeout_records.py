@@ -63,7 +63,8 @@ def test_late_reply_is_timed_when_it_is_drained():
     _next_turn(seat, table)
     assert decide_once(seat, table).fallback is None
     assert rec.as_dict() == {"decision_index": 0, "seq": 1, "budget_ns": BUDGET, "e2e_ns": BUDGET,
-                             "outcome": "late_reply", "late_by_ns": 400_000, "reply_kind": "action",
+                             "outcome": "late_reply", "late_by_ns": None, "drained_after_ns": 400_000,
+                             "reply_kind": "action",
                              "worker_parse_ns": 5, "worker_wall_ns": 10, "worker_cpu_ns": 9}
 
 

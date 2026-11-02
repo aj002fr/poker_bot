@@ -49,6 +49,31 @@ def _integrity_lines(check: Mapping[str, Any] | None) -> list[str]:
     return lines
 
 
+def _timeout_class_lines(classes: Mapping[str, Any] | None) -> list[str]:
+    if not classes:
+        return []
+    rows = []
+    for arm, c in classes.items():
+        k, ctl = c["candidate"], c["control"]
+        attempts = [f"{cid} a{row['attempt']} {row['verdict']}" for cid, cell in c["cells"].items()
+                    for row in cell["selection"]["attempts"]]
+        rows.append([arm + (" (strict)" if c["strict"] else ""), k["decisions"], k["timeouts"],
+                     k["classes"]["bot_caused"], k["classes"]["stall_like"], k["classes"]["unclassified"],
+                     f"{ctl['timeouts']}/{ctl['decisions']} ({_pct3(ctl['timeout_rate'])})", c["reruns"],
+                     "; ".join(attempts[:6]) + (" ..." if len(attempts) > 6 else "")])
+    lines = ["", "Classified timeouts (candidate seat; control = interleaved no-op tables; "
+                 "see strategy.eval.stalls):", ""]
+    lines += _table(["arm", "decisions", "timeouts", "bot-caused", "stall-like", "unclassified", "control",
+                     "reruns", "attempts"], rows)
+    for arm, c in classes.items():
+        lines += [f"- arm {arm}: {x}" for x in c["failed"] + c["invalid"]]
+    return lines
+
+
+def _pct3(v: Any) -> str:
+    return "-" if v is None else f"{v:.3%}"
+
+
 def _pct(v: Any) -> str:
     return "-" if v is None else f"{v:.2%}"
 
@@ -58,7 +83,8 @@ def _header(report: Mapping[str, Any]) -> list[str]:
     spec = m["spec"]
     lines = [f"# {spec['experiment_id']}: {spec['title']}", ""]
     if report["analysis"].get("withheld"):
-        lines += ["> **RUN INVALID: POINTS WITHHELD.** " + dec["reason"] + ".", ">", f"> {dec['note']}.", ""]
+        banner = "RUN INVALID: POINTS WITHHELD." if dec["verdict"] == "invalid" else "POINTS WITHHELD."
+        lines += [f"> **{banner}** " + dec["reason"] + ".", ">", f"> {dec['note']}.", ""]
         lines += [f"**Verdict: {dec['verdict']}** ({dec['stage']})."]
     else:
         lines += [f"**Verdict: {dec['verdict']}** ({dec['stage']}). {dec['reason']}."]
@@ -97,6 +123,7 @@ def _execution_lines(ex: Mapping[str, Any]) -> list[str]:
     lines += _table(["arm", "candidate decisions", "p50 s", "p95 s", "p99 s", "p99.9 s", "max s", "fallbacks",
                      "timeouts", "illegal", "errors", "artifact bytes", "max state bytes", "competitive timing"], rows)
     lines += _integrity_lines(ex.get("timeout_integrity"))
+    lines += _timeout_class_lines(ex.get("timeout_classes"))
     if ex.get("gates"):
         lines += ["", "Gates (arm B): " + ", ".join(
             f"{g['gate']} {'ok' if g['passed'] else 'FAILED'} ({_f(g['observed'], 6)} vs {g['limit']})"

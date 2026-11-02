@@ -190,7 +190,7 @@ def run_experiment(spec: ExperimentSpec, *, out_dir: Path | None = None, root: P
         if policy.artifact_sha256 != manifest.policies[label].artifact_sha256:
             raise RuntimeError(f"arm {label} artifact changed after the manifest was written")
     kwargs = dict(isolation=spec.isolation, work_dir=run_dir, jobs=jobs, budget_ns=spec.budget_ns,
-                  keep_histories=keep_histories, progress=progress)
+                  keep_histories=keep_histories, progress=progress, gates=spec.gates.model_dump())
     results: list[CellResult] = [run_cell(c, plan.arms, policies, **kwargs) for c in plan.cells]
     declared = Declared(min_effect=spec.min_effect, alpha=spec.alpha, power=spec.power, interval=spec.interval,
                         bootstrap_resamples=spec.bootstrap_resamples, seed=manifest.manifest_id, stage=spec.stage,

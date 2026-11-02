@@ -26,12 +26,14 @@ from typing import Any
 
 from arena.benchmark.runner import BenchmarkRun, RetryPolicy, run_benchmark
 from arena.domain.models import TournamentConfig
+from strategy.eval import stalls
 from strategy.eval.execution import entrant_execution, seat_timeouts
 from strategy.eval.outcomes import TableRecord, table_record
 from strategy.eval.policies import ResolvedPolicy, resolve_policy, salted_bundle
 from strategy.eval.population import Lineup
 
 CANDIDATE = 0
+STRICT_ARM = "B"
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,10 @@ class ArmRun:
     raw_latency: dict[str, list[int]] = field(default_factory=dict)
     seat_timeouts: dict[str, dict[str, int]] = field(default_factory=dict)
     """Decisions and timeouts of every entrant, candidate and opponents."""
+    timeout_classes: dict[str, Any] = field(default_factory=dict)
+    """Classified timeouts (:func:`strategy.eval.stalls.tally`) of the candidate, the
+    opponents and the control, plus ``assessment`` and ``selection``; empty when the
+    run does not classify (in-process, or no control)."""
 
 
 @dataclass
@@ -102,7 +108,12 @@ def resolve_arm(arm: Arm, work_dir: Path) -> ResolvedPolicy:
 
 def run_arm(cell: Cell, arm: Arm, policy: ResolvedPolicy, *, isolation: str, out_dir: Path, jobs: int = 1,
             budget_ns: int | None = None, retry: RetryPolicy | None = None, keep_histories: bool = False,
-            progress: Callable[[str, int, int], None] | None = None) -> ArmRun:
+            progress: Callable[[str, int, int], None] | None = None, control_every: int = 0,
+            timeout_inputs: int = 0) -> ArmRun:
+    """``control_every`` > 0 (sandbox only) interleaves no-op control tables and
+    classifies timeouts; ``timeout_inputs`` replays that many timeouts per seat per table."""
+    classify = isolation == "sandbox" and control_every > 0
+    control = resolve_policy(stalls.CONTROL_POLICY).entrant(isolation, "host control") if classify else None
     entrants = [policy.entrant(isolation, f"{arm.label}:{policy.name}")]
     entrants += [resolve_policy(o.policy).entrant(isolation) for o in cell.lineup.opponents]
     if len(entrants) != cell.config.initial_player_count:
@@ -119,7 +130,9 @@ def run_arm(cell: Cell, arm: Arm, policy: ResolvedPolicy, *, isolation: str, out
 
     run: BenchmarkRun = run_benchmark(config=cell.config, entrants=entrants, blocks=cell.blocks, base_seed=cell.seed,
                                       isolation=isolation, budget_ns=budget_ns, jobs=jobs, out_dir=out_dir,
-                                      save_histories=True, progress=collect, retry_policy=retry)
+                                      save_histories=True, progress=collect, retry_policy=retry,
+                                      control=control, control_every=control_every if classify else 0,
+                                      timeout_inputs=timeout_inputs if classify else 0)
     if not keep_histories and tables_dir.exists():
         shutil.rmtree(tables_dir)
     s = run.manifest.summary
@@ -136,14 +149,59 @@ def run_arm(cell: Cell, arm: Arm, policy: ResolvedPolicy, *, isolation: str, out
     labels = {CANDIDATE: "candidate"}
     labels |= {i: f"opponent {i} ({o.member_id})" for i, o in enumerate(cell.lineup.opponents, start=1)}
     records.sort(key=lambda r: (r.block, r.rotation))
+    classes: dict[str, Any] = {}
+    if classify:
+        classes = {
+            "candidate": stalls.tally(run.attempts, CANDIDATE, budget),
+            "opponents": {labels[i]: stalls.tally(run.attempts, i, budget) for i in range(1, len(entrants))},
+            "control": stalls.tally(run.control, len(entrants), budget),
+            "control_every": control_every,
+        }
     return ArmRun(arm, policy, records, execution, run.manifest.content_hash(), raw,
-                  seat_timeouts(run.attempts, labels))
+                  seat_timeouts(run.attempts, labels), classes)
+
+
+def _attempt_row(n: int, out_dir: Path, run: ArmRun) -> dict[str, Any]:
+    c = run.timeout_classes
+    return {"attempt": n, "out_dir": str(out_dir), "benchmark_manifest_hash": run.benchmark_manifest_hash,
+            "verdict": c["assessment"]["verdict"], "reason": c["assessment"]["reason"],
+            "candidate": {k: c["candidate"][k] for k in ("decisions", "timeouts", "classes", "exposure_s")},
+            "control": {k: c["control"][k] for k in ("decisions", "timeouts", "timeout_rate", "exposure_s")}}
+
+
+def run_arm_gated(cell: Cell, arm: Arm, policy: ResolvedPolicy, *, out_dir: Path,
+                  gates: Mapping[str, Any] | None = None, **kwargs: Any) -> ArmRun:
+    """:func:`run_arm` under the classified timeout gate and its rerun policy."""
+    g = dict(gates or {})
+    control_every = int(g.get("control_every", stalls.CONTROL_EVERY) or 0)
+    inputs = int(g.get("timeout_replays_per_seat", stalls.TIMEOUT_REPLAYS_PER_SEAT))
+    max_reruns = int(g.get("max_reruns", stalls.MAX_RERUNS))
+    attempts: list[ArmRun] = []
+    rows: list[dict[str, Any]] = []
+    while True:
+        target = out_dir if not attempts else out_dir / f"rerun-{len(attempts)}"
+        run = run_arm(cell, arm, policy, out_dir=target, control_every=control_every, timeout_inputs=inputs, **kwargs)
+        attempts.append(run)
+        if not run.timeout_classes:
+            return run
+        run.timeout_classes["assessment"] = stalls.assess(
+            run.timeout_classes["candidate"], run.timeout_classes["control"], strict=arm.label == STRICT_ARM,
+            max_bot_timeouts=g.get("max_bot_timeouts", 0),
+            max_control_timeout_rate=g.get("max_control_timeout_rate", stalls.MAX_CONTROL_TIMEOUT_RATE),
+            stall_p_min=g.get("stall_p_min", stalls.STALL_P_MIN))
+        rows.append(_attempt_row(len(attempts), target, run))
+        selection = stalls.select_attempt([a.timeout_classes["assessment"] for a in attempts], max_reruns)
+        if selection["action"] != "rerun":
+            break
+    chosen = attempts[selection["used"]] if selection["used"] is not None else attempts[-1]
+    chosen.timeout_classes["selection"] = {**selection, "max_reruns": max_reruns, "attempts": rows}
+    return chosen
 
 
 def run_cell(cell: Cell, arms: Sequence[Arm], policies: Mapping[str, ResolvedPolicy], *, isolation: str,
-             work_dir: Path, **kwargs: Any) -> CellResult:
-    runs = {arm.label: run_arm(cell, arm, policies[arm.label], isolation=isolation,
-                               out_dir=work_dir / "cells" / cell.cell_id / arm.label, **kwargs) for arm in arms}
+             work_dir: Path, gates: Mapping[str, Any] | None = None, **kwargs: Any) -> CellResult:
+    runs = {arm.label: run_arm_gated(cell, arm, policies[arm.label], isolation=isolation, gates=gates,
+                                     out_dir=work_dir / "cells" / cell.cell_id / arm.label, **kwargs) for arm in arms}
     return CellResult(cell, runs)
 
 
