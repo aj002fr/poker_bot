@@ -19,6 +19,9 @@ Stage 3 endgame tables are numpy archives (`<name>.npz`, provenance JSON in a
 | `endgame-points-<ruleset>` | `strategy.tables.endgame --mode points` | per decision key (open / call / overcall, four levels fine to coarse): reach-weighted probability of the shove or call per hand class, from solved full-stack-vector push/fold subgames valued in points (ICM continuation, cap-hand ICM, eliminations) | yes |
 | `endgame-chips-<ruleset>` | `--mode chips` | the same states and keys solved for chip EV (baseline) | yes |
 | `endgame-chart-<ruleset>` | `--mode chart` | symmetric-stack chip-EV solutions, coarsest keys only (fixed-chart baseline) | yes |
+| `response-<ruleset>` | `strategy.endgame.response fit` | population response curves (open shove, call or re-shove, overcall) per hand class and context, fitted on train-partition tournaments with held-out form selection | yes |
+| `endgame-response-<ruleset>` | `strategy.tables.exploit --mode response` | the point-table states and keys, each player best-responding in points to the curves | yes |
+| `endgame-capped-<ruleset>` | `--mode capped` | best responses to a 50/50 mixture of the curves and the state's point equilibrium | yes |
 | `value-<ruleset>` | `strategy.value.model fit` | continuation-value residual weights per live-player count, with held-out diagnostics in provenance | yes, when fitted |
 
 The endgame tables record the variant hash, the showdown table's data hash, the
@@ -32,6 +35,15 @@ chart tables (NLHE confirmation run: +0.06 points, 95% interval [-0.23, 0.35]; s
 deck discovery run: -0.69 [-1.32, -0.06]). They are equilibrium tables; against
 equilibrium opponents they lose 2.5-3x less than chip-EV tables in the point game
 (`gates-endgame`, table audit), but the population does not play equilibrium.
+
+Responding to the population fixes that (`make tables-response tables-exploit lab-response`,
+pre-registered in `docs/endgame-response-preregistration.md`, 400 paired blocks each,
+Holm-corrected over eight tests). The capped tables beat the point tables in NLHE
+(+0.96 points, [0.47, 1.46]) and short deck (+0.62, [0.19, 1.05]), and the chip-EV
+tables in NLHE (+1.18, [0.64, 1.71]). Against chip EV in short deck the result is +0.46,
+[0.02, 0.90], which is not significant after correction. The pure best-response tables
+beat the point tables in NLHE (+0.95, [0.41, 1.50]); their other three comparisons are
+nulls.
 
 Files live in `strategy/tables/data/` as gzip-compressed canonical JSON:
 `{"provenance": {...}, "data": {...}}`. Override the directory with `STRATEGY_TABLES_DIR`.

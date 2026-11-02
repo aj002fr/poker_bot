@@ -109,6 +109,8 @@ make tables-endgame    # point-aware, chip-EV and chart push/fold tables (about 
 make gates-endgame     # exact two-player regrets, multiway gains, limp gaps, table audit
 make value-rollouts value-fit  # rollouts and the fitted continuation value
 make lab-endgame       # paired SNG experiments: point-aware vs chip-EV, chart and no layer
+make tables-response tables-exploit  # population response curves (train partition) and tables responding to them
+make lab-response      # the pre-registered response-vs-equilibrium comparisons (docs/endgame-response-preregistration.md)
 ```
 
 The CLI plays seeded headless hands and tournaments with simple built-in policies
