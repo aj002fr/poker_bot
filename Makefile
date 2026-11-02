@@ -161,7 +161,7 @@ tables-exploit:
 # The eight pre-registered comparisons (docs/endgame-response-preregistration.md).
 lab-response:
 	for c in response capped; do for a in points chips; do for v in "" -shortdeck; do \
-		$(UV) run python -m strategy.cli experiment endgame-$$c-vs-$$a$$v --jobs $(LAB_JOBS) || exit 1; done; done; done
+		$(UV) run python -m strategy.cli experiment endgame-$$c-vs-$$a$$v $(LAB_JOBS_FLAG) || exit 1; done; done; done
 
 lab-endgame:
 	for s in endgame-points-vs-chips endgame-points-vs-chart endgame-points-vs-chips-shortdeck endgame-points-vs-none \
