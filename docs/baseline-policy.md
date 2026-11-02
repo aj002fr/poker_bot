@@ -174,11 +174,11 @@ running, 60% of decisions timed out at a worker p99 of 254 µs.
 Even idle, this VM has a timeout floor. Its host pauses it, and the pauses show up
 as thread CPU time rather than steal time. `make gate-control` timed out on 3 of
 50,011 decisions with a calling station whose decisions take 16 µs (p50). On the
-same machine the baseline candidate timed out on 13 of 50,111 decisions, at a worker
-p99 of 241 µs and a max of 429 µs among in-time replies. The late replies split
+same machine the baseline candidate timed out on 13 of 50,111 and then 5 of 50,046
+decisions, at a worker p99 of 240 µs and p99.9 of 298 µs. The late replies split
 between `bot_time` stalls (CPU time equal to a 0.7–2.1 ms wall time on decisions
-that replay in under 350 µs) and `transport`. Neither overlaps a GC pause, and
-neither reproduces in replay.
+that replay in under 350 µs) and `transport`. None overlaps a GC pause, and none
+reproduces in replay.
 
 **GC.** The worker collects and freezes the heap after loading the bot, and packaged
 bots also freeze after loading the variant tables (`gc_mode="freeze"`). The decision

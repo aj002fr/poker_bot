@@ -85,7 +85,7 @@ def _cause(miss: dict[str, Any], wall: dict[str, float]) -> str:
     """``bot_time`` when the bot's own (late-reported) time alone was far above its p99.9, else ``transport``
     (parse, IPC or scheduling outside the bot); ``unknown`` when no late reply arrived."""
     late = miss.get("late_worker") or {}
-    t = late.get("wall_ns")
+    t = late.get("wall_us")
     if t is None:
         return "unknown"
     return "bot_time" if wall and t > max(500.0, 2 * wall.get("p999_us", 0.0)) else "transport"
@@ -160,7 +160,8 @@ def run_gate(bundle: Path, *, ruleset_id: str = "practice_nlhe", min_decisions: 
                 for m in misses:
                     if m["table"] == tables and "seq" in m:
                         f = frames.get(m.pop("seq")) or {}
-                        m["late_worker"] = {k: (v / 1000 if isinstance(v, int) else None) for k, v in f.items()}
+                        m["late_worker"] = {k.replace("_ns", "_us"): (v / 1000 if isinstance(v, int) else None)
+                                            for k, v in f.items()}
                 wall += st.worker_wall_ns
                 e2e += st.e2e_ns
                 fallbacks.update(st.fallbacks)
